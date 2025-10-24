@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigat
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { Dashboard } from './pages/Dashboard';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import  Dashboard  from './pages/Dashboard';
 import { ScanPage } from './pages/ScanPage';
 import { InspectionPage } from './pages/InspectionPage';
 import { LocationManager } from './components/admin/LocationManager';
@@ -14,6 +14,7 @@ import { TestPage } from './pages/TestPage';
 import { ProtectedLayout } from './components/layout/ProtectedLayout';
 import './App.css';
 import { useEffect } from 'react';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

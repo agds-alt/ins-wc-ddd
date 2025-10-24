@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
-import { PhotoUpload } from './PhotoUpload';
+import { PhotoUpload } from './EnhancedPhotoUpload';
 import { useInspection } from '../../hooks/useInspection';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'sonner';

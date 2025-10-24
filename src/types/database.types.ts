@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      buildings: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          short_code: string
+          total_floors: number | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          short_code: string
+          total_floors?: number | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          short_code?: string
+          total_floors?: number | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buildings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_records: {
         Row: {
           duration_seconds: number | null
@@ -72,6 +129,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_records_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_with_details"
             referencedColumns: ["id"]
           },
           {
@@ -148,6 +212,7 @@ export type Database = {
         Row: {
           area: string | null
           building: string | null
+          building_id: string
           code: string | null
           coordinates: Json | null
           created_at: string | null
@@ -157,6 +222,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          organization_id: string
           photo_url: string | null
           qr_code: string
           section: string | null
@@ -165,6 +231,7 @@ export type Database = {
         Insert: {
           area?: string | null
           building?: string | null
+          building_id: string
           code?: string | null
           coordinates?: Json | null
           created_at?: string | null
@@ -174,6 +241,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          organization_id: string
           photo_url?: string | null
           qr_code: string
           section?: string | null
@@ -182,6 +250,7 @@ export type Database = {
         Update: {
           area?: string | null
           building?: string | null
+          building_id?: string
           code?: string | null
           coordinates?: Json | null
           created_at?: string | null
@@ -191,6 +260,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          organization_id?: string
           photo_url?: string | null
           qr_code?: string
           section?: string | null
@@ -198,7 +268,71 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "locations_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          phone: string | null
+          short_code: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          short_code: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          short_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
@@ -275,6 +409,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_with_details"
             referencedColumns: ["id"]
           },
           {
@@ -387,7 +528,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login_at: string | null
-          password_hash: string
+          password_hash: string | null
           phone: string | null
           profile_photo_url: string | null
           updated_at: string | null
@@ -399,7 +540,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
-          password_hash: string
+          password_hash?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           updated_at?: string | null
@@ -411,7 +552,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
-          password_hash?: string
+          password_hash?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           updated_at?: string | null
@@ -420,7 +561,55 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      locations_with_details: {
+        Row: {
+          area: string | null
+          building: string | null
+          building_code: string | null
+          building_id: string | null
+          building_name: string | null
+          building_type: string | null
+          code: string | null
+          coordinates: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          floor: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          organization_code: string | null
+          organization_id: string | null
+          organization_name: string | null
+          photo_url: string | null
+          qr_code: string | null
+          section: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       user_has_any_role_level: {
