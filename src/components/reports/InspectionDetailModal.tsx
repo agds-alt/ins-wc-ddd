@@ -2,13 +2,38 @@
 import { X, MapPin, Clock, User, Camera, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { InspectionReport } from '../../hooks/useReports';
-import { INSPECTION_COMPONENTS } from '../../types/inspection.types';
+import { INSPECTION_COMPONENTS, calculateWeightedScore } from '../../types/inspection.types';
 
 interface InspectionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   inspection: InspectionReport | null;
 }
+
+// Helper to extract score from any response format
+const getScoreFromResponses = (responses: any): number => {
+  if (!responses) return 0;
+  
+  // Direct score field
+  if (typeof responses.score === 'number') return responses.score;
+  
+  // Calculate from ratings array
+  if (Array.isArray(responses.ratings) && responses.ratings.length > 0) {
+    return calculateWeightedScore(responses.ratings);
+  }
+  
+  // Fallback
+  const values = Object.values(responses).filter(v => 
+    typeof v === 'string' || typeof v === 'boolean'
+  );
+  if (values.length === 0) return 0;
+  
+  const goodCount = values.filter(v => 
+    v === true || v === 'good' || v === 'excellent' || v === 'baik'
+  ).length;
+  
+  return Math.round((goodCount / values.length) * 100);
+};
 
 const getScoreColor = (score: number) => {
   if (score >= 85) return 'bg-green-100 text-green-700';
@@ -29,7 +54,7 @@ export const InspectionDetailModal = ({
   if (!isOpen || !inspection) return null;
 
   const responses = inspection.responses as any;
-  const score = responses?.score || 0;
+  const score = getScoreFromResponses(responses);
   const ratings = responses?.ratings || [];
 
   const formattedDate = format(new Date(inspection.inspection_date), 'EEEE, MMMM d, yyyy');

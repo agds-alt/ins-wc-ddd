@@ -1,7 +1,8 @@
-// src/hooks/useReports.ts
+// src/hooks/useReports.ts - FIXED VERSION
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { calculateWeightedScore } from '../types/inspection.types';
 
 export interface InspectionReport {
   id: string;
@@ -30,13 +31,52 @@ export interface DateInspections {
   count: number;
 }
 
+// Helper function to extract score from responses
+const getScoreFromResponses = (responses: any): number => {
+  if (!responses) return 0;
+
+  // Case 1: Direct score field
+  if (typeof responses.score === 'number') {
+    return responses.score;
+  }
+
+  // Case 2: Calculate from ratings array (like ComprehensiveInspectionForm)
+  if (Array.isArray(responses.ratings) && responses.ratings.length > 0) {
+    return calculateWeightedScore(responses.ratings);
+  }
+
+  // Case 3: Old format - count good responses
+  const values = Object.values(responses).filter(v => 
+    typeof v === 'string' || typeof v === 'boolean'
+  );
+  
+  if (values.length === 0) return 0;
+
+  const goodCount = values.filter(v => 
+    v === true || 
+    v === 'good' || 
+    v === 'excellent' || 
+    v === 'baik' || 
+    v === 'bersih'
+  ).length;
+
+  return Math.round((goodCount / values.length) * 100);
+};
+
 // Get inspections for a specific month
 export const useMonthlyInspections = (userId: string | undefined, currentDate: Date) => {
   return useQuery({
     queryKey: ['monthly-inspections', userId, format(currentDate, 'yyyy-MM')],
     queryFn: async () => {
+      if (!userId) {
+        console.warn('⚠️ No userId provided to useMonthlyInspections');
+        return [];
+      }
+
       const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
       const end = format(endOfMonth(currentDate), 'yyyy-MM-dd');
+
+      console.log('📅 Fetching inspections:', { userId, start, end });
 
       const { data, error } = await supabase
         .from('inspection_records')
@@ -57,7 +97,12 @@ export const useMonthlyInspections = (userId: string | undefined, currentDate: D
         .order('inspection_date', { ascending: false })
         .order('inspection_time', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching inspections:', error);
+        throw error;
+      }
+
+      console.log('✅ Fetched inspections:', data?.length || 0);
 
       // Group by date
       const groupedByDate = (data || []).reduce((acc: Record<string, InspectionReport[]>, item: any) => {
@@ -81,13 +126,12 @@ export const useMonthlyInspections = (userId: string | undefined, currentDate: D
 
       // Calculate average score per date
       const dateInspections: DateInspections[] = Object.entries(groupedByDate).map(([date, inspections]) => {
-        const scores = inspections.map(ins => {
-          const responses = ins.responses as any;
-          return responses?.score || 0;
-        });
+        const scores = inspections.map(ins => getScoreFromResponses(ins.responses));
         const averageScore = scores.length > 0 
           ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
           : 0;
+
+        console.log(`📊 Date ${date}: ${inspections.length} inspections, avg score: ${averageScore}`);
 
         return {
           date,
@@ -108,6 +152,13 @@ export const useDateInspections = (userId: string | undefined, date: string) => 
   return useQuery({
     queryKey: ['date-inspections', userId, date],
     queryFn: async () => {
+      if (!userId || !date) {
+        console.warn('⚠️ Missing userId or date');
+        return [];
+      }
+
+      console.log('📅 Fetching inspections for date:', { userId, date });
+
       const { data, error } = await supabase
         .from('inspection_records')
         .select(`
@@ -125,7 +176,12 @@ export const useDateInspections = (userId: string | undefined, date: string) => 
         .eq('inspection_date', date)
         .order('inspection_time', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching date inspections:', error);
+        throw error;
+      }
+
+      console.log('✅ Fetched date inspections:', data?.length || 0);
 
       return (data || []).map((item: any) => ({
         id: item.id,
