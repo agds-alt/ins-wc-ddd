@@ -1,0 +1,401 @@
+// src/types/inspection.types.ts
+export type InspectionComponent = 
+  | 'aroma'
+  | 'floor_cleanliness'
+  | 'wall_condition'
+  | 'sink_condition'
+  | 'mirror_condition'
+  | 'toilet_condition'
+  | 'urinal_condition'
+  | 'soap_availability'
+  | 'tissue_availability'
+  | 'air_freshener'
+  | 'trash_bin_condition';
+
+export type RatingLevel = 1 | 2 | 3 | 4 | 5;
+
+export interface ComponentRating {
+  component: InspectionComponent;
+  rating: RatingLevel;
+  notes?: string;
+  photo?: string;
+}
+
+export interface InspectionComponentConfig {
+  id: InspectionComponent;
+  label: string;
+  labelGenZ: string;
+  weight: number; // untuk weighted scoring
+  icon: string;
+  iconGenZ: string;
+  required: boolean;
+  allowPhoto: boolean;
+  ratingLabels: {
+    professional: { [key in RatingLevel]: string };
+    genZ: { [key in RatingLevel]: string };
+  };
+}
+
+export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
+  {
+    id: 'aroma',
+    label: 'Aroma/Odor Level',
+    labelGenZ: 'Bau-bauan',
+    weight: 0.15, // 15% of total score
+    icon: '👃',
+    iconGenZ: '😷',
+    required: true,
+    allowPhoto: false,
+    ratingLabels: {
+      professional: {
+        1: 'Very Poor - Strong unpleasant odor',
+        2: 'Poor - Noticeable odor',
+        3: 'Fair - Slight odor',
+        4: 'Good - Fresh',
+        5: 'Excellent - Very fresh',
+      },
+      genZ: {
+        1: '🤢 Bau banget!',
+        2: '😷 Agak bau',
+        3: '😐 Lumayan',
+        4: '😊 Seger',
+        5: '🌸 Wangi poll!',
+      },
+    },
+  },
+  {
+    id: 'floor_cleanliness',
+    label: 'Floor Cleanliness',
+    labelGenZ: 'Kebersihan Lantai',
+    weight: 0.12,
+    icon: '🧹',
+    iconGenZ: '✨',
+    required: true,
+    allowPhoto: true,
+    ratingLabels: {
+      professional: {
+        1: 'Very dirty - Major cleaning needed',
+        2: 'Dirty - Visible stains/debris',
+        3: 'Moderately clean',
+        4: 'Clean - Minor spots only',
+        5: 'Spotless',
+      },
+      genZ: {
+        1: '🤮 Kotor parah',
+        2: '😣 Kotor',
+        3: '😐 Lumayan bersih',
+        4: '😊 Bersih',
+        5: '✨ Kinclong!',
+      },
+    },
+  },
+  {
+    id: 'wall_condition',
+    label: 'Wall & Tile Condition',
+    labelGenZ: 'Kondisi Dinding',
+    weight: 0.08,
+    icon: '🧱',
+    iconGenZ: '🎨',
+    required: true,
+    allowPhoto: true,
+    ratingLabels: {
+      professional: {
+        1: 'Very poor - Damaged/moldy',
+        2: 'Poor - Visible stains',
+        3: 'Fair - Some marks',
+        4: 'Good - Clean',
+        5: 'Excellent - Pristine',
+      },
+      genZ: {
+        1: '😨 Rusak/jamur',
+        2: '😟 Bernoda',
+        3: '😐 Ada noda dikit',
+        4: '😊 Bersih',
+        5: '🌟 Mulus!',
+      },
+    },
+  },
+  {
+    id: 'sink_condition',
+    label: 'Sink & Faucet Condition',
+    labelGenZ: 'Kondisi Wastafel',
+    weight: 0.10,
+    icon: '🚰',
+    iconGenZ: '💧',
+    required: true,
+    allowPhoto: true,
+    ratingLabels: {
+      professional: {
+        1: 'Not functional',
+        2: 'Poor - Clogged/leaking',
+        3: 'Fair - Minor issues',
+        4: 'Good - Functioning well',
+        5: 'Excellent - Perfect condition',
+      },
+      genZ: {
+        1: '❌ Rusak',
+        2: '😫 Mampet/bocor',
+        3: '😐 Agak bermasalah',
+        4: '😊 Lancar',
+        5: '💯 Perfect!',
+      },
+    },
+  },
+  {
+    id: 'mirror_condition',
+    label: 'Mirror Cleanliness',
+    labelGenZ: 'Kebersihan Cermin',
+    weight: 0.06,
+    icon: '🪞',
+    iconGenZ: '✨',
+    required: true,
+    allowPhoto: false,
+    ratingLabels: {
+      professional: {
+        1: 'Very dirty/damaged',
+        2: 'Dirty - Heavy stains',
+        3: 'Fair - Some spots',
+        4: 'Clean - Minor marks',
+        5: 'Spotless',
+      },
+      genZ: {
+        1: '😵 Kotor/rusak',
+        2: '😣 Banyak noda',
+        3: '😐 Ada noda dikit',
+        4: '😊 Bersih',
+        5: '✨ Bening!',
+      },
+    },
+  },
+  {
+    id: 'toilet_condition',
+    label: 'Toilet Bowl Condition',
+    labelGenZ: 'Kondisi Kloset',
+    weight: 0.15,
+    icon: '🚽',
+    iconGenZ: '🚽',
+    required: true,
+    allowPhoto: true,
+    ratingLabels: {
+      professional: {
+        1: 'Very dirty - Unsanitary',
+        2: 'Dirty - Visible stains',
+        3: 'Fair - Needs cleaning',
+        4: 'Clean',
+        5: 'Spotless - Sanitized',
+      },
+      genZ: {
+        1: '🤢 Jorok banget',
+        2: '😫 Kotor',
+        3: '😐 Perlu dibersihkan',
+        4: '😊 Bersih',
+        5: '🌟 Bersih banget!',
+      },
+    },
+  },
+  {
+    id: 'urinal_condition',
+    label: 'Urinal Condition (if applicable)',
+    labelGenZ: 'Kondisi Urinoir',
+    weight: 0.08,
+    icon: '🚿',
+    iconGenZ: '🚿',
+    required: false, // not all toilets have urinals
+    allowPhoto: true,
+    ratingLabels: {
+      professional: {
+        1: 'Very poor - Not functional',
+        2: 'Poor - Clogged/dirty',
+        3: 'Fair - Needs attention',
+        4: 'Good - Clean & functional',
+        5: 'Excellent - Pristine',
+      },
+      genZ: {
+        1: '❌ Rusak',
+        2: '😫 Mampet/kotor',
+        3: '😐 Perlu perhatian',
+        4: '😊 Bersih & lancar',
+        5: '💯 Perfect!',
+      },
+    },
+  },
+  {
+    id: 'soap_availability',
+    label: 'Hand Soap Availability',
+    labelGenZ: 'Sabun Cuci Tangan',
+    weight: 0.08,
+    icon: '🧴',
+    iconGenZ: '🧼',
+    required: true,
+    allowPhoto: false,
+    ratingLabels: {
+      professional: {
+        1: 'Empty - No soap',
+        2: 'Almost empty',
+        3: 'Half full',
+        4: 'Good supply',
+        5: 'Full - Well stocked',
+      },
+      genZ: {
+        1: '❌ Habis',
+        2: '😟 Tinggal dikit',
+        3: '😐 Setengah',
+        4: '😊 Cukup',
+        5: '✅ Full!',
+      },
+    },
+  },
+  {
+    id: 'tissue_availability',
+    label: 'Toilet Tissue Availability',
+    labelGenZ: 'Tisu/Tissue',
+    weight: 0.08,
+    icon: '🧻',
+    iconGenZ: '🧻',
+    required: true,
+    allowPhoto: false,
+    ratingLabels: {
+      professional: {
+        1: 'Empty - No tissue',
+        2: 'Almost empty',
+        3: 'Half roll',
+        4: 'Good supply',
+        5: 'Full - Well stocked',
+      },
+      genZ: {
+        1: '❌ Habis',
+        2: '😟 Mau habis',
+        3: '😐 Setengah',
+        4: '😊 Cukup',
+        5: '✅ Full!',
+      },
+    },
+  },
+  {
+    id: 'air_freshener',
+    label: 'Air Freshener Status',
+    labelGenZ: 'Pengharum Ruangan',
+    weight: 0.05,
+    icon: '🌬️',
+    iconGenZ: '🌸',
+    required: true,
+    allowPhoto: false,
+    ratingLabels: {
+      professional: {
+        1: 'Not working/missing',
+        2: 'Empty/weak',
+        3: 'Partially effective',
+        4: 'Working well',
+        5: 'Excellent - Strong & pleasant',
+      },
+      genZ: {
+        1: '❌ Rusak/gak ada',
+        2: '😟 Habis/lemah',
+        3: '😐 Lumayan',
+        4: '😊 Bagus',
+        5: '🌸 Wangi poll!',
+      },
+    },
+  },
+  {
+    id: 'trash_bin_condition',
+    label: 'Trash Bin Condition',
+    labelGenZ: 'Kondisi Tempat Sampah',
+    weight: 0.05,
+    icon: '🗑️',
+    iconGenZ: '🗑️',
+    required: true,
+    allowPhoto: true,
+    ratingLabels: {
+      professional: {
+        1: 'Overflowing - Critical',
+        2: 'Nearly full',
+        3: 'Half full',
+        4: 'Quarter full',
+        5: 'Empty - Clean',
+      },
+      genZ: {
+        1: '🤮 Penuh meluber',
+        2: '😫 Hampir penuh',
+        3: '😐 Setengah',
+        4: '😊 Masih kosong',
+        5: '✅ Kosong & bersih!',
+      },
+    },
+  },
+];
+
+// Calculate weighted score from ratings
+export const calculateWeightedScore = (ratings: ComponentRating[]): number => {
+  let totalScore = 0;
+  let totalWeight = 0;
+
+  ratings.forEach((rating) => {
+    const config = INSPECTION_COMPONENTS.find((c) => c.id === rating.component);
+    if (config) {
+      // Convert rating (1-5) to percentage (0-100)
+      const scorePercentage = ((rating.rating - 1) / 4) * 100;
+      totalScore += scorePercentage * config.weight;
+      totalWeight += config.weight;
+    }
+  });
+
+  // Normalize to 0-100 scale
+  return totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+};
+
+// Get status based on score
+export const getScoreStatus = (score: number): {
+  label: string;
+  labelGenZ: string;
+  color: string;
+  emoji: string;
+} => {
+  if (score >= 90) {
+    return {
+      label: 'Excellent',
+      labelGenZ: 'Perfect! 🎉',
+      color: 'green',
+      emoji: '🌟',
+    };
+  } else if (score >= 75) {
+    return {
+      label: 'Good',
+      labelGenZ: 'Bagus! 👍',
+      color: 'blue',
+      emoji: '😊',
+    };
+  } else if (score >= 60) {
+    return {
+      label: 'Fair',
+      labelGenZ: 'Lumayan',
+      color: 'yellow',
+      emoji: '😐',
+    };
+  } else if (score >= 40) {
+    return {
+      label: 'Poor',
+      labelGenZ: 'Kurang nih',
+      color: 'orange',
+      emoji: '😟',
+    };
+  } else {
+    return {
+      label: 'Very Poor',
+      labelGenZ: 'Harus diperbaiki!',
+      color: 'red',
+      emoji: '😨',
+    };
+  }
+};
+
+export interface InspectionFormData {
+  location_id: string;
+  ratings: ComponentRating[];
+  photos: File[];
+  general_notes?: string;
+  issues_found: boolean;
+  issue_description?: string;
+  requires_maintenance: boolean;
+  maintenance_priority?: 'low' | 'medium' | 'high' | 'urgent';
+}
