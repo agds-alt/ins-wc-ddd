@@ -78,6 +78,7 @@ export const useMonthlyInspections = (userId: string | undefined, currentDate: D
 
       console.log('📅 Fetching inspections:', { userId, start, end });
 
+      // FIX: Specify exact relationship for users
       const { data, error } = await supabase
         .from('inspection_records')
         .select(`
@@ -89,7 +90,7 @@ export const useMonthlyInspections = (userId: string | undefined, currentDate: D
           photo_urls,
           notes,
           location:locations!inner(id, name, building, floor),
-          user:users!inner(id, full_name)
+          user:users!inspection_records_user_id_fkey(id, full_name)
         `)
         .eq('user_id', userId)
         .gte('inspection_date', start)
@@ -159,6 +160,7 @@ export const useDateInspections = (userId: string | undefined, date: string) => 
 
       console.log('📅 Fetching inspections for date:', { userId, date });
 
+      // FIX: Specify exact relationship for users
       const { data, error } = await supabase
         .from('inspection_records')
         .select(`
@@ -170,7 +172,7 @@ export const useDateInspections = (userId: string | undefined, date: string) => 
           photo_urls,
           notes,
           location:locations!inner(id, name, building, floor),
-          user:users!inner(id, full_name)
+          user:users!inspection_records_user_id_fkey(id, full_name)
         `)
         .eq('user_id', userId)
         .eq('inspection_date', date)

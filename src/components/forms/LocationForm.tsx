@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useOrganizations } from '../../hooks/useOrganitations';
+import { useOrganizations } from '../../hooks/useOrganizations';
 import { useBuildings } from '../../hooks/useBuildings';
 import type { LocationFormData } from '../../types/location.types';
 import { validateLocationData } from '../../lib/locationService';

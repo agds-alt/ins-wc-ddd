@@ -31,7 +31,7 @@ import { ErrorMessage, EmptyState } from '../components/ui/ErrorBoundary';
 import { StatusBadge, ScoreBadge } from '../components/ui/Badge';
 import { BottomNav } from '../components/mobile/BottomNav';
 
-export const Dashboard = () => {
+const Dashboard = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -415,5 +415,6 @@ export const Dashboard = () => {
     </div>
   );
 };
+
 
 export default Dashboard;

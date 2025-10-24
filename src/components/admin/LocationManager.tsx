@@ -1,5 +1,5 @@
 // src/components/admin/LocationManager.tsx - MOBILE-FIRST FIXED
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -317,32 +317,123 @@ interface LocationFormModalProps {
 
 const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalProps) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     name: location?.name || '',
     code: location?.code || '',
-    building: location?.building || '',
+    organization_id: location?.organization_id || '',
+    building_id: location?.building_id || '',
     floor: location?.floor || '',
     area: location?.area || '',
     section: location?.section || '',
     description: location?.description || '',
   });
 
+  // Fetch organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching organizations:', error);
+        return;
+      }
+      
+      setOrganizations(data || []);
+    };
+    fetchOrganizations();
+  }, []);
+
+  // Fetch buildings when organization selected
+  useEffect(() => {
+    const fetchBuildings = async () => {
+      if (!formData.organization_id) {
+        setBuildings([]);
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('buildings')
+        .select('*')
+        .eq('organization_id', formData.organization_id)
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching buildings:', error);
+      } else {
+        setBuildings(data || []);
+      }
+      setLoading(false);
+    };
+    fetchBuildings();
+  }, [formData.organization_id]);
+
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Validasi UUID
+      if (!data.organization_id || !data.building_id) {
+        throw new Error('Organization and Building are required');
+      }
+
       if (location) {
+        // UPDATE existing location
         const { error } = await supabase
           .from('locations')
           .update({
-            ...data,
+            name: data.name,
+            code: data.code,
+            organization_id: data.organization_id,
+            building_id: data.building_id,
+            floor: data.floor,
+            area: data.area,
+            section: data.section,
+            description: data.description,
             updated_at: new Date().toISOString(),
           })
           .eq('id', location.id);
 
         if (error) throw error;
       } else {
-        const newLocation: TablesInsert<'locations'> = {
-          ...data,
-          qr_code: '',
+        // INSERT new location
+        const { data: building, error: buildingError } = await supabase
+          .from('buildings')
+          .select('short_code, organizations(short_code)')
+          .eq('id', data.building_id)
+          .single();
+
+        if (buildingError || !building) {
+          throw new Error('Building not found');
+        }
+
+        // Generate QR code
+        const orgCode = (building.organizations as any).short_code;
+        const buildingCode = building.short_code;
+        const locationCode = data.code || 'LOC';
+        const uniqueId = Date.now().toString(36).slice(-4);
+        
+        const qrCode = orgCode + '-' + buildingCode + '-' + locationCode + '-' + uniqueId;
+
+        const newLocation = {
+          name: data.name,
+          code: data.code,
+          organization_id: data.organization_id,
+          building_id: data.building_id,
+          floor: data.floor,
+          area: data.area,
+          section: data.section,
+          description: data.description,
+          qr_code: qrCode.toUpperCase(),
           is_active: true,
           created_by: user?.id || null,
         };
@@ -356,9 +447,10 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
     },
     onSuccess: () => {
       toast.success(location ? 'Location updated' : 'Location created');
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
       onSuccess();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || 'Failed to save location');
     },
   });
@@ -368,6 +460,16 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
     
     if (!formData.name.trim()) {
       toast.error('Location name is required');
+      return;
+    }
+
+    if (!formData.organization_id) {
+      toast.error('Organization is required');
+      return;
+    }
+
+    if (!formData.building_id) {
+      toast.error('Building is required');
       return;
     }
 
@@ -384,6 +486,53 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {/* Organization Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Organization *
+            </label>
+            <select
+              value={formData.organization_id}
+              onChange={(e) => setFormData({ ...formData, organization_id: e.target.value, building_id: '' })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+              disabled={saveMutation.isPending}
+            >
+              <option value="">Select Organization</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name} ({org.short_code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Building Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Building *
+            </label>
+            <select
+              value={formData.building_id}
+              onChange={(e) => setFormData({ ...formData, building_id: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+              disabled={!formData.organization_id || loading || saveMutation.isPending}
+            >
+              <option value="">
+                {loading ? 'Loading buildings...' : 
+                 !formData.organization_id ? 'Select organization first' : 
+                 'Select Building'}
+              </option>
+              {buildings.map((building) => (
+                <option key={building.id} value={building.id}>
+                  {building.name} ({building.short_code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location Name *
@@ -395,36 +544,27 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="e.g. Toilet Lantai 3"
               required
+              disabled={saveMutation.isPending}
             />
           </div>
 
+          {/* Code */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Code
+              Location Code
             </label>
             <input
               type="text"
               value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="e.g. WC-03"
+              placeholder="e.g. WC-03, T-MEN-1"
+              disabled={saveMutation.isPending}
             />
           </div>
 
+          {/* Floor & Section */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Building
-              </label>
-              <input
-                type="text"
-                value={formData.building}
-                onChange={(e) => setFormData({ ...formData, building: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Gedung A"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Floor
@@ -435,21 +575,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
                 onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Lantai 3"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Area
-              </label>
-              <input
-                type="text"
-                value={formData.area}
-                onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Area Utara"
+                disabled={saveMutation.isPending}
               />
             </div>
 
@@ -463,10 +589,32 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
                 onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Pria/Wanita"
+                disabled={saveMutation.isPending}
               />
             </div>
           </div>
 
+          {/* Area */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Area Type
+            </label>
+            <select
+              value={formData.area}
+              onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={saveMutation.isPending}
+            >
+              <option value="">Select Area Type</option>
+              <option value="Public Area">Public Area</option>
+              <option value="Staff Area">Staff Area</option>
+              <option value="VIP Area">VIP Area</option>
+              <option value="Service Area">Service Area</option>
+              <option value="Emergency Area">Emergency Area</option>
+            </select>
+          </div>
+
+          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description
@@ -477,6 +625,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={3}
               placeholder="Additional information..."
+              disabled={saveMutation.isPending}
             />
           </div>
 
@@ -493,7 +642,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
             <Button
               type="submit"
               className="flex-1"
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || !formData.name || !formData.organization_id || !formData.building_id}
             >
               {saveMutation.isPending ? 'Saving...' : location ? 'Update' : 'Create'}
             </Button>

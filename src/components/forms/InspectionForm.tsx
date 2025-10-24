@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
-import { PhotoUpload } from './EnhancedPhotoUpload';
+import { EnhancedPhotoUpload } from './EnhancedPhotoUpload';
 import { useInspection } from '../../hooks/useInspection';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'sonner';
@@ -208,7 +208,7 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
 
         {/* Photo Upload */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <PhotoUpload
+          <EnhancedPhotoUpload
             photos={photos}
             onPhotosChange={setPhotos}
             maxPhotos={5}

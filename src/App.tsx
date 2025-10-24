@@ -1,20 +1,20 @@
-// src/App.tsx - UPDATED: Added ProtectedLayout for consistent BottomNav
+// src/App.tsx - FULL CODE
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import  Dashboard  from './pages/Dashboard';
+import Dashboard from './pages/Dashboard';
 import { ScanPage } from './pages/ScanPage';
 import { InspectionPage } from './pages/InspectionPage';
 import { LocationManager } from './components/admin/LocationManager';
 import { ReportsPage } from './pages/ReportsPage';
 import { TestPage } from './pages/TestPage';
 import { ProtectedLayout } from './components/layout/ProtectedLayout';
+import { LocationInspectionPage } from './pages/LocationInspectionPage';
 import './App.css';
 import { useEffect } from 'react';
-
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,7 +39,7 @@ function ShareableLocationPage() {
 
     if (user) {
       // User logged in → Go to inspection
-      navigate(`/inspect/${locationId}`, { replace: true });
+      navigate(`/locations/${locationId}`, { replace: true });
     } else {
       // Not logged in → Go to login with redirect
       navigate(`/login?redirect=/locations/${locationId}`, { replace: true });
@@ -84,11 +84,13 @@ function AppContent() {
 
       {/* Shareable Location Route (works for logged in & logged out) */}
       <Route 
-        path="/locations/:locationId" 
+        path="/locations/:locationId/share" 
         element={<ShareableLocationPage />} 
       />
 
       {/* Protected Routes (WITH BottomNav via ProtectedLayout) */}
+      
+      {/* ROOT PATH */}
       <Route 
         path="/" 
         element={
@@ -102,6 +104,21 @@ function AppContent() {
         } 
       />
       
+      {/* Dashboard route */}
+      <Route 
+        path="/dashboard" 
+        element={
+          user ? (
+            <ProtectedLayout>
+              <Dashboard />
+            </ProtectedLayout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+      
+      {/* Scan Route */}
       <Route 
         path="/scan" 
         element={
@@ -115,6 +132,21 @@ function AppContent() {
         } 
       />
       
+      {/* Location Inspection Route - NEW */}
+      <Route 
+        path="/locations/:locationId" 
+        element={
+          user ? (
+            <ProtectedLayout>
+              <LocationInspectionPage />
+            </ProtectedLayout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+
+      {/* Old Inspection Route (keep for compatibility) */}
       <Route 
         path="/inspect/:locationId" 
         element={
@@ -128,6 +160,24 @@ function AppContent() {
         } 
       />
 
+      {/* History Route */}
+      <Route 
+        path="/history" 
+        element={
+          user ? (
+            <ProtectedLayout>
+              <div className="min-h-screen bg-gray-50 p-4">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Inspection History</h1>
+                <p className="text-gray-600">History page coming soon...</p>
+              </div>
+            </ProtectedLayout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+
+      {/* Reports Route */}
       <Route 
         path="/reports" 
         element={
@@ -143,7 +193,7 @@ function AppContent() {
       
       {/* Admin Routes */}
       <Route 
-        path="/locations" 
+        path="/admin/locations" 
         element={
           user ? (
             <ProtectedLayout>
@@ -155,6 +205,7 @@ function AppContent() {
         } 
       />
 
+      {/* Profile Route */}
       <Route 
         path="/profile" 
         element={
@@ -165,6 +216,23 @@ function AppContent() {
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Page</h1>
                   <p className="text-gray-600">Coming soon...</p>
                 </div>
+              </div>
+            </ProtectedLayout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+
+      {/* Analytics Route */}
+      <Route 
+        path="/analytics" 
+        element={
+          user ? (
+            <ProtectedLayout>
+              <div className="min-h-screen bg-gray-50 p-4">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Analytics</h1>
+                <p className="text-gray-600">Analytics page coming soon...</p>
               </div>
             </ProtectedLayout>
           ) : (
