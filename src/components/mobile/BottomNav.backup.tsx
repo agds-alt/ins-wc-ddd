@@ -12,8 +12,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'home', icon: Home, label: 'Home', path: '/' },              // ← Changed to '/'
-  { id: 'reports', icon: Calendar, label: 'Reports', path: '/reports' }, // ← NEW!
+  { id: 'home', icon: Home, label: 'Home', path: '/' },
+  { id: 'reports', icon: Calendar, label: 'Reports', path: '/reports' },
   { id: 'scan', icon: QrCode, label: 'Scan', path: '/scan', isCenter: true },
   { id: 'locations', icon: MapPin, label: 'Locations', path: '/locations' },
   { id: 'profile', icon: User, label: 'Profile', path: '/profile' },

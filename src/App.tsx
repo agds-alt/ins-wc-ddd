@@ -12,6 +12,7 @@ import { LocationManager } from './components/admin/LocationManager';
 import { TestPage } from './pages/TestPage';
 import './App.css';
 import { useEffect } from 'react';
+import { ReportsPage } from './pages/ReportsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,13 @@ function AppContent() {
         path="/scan" 
         element={user ? <ScanPage /> : <Navigate to="/login" replace />} 
       />
+
+          
+      <Route 
+        path="/reports" 
+        element={user ? <ReportsPage /> : <Navigate to="/reports" replace />} 
+      />
+
       <Route 
         path="/inspect/:locationId" 
         element={user ? <InspectionPage /> : <Navigate to="/login" replace />} 
