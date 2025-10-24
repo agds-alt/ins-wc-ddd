@@ -1,21 +1,30 @@
 // src/components/layout/ProtectedLayout.tsx
-import { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { BottomNav } from '../mobile/BottomNav';
 
 interface ProtectedLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="pb-20">
-        {children}
-      </div>
+  const location = useLocation();
+  
+  // Hide bottom nav di semua halaman inspection
+  const showBottomNav = !(
+    location.pathname.includes('/inspect/') || 
+    location.pathname.includes('/locations/') && 
+    !location.pathname.includes('/admin/')
+  );
 
-      {/* Bottom Navigation */}
-      <BottomNav />
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto safe-area-top">
+        {children}
+      </main>
+      
+      {/* Bottom Navigation - Conditional Render */}
+      {showBottomNav && <BottomNav />}
     </div>
   );
 };
