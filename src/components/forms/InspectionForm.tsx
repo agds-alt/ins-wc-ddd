@@ -92,9 +92,9 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
       await submitInspection.mutateAsync({
         location_id: locationId,
         user_id: user.id,
-        responses: responses,
-        photos: photos,
-        notes: data.additional_notes,
+        responses,
+        photos: Array.from(photos.values()).flat().map(p => p.file),
+        notes: generalNotes,
         duration_seconds: durationSeconds,
       });
 

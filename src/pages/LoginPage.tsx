@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { authStorage } from '../lib/authStorage'; 
 
-export default function LoginPage() {
+export function LoginPage() {
   const navigate = useNavigate();
   
   // Form state

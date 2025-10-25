@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { BottomNavFixed } from '../components/mobile/BottomNavFixed';
+import { BottomNav } from '../components/mobile/BottomNav';
 import { Card, CardHeader } from '../components/ui/Card';
 
 interface UserStats {
@@ -464,7 +464,7 @@ export const ProfilePage = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNavFixed />
+      <BottomNav />
     </div>
   );
 };

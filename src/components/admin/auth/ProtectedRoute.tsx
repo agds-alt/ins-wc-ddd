@@ -1,6 +1,6 @@
 // src/components/auth/ProtectedRoute.tsx - Route Guard for Authenticated Users
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

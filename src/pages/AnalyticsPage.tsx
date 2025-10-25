@@ -24,9 +24,52 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } fro
 
 // Components
 import { Card, CardHeader } from '../components/ui/Card';
-import { BottomNavFixed } from '../components/mobile/BottomNavFixed';
+import { BottomNav } from '../components/mobile/BottomNav';
 
 type TimePeriod = 'week' | 'month' | 'year';
+
+interface AnalyticsData {
+  totalInspections: number;
+  avgScore: number;
+  scoreChange: number;
+  countChange: number;
+  dailyTrend: Array<{ date: string; count: number; avgScore: number }>;
+  hourlyDistribution: Array<{ hour: number; count: number }>;
+  peakHour: { hour: number; count: number } | null;
+  locationPerformance: Array<{
+    id: string;
+    name: string;
+    building?: string;
+    floor?: string;
+    avgScore: number;
+    count: number;
+    trend: number;
+  }>;
+  scoreRanges: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+  };
+  topPerformer: {
+    id: string;
+    name: string;
+    building?: string;
+    floor?: string;
+    avgScore: number;
+    count: number;
+    trend: number;
+  } | null;
+  needsAttention: Array<{
+    id: string;
+    name: string;
+    building?: string;
+    floor?: string;
+    avgScore: number;
+    count: number;
+    trend: number;
+  }>;
+}
 
 export const AnalyticsPage = () => {
   const { user, profile } = useAuth();
@@ -35,9 +78,13 @@ export const AnalyticsPage = () => {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   // Fetch analytics data
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading, error } = useQuery({
     queryKey: ['analytics', user?.id, selectedPeriod],
-    queryFn: async () => {
+    queryFn: async (): Promise<AnalyticsData> => {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
       const now = new Date();
       let startDate: string;
       let endDate: string = format(now, 'yyyy-MM-dd');
@@ -53,10 +100,12 @@ export const AnalyticsPage = () => {
         case 'year':
           startDate = format(new Date(now.getFullYear(), 0, 1), 'yyyy-MM-dd');
           break;
+        default:
+          startDate = format(startOfWeek(now), 'yyyy-MM-dd');
       }
 
       // Fetch inspections
-      const { data: inspections, error } = await supabase
+      const { data: inspections, error: fetchError } = await supabase
         .from('inspection_records')
         .select(`
           id,
@@ -71,49 +120,80 @@ export const AnalyticsPage = () => {
             floor
           )
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .gte('inspection_date', startDate)
         .lte('inspection_date', endDate)
         .order('inspection_date', { ascending: true });
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Error fetching inspections:', fetchError);
+        throw fetchError;
+      }
 
-      // Calculate score
+      // Robust score calculation function
       const calculateScore = (responses: any): number => {
-        const values = Object.values(responses || {});
-        if (values.length === 0) return 0;
-        const goodCount = values.filter(v => 
-          v === true || v === 'good' || v === 'excellent' || 
-          v === 'baik' || v === 'bersih' || v === 'ada'
-        ).length;
-        return Math.round((goodCount / values.length) * 100);
+        try {
+          if (!responses || typeof responses !== 'object') return 0;
+          
+          const values = Object.values(responses);
+          if (values.length === 0) return 0;
+          
+          const goodCount = values.filter(v => {
+            if (typeof v === 'boolean') return v;
+            if (typeof v === 'string') {
+              const lowerVal = v.toLowerCase().trim();
+              return ['good', 'excellent', 'baik', 'bersih', 'ada', 'yes', 'true', 'ok', 'lengkap'].includes(lowerVal);
+            }
+            if (typeof v === 'number') return v > 0;
+            return false;
+          }).length;
+          
+          return Math.round((goodCount / values.length) * 100);
+        } catch (error) {
+          console.warn('Error calculating score:', error);
+          return 0;
+        }
       };
 
-      // Daily trend
+      // Daily trend calculation
       const dailyMap = new Map<string, { count: number; totalScore: number }>();
       inspections?.forEach(insp => {
-        const date = insp.inspection_date;
-        const score = calculateScore(insp.responses);
-        if (!dailyMap.has(date)) {
-          dailyMap.set(date, { count: 0, totalScore: 0 });
+        try {
+          const date = insp.inspection_date;
+          const score = calculateScore(insp.responses);
+          if (!dailyMap.has(date)) {
+            dailyMap.set(date, { count: 0, totalScore: 0 });
+          }
+          const data = dailyMap.get(date)!;
+          data.count++;
+          data.totalScore += score;
+        } catch (error) {
+          console.warn('Error processing inspection for daily trend:', error);
         }
-        const data = dailyMap.get(date)!;
-        data.count++;
-        data.totalScore += score;
       });
 
       const dailyTrend = Array.from(dailyMap.entries()).map(([date, data]) => ({
         date,
         count: data.count,
-        avgScore: Math.round(data.totalScore / data.count)
+        avgScore: data.count > 0 ? Math.round(data.totalScore / data.count) : 0
       }));
 
-      // Hourly distribution
+      // Hourly distribution - ROBUST VERSION
       const hourlyMap = new Map<number, number>();
       inspections?.forEach(insp => {
-        if (insp.inspection_time) {
-          const hour = parseInt(insp.inspection_time.split(':')[0]);
-          hourlyMap.set(hour, (hourlyMap.get(hour) || 0) + 1);
+        try {
+          if (insp.inspection_time && typeof insp.inspection_time === 'string') {
+            const timeParts = insp.inspection_time.split(':');
+            if (timeParts.length > 0) {
+              const hourStr = timeParts[0];
+              const hour = parseInt(hourStr);
+              if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+                hourlyMap.set(hour, (hourlyMap.get(hour) || 0) + 1);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error processing inspection time:', error);
         }
       });
 
@@ -121,50 +201,66 @@ export const AnalyticsPage = () => {
         .map(([hour, count]) => ({ hour, count }))
         .sort((a, b) => a.hour - b.hour);
 
-      // Peak hour
+      // Peak hour calculation
       const peakHour = hourlyDistribution.length > 0
         ? hourlyDistribution.reduce((max, curr) => curr.count > max.count ? curr : max)
         : null;
 
-      // Location performance
+      // Location performance calculation
       const locationMap = new Map<string, { 
         name: string; 
         scores: number[]; 
         building?: string; 
-        floor?: string 
+        floor?: string;
+        count: number;
       }>();
       
       inspections?.forEach(insp => {
-        if (!insp.locations) return;
-        const locId = insp.location_id;
-        const score = calculateScore(insp.responses);
-        
-        if (!locationMap.has(locId)) {
-          locationMap.set(locId, { 
-            name: insp.locations.name,
-            building: insp.locations.building,
-            floor: insp.locations.floor,
-            scores: [] 
-          });
+        try {
+          if (!insp.locations) return;
+          const locId = insp.location_id;
+          const score = calculateScore(insp.responses);
+          
+          if (!locationMap.has(locId)) {
+            locationMap.set(locId, { 
+              name: insp.locations.name || 'Unknown Location',
+              building: insp.locations.building || undefined,
+              floor: insp.locations.floor || undefined,
+              scores: [],
+              count: 0
+            });
+          }
+          const locationData = locationMap.get(locId)!;
+          locationData.scores.push(score);
+          locationData.count++;
+        } catch (error) {
+          console.warn('Error processing location performance:', error);
         }
-        locationMap.get(locId)!.scores.push(score);
       });
 
       const locationPerformance = Array.from(locationMap.entries())
-        .map(([id, data]) => ({
-          id,
-          name: data.name,
-          building: data.building,
-          floor: data.floor,
-          avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length),
-          count: data.scores.length,
-          trend: data.scores.length >= 2 
+        .map(([id, data]) => {
+          const avgScore = data.scores.length > 0 
+            ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length)
+            : 0;
+            
+          const trend = data.scores.length >= 2 
             ? data.scores[data.scores.length - 1] - data.scores[0]
-            : 0
-        }))
+            : 0;
+
+          return {
+            id,
+            name: data.name,
+            building: data.building,
+            floor: data.floor,
+            avgScore,
+            count: data.count,
+            trend
+          };
+        })
         .sort((a, b) => b.avgScore - a.avgScore);
 
-      // Score distribution
+      // Score distribution calculation
       const scoreRanges = {
         excellent: 0, // 85-100
         good: 0,      // 70-84
@@ -173,11 +269,15 @@ export const AnalyticsPage = () => {
       };
 
       inspections?.forEach(insp => {
-        const score = calculateScore(insp.responses);
-        if (score >= 85) scoreRanges.excellent++;
-        else if (score >= 70) scoreRanges.good++;
-        else if (score >= 50) scoreRanges.fair++;
-        else scoreRanges.poor++;
+        try {
+          const score = calculateScore(insp.responses);
+          if (score >= 85) scoreRanges.excellent++;
+          else if (score >= 70) scoreRanges.good++;
+          else if (score >= 50) scoreRanges.fair++;
+          else scoreRanges.poor++;
+        } catch (error) {
+          console.warn('Error calculating score range:', error);
+        }
       });
 
       // Overall stats
@@ -187,47 +287,78 @@ export const AnalyticsPage = () => {
         : 0;
 
       // Previous period comparison
-      const prevStart = selectedPeriod === 'week' 
-        ? format(subDays(startOfWeek(now), 7), 'yyyy-MM-dd')
-        : selectedPeriod === 'month'
-        ? format(new Date(now.getFullYear(), now.getMonth() - 1, 1), 'yyyy-MM-dd')
-        : format(new Date(now.getFullYear() - 1, 0, 1), 'yyyy-MM-dd');
+      let prevStart: string;
+      let prevEnd: string;
 
-      const prevEnd = selectedPeriod === 'week'
-        ? format(subDays(endOfWeek(now), 7), 'yyyy-MM-dd')
-        : selectedPeriod === 'month'
-        ? format(new Date(now.getFullYear(), now.getMonth(), 0), 'yyyy-MM-dd')
-        : format(new Date(now.getFullYear() - 1, 11, 31), 'yyyy-MM-dd');
+      try {
+        switch (selectedPeriod) {
+          case 'week':
+            prevStart = format(subDays(startOfWeek(now), 7), 'yyyy-MM-dd');
+            prevEnd = format(subDays(endOfWeek(now), 7), 'yyyy-MM-dd');
+            break;
+          case 'month':
+            const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            prevStart = format(prevMonth, 'yyyy-MM-dd');
+            prevEnd = format(new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0), 'yyyy-MM-dd');
+            break;
+          case 'year':
+            prevStart = format(new Date(now.getFullYear() - 1, 0, 1), 'yyyy-MM-dd');
+            prevEnd = format(new Date(now.getFullYear() - 1, 11, 31), 'yyyy-MM-dd');
+            break;
+          default:
+            prevStart = format(subDays(startOfWeek(now), 7), 'yyyy-MM-dd');
+            prevEnd = format(subDays(endOfWeek(now), 7), 'yyyy-MM-dd');
+        }
 
-      const { data: prevInspections } = await supabase
-        .from('inspection_records')
-        .select('id, responses')
-        .eq('user_id', user?.id)
-        .gte('inspection_date', prevStart)
-        .lte('inspection_date', prevEnd);
+        const { data: prevInspections } = await supabase
+          .from('inspection_records')
+          .select('id, responses')
+          .eq('user_id', user.id)
+          .gte('inspection_date', prevStart)
+          .lte('inspection_date', prevEnd);
 
-      const prevAvgScore = prevInspections && prevInspections.length > 0
-        ? Math.round(prevInspections.reduce((sum, i) => sum + calculateScore(i.responses), 0) / prevInspections.length)
-        : 0;
+        const prevTotalInspections = prevInspections?.length || 0;
+        const prevAvgScore = prevTotalInspections > 0
+          ? Math.round(prevInspections!.reduce((sum, i) => sum + calculateScore(i.responses), 0) / prevTotalInspections)
+          : 0;
 
-      const scoreChange = avgScore - prevAvgScore;
-      const countChange = totalInspections - (prevInspections?.length || 0);
+        const scoreChange = avgScore - prevAvgScore;
+        const countChange = totalInspections - prevTotalInspections;
 
-      return {
-        totalInspections,
-        avgScore,
-        scoreChange,
-        countChange,
-        dailyTrend,
-        hourlyDistribution,
-        peakHour,
-        locationPerformance,
-        scoreRanges,
-        topPerformer: locationPerformance[0] || null,
-        needsAttention: locationPerformance.filter(l => l.avgScore < 70)
-      };
+        return {
+          totalInspections,
+          avgScore,
+          scoreChange,
+          countChange,
+          dailyTrend,
+          hourlyDistribution,
+          peakHour,
+          locationPerformance,
+          scoreRanges,
+          topPerformer: locationPerformance[0] || null,
+          needsAttention: locationPerformance.filter(l => l.avgScore < 70)
+        };
+      } catch (comparisonError) {
+        console.warn('Error calculating period comparison:', comparisonError);
+        // Return data without comparison if there's an error
+        return {
+          totalInspections,
+          avgScore,
+          scoreChange: 0,
+          countChange: 0,
+          dailyTrend,
+          hourlyDistribution,
+          peakHour,
+          locationPerformance,
+          scoreRanges,
+          topPerformer: locationPerformance[0] || null,
+          needsAttention: locationPerformance.filter(l => l.avgScore < 70)
+        };
+      }
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const periodLabels = {
@@ -236,10 +367,36 @@ export const AnalyticsPage = () => {
     year: 'This Year'
   };
 
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to Load Analytics</h2>
+          <p className="text-gray-600 mb-4">
+            {error instanceof Error ? error.message : 'An unexpected error occurred'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading analytics...</p>
+        </div>
       </div>
     );
   }
@@ -513,7 +670,7 @@ export const AnalyticsPage = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNavFixed />
+      <BottomNav />
     </div>
   );
 };

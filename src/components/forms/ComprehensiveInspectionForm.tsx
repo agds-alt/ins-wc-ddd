@@ -23,6 +23,19 @@ interface ComprehensiveInspectionFormProps {
   onToggleMode?: () => void;
 }
 
+interface LocationData {
+  id: string;
+  name: string;
+  building: string | null;
+  floor: string | null;
+  area: string | null;
+  code: string | null;
+  building_id: string;
+  organization_id: string;
+  qr_code: string;
+  is_active: boolean | null;
+}
+
 export const ComprehensiveInspectionForm = ({
   locationId,
   genZMode = false,
@@ -49,7 +62,7 @@ export const ComprehensiveInspectionForm = ({
     INSPECTION_COMPONENTS[0].id
   );
 
-  const { data: location, isLoading: locationLoading } = getLocation(locationId);
+  const { data: location, isLoading: locationLoading, error: locationError } = getLocation(locationId);
 
   // Calculate score whenever ratings change
   useEffect(() => {
@@ -57,6 +70,8 @@ export const ComprehensiveInspectionForm = ({
     if (ratingsList.length > 0) {
       const score = calculateWeightedScore(ratingsList);
       setCurrentScore(score);
+    } else {
+      setCurrentScore(0);
     }
   }, [ratings]);
 
@@ -81,7 +96,7 @@ export const ComprehensiveInspectionForm = ({
     const missingRatings = requiredComponents.filter(c => !ratings.has(c.id));
     
     if (missingRatings.length > 0) {
-      const missing = missingRatings.map(c => c.label).join(', ');
+      const missing = missingRatings.map(c => genZMode ? c.labelGenZ : c.label).join(', ');
       toast.error(
         genZMode 
           ? `Masih ada yang belum diisi: ${missing}` 
@@ -97,6 +112,15 @@ export const ComprehensiveInspectionForm = ({
         genZMode 
           ? 'Tolong jelasin masalah yang ditemukan!' 
           : 'Please describe the issues found'
+      );
+      return false;
+    }
+
+    if (requiresMaintenance && !maintenancePriority) {
+      toast.error(
+        genZMode 
+          ? 'Pilih prioritas maintenance!' 
+          : 'Please select maintenance priority'
       );
       return false;
     }
@@ -117,44 +141,61 @@ export const ComprehensiveInspectionForm = ({
       const endTime = new Date();
       const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-      // Upload all photos to Cloudinary
-      const photoUrls: string[] = [];
+      // Upload all photos to Cloudinary and collect URLs
+      const uploadedPhotoUrls: string[] = [];
+      const updatedRatings = new Map(ratings);
+
       for (const [componentId, componentPhotos] of photos.entries()) {
         for (const photo of componentPhotos) {
           try {
             const url = await uploadToCloudinary(photo.file);
-            photoUrls.push(url);
-            
-            // Update rating with photo URL
-            const rating = ratings.get(componentId);
-            if (rating) {
-              rating.photo = url;
+            if (url) {
+              uploadedPhotoUrls.push(url);
+              
+              // Update rating with photo URL
+              const rating = updatedRatings.get(componentId);
+              if (rating) {
+                rating.photo = url;
+                updatedRatings.set(componentId, rating);
+              }
             }
           } catch (error) {
-            console.error('Photo upload failed:', error);
+            console.error(`Photo upload failed for ${componentId}:`, error);
             // Continue with other photos
           }
         }
       }
 
-      // Prepare responses object for database
-      const responses: any = {
-        ratings: Array.from(ratings.values()),
-        score: currentScore,
-        issues_found: issuesFound,
-        issue_description: issuesFound ? issueDescription : null,
-        requires_maintenance: requiresMaintenance,
-        maintenance_priority: requiresMaintenance ? maintenancePriority : null,
-        inspection_mode: genZMode ? 'genz' : 'professional',
-      };
+     // In ComprehensiveInspectionForm.tsx, update the handleSubmit function:
 
-      // Submit inspection
+// Prepare responses object for database - synchronized with inspection.types
+const responses: Record<string, any> = {
+  ratings: Array.from(updatedRatings.values()),
+  score: currentScore,
+  issues_found: issuesFound,
+  issue_description: issuesFound ? issueDescription.trim() : null,
+  requires_maintenance: requiresMaintenance,
+  maintenance_priority: requiresMaintenance ? maintenancePriority : null,
+  inspection_mode: genZMode ? 'genz' : 'professional',
+  submitted_at: new Date().toISOString(),
+  inspector: {
+    id: user.id,
+    name: profile?.full_name || user.email?.split('@')[0] || 'Unknown Inspector',
+    email: user.email,
+    profile_id: profile?.id, // Include profile ID if needed
+  },
+};
+      // Get all photo files for submission
+      const allPhotoFiles = Array.from(photos.values()).flat().map(p => p.file);
+
+      // Submit inspection - synchronized with useInspection hook
       await submitInspection.mutateAsync({
         location_id: locationId,
         user_id: user.id,
         responses,
-        photos: Array.from(photos.values()).flat().map(p => p.file),
-        notes: generalNotes,
+        photos: allPhotoFiles,
+        notes: generalNotes.trim() || undefined,
+        duration_seconds: durationSeconds,
       });
 
       toast.success(
@@ -163,16 +204,24 @@ export const ComprehensiveInspectionForm = ({
           : `Inspection submitted successfully! Score: ${currentScore}`
       );
 
-      // Navigate back
-      navigate('/scan');
+      // Navigate back after a short delay
+      setTimeout(() => {
+        navigate('/scan', { replace: true });
+      }, 1500);
+
     } catch (error: any) {
       console.error('Submission error:', error);
-      toast.error(error.message || 'Failed to submit inspection');
+      toast.error(
+        genZMode 
+          ? 'Gagal submit inspection. Coba lagi ya!' 
+          : error.message || 'Failed to submit inspection'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Handle location loading and error states
   if (locationLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -181,21 +230,31 @@ export const ComprehensiveInspectionForm = ({
     );
   }
 
-  if (!location) {
+  if (locationError || !location) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
-          <p className="text-gray-700">Location not found</p>
+          <p className="text-gray-700">
+            {genZMode ? 'Lokasi gak ketemu 😢' : 'Location not found'}
+          </p>
+          <button
+            onClick={() => navigate('/scan')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            {genZMode ? 'Kembali ke Scan' : 'Back to Scan'}
+          </button>
         </div>
       </div>
     );
   }
 
+  const locationData = location as LocationData;
   const scoreStatus = getScoreStatus(currentScore);
   const completedCount = ratings.size;
   const totalRequired = INSPECTION_COMPONENTS.filter(c => c.required).length;
   const progress = (completedCount / INSPECTION_COMPONENTS.length) * 100;
+  const allPhotosCount = Array.from(photos.values()).flat().length;
 
   return (
     <div className={`min-h-screen pb-32 ${genZMode ? 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50' : 'bg-gray-50'}`}>
@@ -243,9 +302,11 @@ export const ComprehensiveInspectionForm = ({
               🚽
             </div>
             <div className={genZMode ? 'text-white' : 'text-gray-900'}>
-              <h1 className="font-bold text-lg">{location.name}</h1>
+              <h1 className="font-bold text-lg">{locationData.name}</h1>
               <p className={`text-sm ${genZMode ? 'text-white/80' : 'text-gray-600'}`}>
-                {location.building} • {location.floor} • {location.area}
+                {[locationData.building, locationData.floor, locationData.area]
+                  .filter(Boolean)
+                  .join(' • ')}
               </p>
             </div>
           </div>
@@ -254,7 +315,10 @@ export const ComprehensiveInspectionForm = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className={genZMode ? 'text-white/90' : 'text-gray-600'}>
-                {genZMode ? `Progress ${completedCount}/${INSPECTION_COMPONENTS.length}` : `${completedCount} of ${INSPECTION_COMPONENTS.length} completed`}
+                {genZMode 
+                  ? `Progress ${completedCount}/${INSPECTION_COMPONENTS.length}` 
+                  : `${completedCount} of ${INSPECTION_COMPONENTS.length} completed`
+                }
               </span>
               {currentScore > 0 && (
                 <span className={`font-bold ${genZMode ? 'text-white' : 'text-blue-600'}`}>
@@ -265,7 +329,7 @@ export const ComprehensiveInspectionForm = ({
             <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-300 ${genZMode ? 'bg-white' : 'bg-blue-600'}`}
-                style={{ width: `${progress}%` }}
+                style={{ width: `${Math.max(5, progress)}%` }} // Minimum 5% width for visibility
               />
             </div>
           </div>
@@ -442,15 +506,15 @@ export const ComprehensiveInspectionForm = ({
           />
         </div>
 
-        {/* Photo Preview Section - SEMUA FOTO */}
-        {Array.from(photos.values()).flat().length > 0 && (
+        {/* Photo Preview Section */}
+        {allPhotosCount > 0 && (
           <div className={`${genZMode ? 'bg-white/80' : 'bg-white'} rounded-2xl p-4 shadow-sm border border-gray-100`}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900">
                 {genZMode ? '📸 Foto yang akan diupload' : '📸 Photos to Upload'}
               </h3>
               <span className={`text-sm px-3 py-1 rounded-full ${genZMode ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                {Array.from(photos.values()).flat().length} photos
+                {allPhotosCount} {allPhotosCount === 1 ? 'photo' : 'photos'}
               </span>
             </div>
 
@@ -468,7 +532,7 @@ export const ComprehensiveInspectionForm = ({
                       
                       {/* Component Label */}
                       <div className="absolute top-1 left-1 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg">
-                        {component?.icon}
+                        {genZMode ? component?.iconGenZ : component?.icon}
                       </div>
 
                       {/* Metadata badges */}

@@ -13,7 +13,7 @@ import { QRCodeGenerator } from './QRCodeGenerator';
 type Location = Tables<'locations'>;
 type LocationInsert = TablesInsert<'locations'>;
 
-export const LocationManager = () => {
+export const LocationsManager = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   

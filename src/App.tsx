@@ -1,16 +1,15 @@
-// src/App.tsx - COMPLETE ROUTER CONFIGURATION EXAMPLE
+// src/App.tsx - COMPLETE ROUTER CONFIGURATION WITH AUTH GUARDS
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 
 // Auth Components
 import { AdminRoute } from './components/admin/auth/AdminRoute';
-import { ProtectedRoute } from './components/admin/auth/ProtectedRoute' />
-<com></com>;
+import { ProtectedRoute } from './components/admin/auth/ProtectedRoute';
 
 // Public Pages
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
+import { RegisterPageUpdated } from './pages/RegisterPage';
 
 // Main App Pages
 import { DashboardEnhanced } from './pages/Dashboard';
@@ -18,7 +17,7 @@ import { ReportsPage } from './pages/ReportsPage'; // History page
 import { ScanPage } from './pages/ScanPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { LocationsManager } from './pages/admin/LocationManager';
+import { LocationsManager } from './pages/admin/LocationsManager';
 import { InspectionPage } from './pages/InspectionPage';
 
 // Admin Pages
@@ -45,7 +44,7 @@ function App() {
         <Routes>
           {/* ==================== PUBLIC ROUTES ==================== */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register" element={<RegisterPageUpdated />} />
 
           {/* ==================== PROTECTED USER ROUTES ==================== */}
           <Route
@@ -206,7 +205,7 @@ PROTECTED USER ROUTES (Auth required):
 ├─ /scan                     → ScanPage (QR Scanner)
 ├─ /analytics                → AnalyticsPage (Charts & metrics)
 ├─ /profile                  → ProfilePage (User profile + Admin button)
-├─ /locations                → LocationsPage
+├─ /locations                → LocationsManager
 └─ /inspect/:locationId      → InspectionPage
 
 ADMIN ROUTES (Admin/Super Admin only):
