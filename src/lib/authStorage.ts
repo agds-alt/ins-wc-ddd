@@ -1,4 +1,6 @@
 // src/lib/authStorage.ts
+import type { Session } from '@supabase/supabase-js';
+
 /**
  * Auth Storage Utility
  * 
@@ -12,6 +14,41 @@
  */
 
 export const authStorage = {
+  /**
+   * Save session to storage
+   * This stores the session in the format Supabase expects
+   */
+  save(session: Session | null): void {
+    try {
+      if (!session) {
+        console.warn('⚠️ Attempted to save null session');
+        return;
+      }
+
+      // Supabase stores in 'supabase.auth.token' key
+      const tokenData = {
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_at: session.expires_at,
+        expires_in: session.expires_in,
+        token_type: session.token_type,
+        user: session.user
+      };
+
+      localStorage.setItem('supabase.auth.token', JSON.stringify(tokenData));
+      
+      // Also save to custom keys for easier access
+      localStorage.setItem('sb-auth-token', session.access_token);
+      localStorage.setItem('sb-refresh-token', session.refresh_token);
+      localStorage.setItem('sb-user-data', JSON.stringify(session.user));
+      localStorage.setItem('sb-expires-at', session.expires_at?.toString() || '');
+
+      console.log('✅ Session saved to storage');
+    } catch (error) {
+      console.error('❌ Failed to save session:', error);
+    }
+  },
+
   /**
    * Check if auth storage is valid
    * Returns false if storage is corrupt or missing required fields
@@ -28,19 +65,19 @@ export const authStorage = {
       
       // Check if required fields exist
       if (!parsed || typeof parsed !== 'object') {
-        console.warn('⚠️ Invalid auth token structure');
+        console.warn('âš ï¸ Invalid auth token structure');
         return false;
       }
       
       // Must have access_token
       if (!parsed.access_token) {
-        console.warn('⚠️ Missing access_token in storage');
+        console.warn('âš ï¸ Missing access_token in storage');
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('❌ Invalid auth storage (parse error):', error);
+      console.error('âŒ Invalid auth storage (parse error):', error);
       return false;
     }
   },
@@ -51,7 +88,7 @@ export const authStorage = {
    */
   clear(): void {
     try {
-      console.log('🧹 Clearing auth storage...');
+      console.log('ðŸ§¹ Clearing auth storage...');
       
       // Clear all Supabase auth keys
       const allKeys = Object.keys(localStorage);
@@ -72,14 +109,14 @@ export const authStorage = {
       // Clear session storage
       sessionStorage.clear();
       
-      console.log('✅ Auth storage cleared successfully');
+      console.log('âœ… Auth storage cleared successfully');
     } catch (error) {
-      console.error('❌ Failed to clear storage:', error);
+      console.error('âŒ Failed to clear storage:', error);
       // Force clear entire localStorage as fallback
       try {
         localStorage.clear();
       } catch (e) {
-        console.error('❌ Critical: Cannot clear localStorage');
+        console.error('âŒ Critical: Cannot clear localStorage');
       }
     }
   },
@@ -90,22 +127,22 @@ export const authStorage = {
    * Call this in main.tsx before rendering app
    */
   validateOnStartup(): void {
-    console.log('🔍 Validating auth storage on startup...');
+    console.log('ðŸ” Validating auth storage on startup...');
     
     if (!this.isValid() && this.hasStoredToken()) {
-      console.warn('⚠️ Corrupt auth storage detected - clearing...');
+      console.warn('âš ï¸ Corrupt auth storage detected - clearing...');
       this.clear();
-      console.log('✅ Storage validated and cleaned');
+      console.log('âœ… Storage validated and cleaned');
     } else if (this.hasStoredToken()) {
-      console.log('✅ Auth storage is valid');
+      console.log('âœ… Auth storage is valid');
       
       // Check if token is expired
       if (this.isTokenExpired()) {
-        console.warn('⚠️ Token expired - clearing...');
+        console.warn('âš ï¸ Token expired - clearing...');
         this.clear();
       }
     } else {
-      console.log('ℹ️ No auth token stored (user not logged in)');
+      console.log('â„¹ï¸ No auth token stored (user not logged in)');
     }
   },
 
@@ -154,7 +191,7 @@ export const authStorage = {
     const isExpired = expiryTime < (now + 60000);
     
     if (isExpired) {
-      console.warn('⚠️ Token expired at:', expiry.toISOString());
+      console.warn('âš ï¸ Token expired at:', expiry.toISOString());
     }
     
     return isExpired;
@@ -194,7 +231,7 @@ export const authStorage = {
    * Use this for troubleshooting
    */
   debug(): void {
-    console.group('🔐 Auth Storage Debug Info');
+    console.group('ðŸ” Auth Storage Debug Info');
     
     console.log('Valid:', this.isValid());
     console.log('Has Token:', this.hasStoredToken());
@@ -218,7 +255,7 @@ export const authStorage = {
    * Clears everything and reloads page
    */
   emergencyReset(): void {
-    console.warn('🚨 Emergency reset triggered');
+    console.warn('ðŸš¨ Emergency reset triggered');
     this.clear();
     window.location.href = '/login';
   }
@@ -227,5 +264,5 @@ export const authStorage = {
 // Export for use in window console (debugging)
 if (typeof window !== 'undefined') {
   (window as any).authStorage = authStorage;
-  console.log('💡 Tip: Type "authStorage.debug()" in console for auth info');
+  console.log('ðŸ’¡ Tip: Type "authStorage.debug()" in console for auth info');
 }

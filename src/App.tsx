@@ -15,6 +15,11 @@ import { ProtectedLayout } from './components/layout/ProtectedLayout';
 import { LocationInspectionPage } from './pages/LocationInspectionPage';
 import './App.css';
 import { useEffect } from 'react';
+import { AnalyticsPage } from './pages/AnalyticsPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { AdminRoute } from './components/auth/AdminRoute';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { OccupationManagerPage } from './pages/admin/OccupationManagerPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -146,6 +151,41 @@ function AppContent() {
         } 
       />
 
+       {/* Admin routes - Protected */}
+  <Route 
+    path="/admin" 
+    element={
+      <AdminRoute>
+        <AdminDashboard />
+      </AdminRoute>
+    } 
+  />
+  <Route 
+    path="/admin/occupations" 
+    element={
+      <AdminRoute>
+        <OccupationManagerPage />
+      </AdminRoute>
+    } 
+  />
+  <Route 
+    path="/admin/users" 
+    element={
+      <AdminRoute>
+        <UserManagementPage />  {/* You'll create this */}
+      </AdminRoute>
+    } 
+  />
+  <Route 
+    path="/admin/locations" 
+    element={
+      <AdminRoute>
+        <LocationManagementPage />  {/* Existing or new */}
+      </AdminRoute>
+    } 
+  />
+</Routes>
+
       {/* Old Inspection Route (keep for compatibility) */}
       <Route 
         path="/inspect/:locationId" 
@@ -160,26 +200,11 @@ function AppContent() {
         } 
       />
 
-      {/* History Route */}
-      <Route 
-        path="/history" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <div className="min-h-screen bg-gray-50 p-4">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">Inspection History</h1>
-                <p className="text-gray-600">History page coming soon...</p>
-              </div>
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
+
 
       {/* Reports Route */}
       <Route 
-        path="/reports" 
+        path="/history" 
         element={
           user ? (
             <ProtectedLayout>
@@ -193,11 +218,11 @@ function AppContent() {
       
       {/* Admin Routes */}
       <Route 
-        path="/admin/locations" 
+        path="/analytics" 
         element={
           user ? (
             <ProtectedLayout>
-              <LocationManager />
+              <AnalyticsPage />
             </ProtectedLayout>
           ) : (
             <Navigate to="/login" replace />
@@ -211,18 +236,14 @@ function AppContent() {
         element={
           user ? (
             <ProtectedLayout>
-              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Page</h1>
-                  <p className="text-gray-600">Coming soon...</p>
-                </div>
-              </div>
+              <ProfilePage/>
             </ProtectedLayout>
           ) : (
             <Navigate to="/login" replace />
           )
         } 
       />
+
 
       {/* Analytics Route */}
       <Route 

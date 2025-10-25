@@ -31,15 +31,15 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   };
 
   const sizeClasses = {
-    sm: 'p-3 min-h-[80px]',
-    md: 'p-4 min-h-[100px]',
-    lg: 'p-6 min-h-[120px]',
+    sm: 'p-2 min-h-[60px]',      // diperkecil dari p-3 min-h-[80px]
+    md: 'p-3 min-h-[80px]',      // diperkecil dari p-4 min-h-[100px]
+    lg: 'p-4 min-h-[100px]',     // diperkecil dari p-6 min-h-[120px]
   };
 
   const iconSizes = {
-    sm: 'w-6 h-6',
-    md: 'w-8 h-8',
-    lg: 'w-10 h-10',
+    sm: 'w-5 h-5',              // diperkecil dari w-6 h-6
+    md: 'w-6 h-6',              // diperkecil dari w-8 h-8
+    lg: 'w-8 h-8',              // diperkecil dari w-10 h-10
   };
 
   const disabledClasses = disabled

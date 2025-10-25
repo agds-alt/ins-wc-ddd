@@ -1,7 +1,7 @@
 // src/hooks/useAuth.ts
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { authStorage } from '../lib/authStorage'; // ← IMPORT
+import { authStorage } from '../lib/authStorage';
 import type { User } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -30,15 +30,22 @@ export function useAuth() {
       .then(({ data: { session }, error }) => {
         if (error) {
           console.error('Auth session error:', error);
-          authStorage.clear(); // ← CLEAR on error
+          authStorage.clear();
         }
+        
+        // ✅ SAVE SESSION if exists
+        if (session) {
+          authStorage.save(session);
+          console.log('✅ Initial session saved to authStorage');
+        }
+        
         setUser(session?.user ?? null);
         setLoading(false);
         clearTimeout(timeout);
       })
       .catch((err) => {
         console.error('Critical auth error:', err);
-        authStorage.clear(); // ← CLEAR on critical error
+        authStorage.clear();
         setUser(null);
         setLoading(false);
         clearTimeout(timeout);
@@ -48,6 +55,16 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('🔐 Auth state changed:', event);
+        
+        // ✅ CRITICAL FIX: Save or clear auth storage based on session
+        if (session) {
+          authStorage.save(session);
+          console.log('✅ Token saved to authStorage');
+        } else {
+          authStorage.clear();
+          console.log('🗑️ AuthStorage cleared');
+        }
+        
         setUser(session?.user ?? null);
         setLoading(false);
       }
@@ -62,7 +79,7 @@ export function useAuth() {
   // ✅ LOGOUT FUNCTION with clear storage
   const signOut = async () => {
     await supabase.auth.signOut();
-    authStorage.clear(); // ← IMPORTANT!
+    authStorage.clear();
     setUser(null);
   };
 

@@ -474,6 +474,42 @@ export type Database = {
           },
         ]
       }
+      user_occupations: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -528,6 +564,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login_at: string | null
+          occupation_id: string | null
           password_hash: string | null
           phone: string | null
           profile_photo_url: string | null
@@ -540,6 +577,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
+          occupation_id?: string | null
           password_hash?: string | null
           phone?: string | null
           profile_photo_url?: string | null
@@ -552,12 +590,21 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
+          occupation_id?: string | null
           password_hash?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_occupation_id_fkey"
+            columns: ["occupation_id"]
+            isOneToOne: false
+            referencedRelation: "user_occupations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
