@@ -1,17 +1,23 @@
-// src/pages/RegisterPage.tsx
-import { useState } from 'react';
+// src/pages/RegisterPage.tsx - FIXED
+
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
+import { Tables } from '../types/database.types';
+
+// Type dari database
+type Occupation = Tables<'user_occupations'>;
 
 const registerSchema = z.object({
   full_name: z.string().min(2, 'Full name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
+  occupation_id: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -21,10 +27,10 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [occupations, setOccupations] = useState<Occupation[]>([]);
+  const [loadingOccupations, setLoadingOccupations] = useState(true);
   const navigate = useNavigate();
 
-  
-  
   const {
     register,
     handleSubmit,
@@ -33,80 +39,91 @@ export const RegisterPage = () => {
     resolver: zodResolver(registerSchema),
   });
 
- // src/pages/RegisterPage.tsx - UPDATE onSubmit
-// src/pages/RegisterPage.tsx - UPDATE dengan value yang bener
-const onSubmit = async (data: RegisterForm) => {
-  setIsLoading(true);
-  try {
-    console.log('🔐 Registration with proper schema...');
+  // Fetch occupations
+  useEffect(() => {
+    const fetchOccupations = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_occupations')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_name');
 
-    // 1. Auth signup
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          full_name: data.full_name,
+        if (error) throw error;
+        
+        // Transform dengan default values
+        setOccupations((data || []).map(occ => ({
+          ...occ,
+          icon: occ.icon || '👤',
+          color: occ.color || '#3B82F6',
+          description: occ.description || '',
+        })));
+      } catch (error) {
+        console.error('Error fetching occupations:', error);
+        setOccupations([]);
+      } finally {
+        setLoadingOccupations(false);
+      }
+    };
+
+    fetchOccupations();
+  }, []);
+
+  const onSubmit = async (data: RegisterForm) => {
+    setIsLoading(true);
+    try {
+      // 1. Auth signup
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: { full_name: data.full_name }
+        }
+      });
+
+      if (authError) throw authError;
+
+      // 2. Create profile (occupation_id langsung di users table)
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: data.email,
+            full_name: data.full_name,
+            password_hash: 'supabase_auth',
+            occupation_id: data.occupation_id || null, // ← Simpan di sini!
+            is_active: true,
+            phone: null,
+            profile_photo_url: null,
+            last_login_at: null,
+          });
+
+        if (profileError) {
+          throw new Error(`Failed to create profile: ${profileError.message}`);
         }
       }
-    });
 
-    if (authError) {
-      console.error('Auth error:', authError);
-      throw authError;
-    }
+      toast.success('Registration successful!');
+      navigate('/login');
 
-    console.log('Auth success, creating profile...');
-
-    // 2. Create profile dengan SEMUA REQUIRED FIELDS
-    if (authData.user) {
-      const userProfile = {
-        id: authData.user.id,
-        email: data.email,
-        full_name: data.full_name,
-        password_hash: 'supabase_auth', // ← REQUIRED! Default value
-        is_active: true,
-        // Optional fields - bisa null
-        phone: null,
-        profile_photo_url: null,
-        last_login_at: null,
-        // created_at & updated_at auto by database
-      };
-
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert(userProfile);
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw new Error(`Failed to create profile: ${profileError.message}`);
+    } catch (error: any) {
+      let userMessage = error.message;
+      if (error.message.includes('password_hash')) {
+        userMessage = 'Database configuration error. Please contact administrator.';
+      } else if (error.message.includes('users_pkey')) {
+        userMessage = 'User already exists with this email.';
       }
+      
+      toast.error(userMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    toast.success('Registration successful!');
-    navigate('/login');
-
-  } catch (error: any) {
-    console.error('❌ Registration failed:', error);
-    
-    // Better error messages
-    let userMessage = error.message;
-    if (error.message.includes('password_hash')) {
-      userMessage = 'Database configuration error. Please contact administrator.';
-    } else if (error.message.includes('users_pkey')) {
-      userMessage = 'User already exists with this email.';
-    }
-    
-    toast.error(userMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};  
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 safe-area">
       <div className="max-w-md w-full space-y-8">
-        {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
             <span className="text-white text-2xl font-bold">🚽</span>
@@ -115,8 +132,8 @@ const onSubmit = async (data: RegisterForm) => {
           <p className="mt-2 text-gray-600">Sign up to start inspections</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
+          {/* Full Name */}
           <div>
             <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">
               Full Name
@@ -132,6 +149,7 @@ const onSubmit = async (data: RegisterForm) => {
             )}
           </div>
 
+          {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Email
@@ -147,6 +165,31 @@ const onSubmit = async (data: RegisterForm) => {
             )}
           </div>
 
+          {/* Occupation */}
+          <div>
+            <label htmlFor="occupation_id" className="block text-sm font-medium text-gray-700">
+              Occupation (Optional)
+            </label>
+            {loadingOccupations ? (
+              <div className="mt-1 block w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-2xl">
+                <span className="text-gray-500">Loading...</span>
+              </div>
+            ) : (
+              <select
+                {...register('occupation_id')}
+                className="mt-1 block w-full px-4 py-3 bg-white border border-gray-300 rounded-2xl shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select your occupation</option>
+                {occupations.map((occ) => (
+                  <option key={occ.id} value={occ.id}>
+                    {occ.icon} {occ.display_name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Password */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
@@ -162,6 +205,7 @@ const onSubmit = async (data: RegisterForm) => {
             )}
           </div>
 
+          {/* Confirm Password */}
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
               Confirm Password
@@ -177,6 +221,7 @@ const onSubmit = async (data: RegisterForm) => {
             )}
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
             disabled={isLoading}
@@ -186,7 +231,6 @@ const onSubmit = async (data: RegisterForm) => {
           </button>
         </form>
 
-        {/* Login Link */}
         <div className="text-center">
           <p className="text-gray-600">
             Already have an account?{' '}

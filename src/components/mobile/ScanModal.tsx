@@ -1,4 +1,4 @@
-// src/components/mobile/ScanModal.tsx - UPDATED: Parse URL to extract location ID
+// src/components/mobile/ScanModal.tsx - FIXED: Unused error variable
 import { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { X, CameraOff } from 'lucide-react';
@@ -96,8 +96,8 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
               }
             }
           },
-          (error) => {
-            // Silent - just scanning
+          (_error) => {
+            // Silent - just scanning, error tidak dipakai
           }
         );
 
@@ -126,13 +126,6 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
   const handleClose = () => {
     stopScanner();
     onClose();
-  };
-
-  // Generate test URL for development
-  const generateTestURL = () => {
-    const testLocationId = crypto.randomUUID();
-    const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-    return `${baseUrl}/locations/${testLocationId}`;
   };
 
   if (!isOpen) return null;
@@ -200,55 +193,17 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
       {/* Error State */}
       {cameraError && (
         <div className="absolute inset-0 bg-black flex items-center justify-center p-6">
-          <div className="text-center max-w-sm">
-            <CameraOff className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-white text-xl font-bold mb-2">Camera Error</h3>
+          <div className="text-center">
+            <CameraOff className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Camera Error</h3>
             <p className="text-gray-300 mb-4">{cameraError}</p>
-            <div className="space-y-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={handleClose}
-                className="w-full border border-gray-600 text-gray-300 py-3 rounded-xl font-medium"
-              >
-                Close
-              </button>
-            </div>
+            <button
+              onClick={handleClose}
+              className="bg-white text-gray-900 px-6 py-3 rounded-xl font-medium"
+            >
+              Close
+            </button>
           </div>
-        </div>
-      )}
-
-      {/* Manual Test Button (Development Only) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute bottom-32 left-4 right-4 space-y-3">
-          <button
-            onClick={() => {
-              const testURL = generateTestURL();
-              console.log('🧪 Test URL:', testURL);
-              const locationId = parseQRData(testURL);
-              if (locationId) {
-                onScan(locationId);
-              }
-            }}
-            className="w-full bg-green-600 text-white py-3 rounded-xl font-medium shadow-lg opacity-90 hover:opacity-100 transition-opacity"
-          >
-            🧪 DEV: Test with Random URL
-          </button>
-          
-          <button
-            onClick={() => {
-              const testUUID = crypto.randomUUID();
-              console.log('🧪 Test UUID:', testUUID);
-              onScan(testUUID);
-            }}
-            className="w-full bg-yellow-600 text-white py-3 rounded-xl font-medium shadow-lg opacity-90 hover:opacity-100 transition-opacity"
-          >
-            🧪 DEV: Test with Raw UUID
-          </button>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 // src/components/reports/InspectionDrawer.tsx
 import { useEffect, useState } from 'react';
-import { X, MapPin, Clock, TrendingUp } from 'lucide-react';
+import { X, MapPin, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { InspectionReport } from '../../hooks/useReports';
 

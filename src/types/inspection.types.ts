@@ -42,8 +42,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Aroma/Odor Level',
     labelGenZ: 'Bau-bauan',
     weight: 0.15, // 15% of total score
-    icon: '👃',
-    iconGenZ: '😷',
+    icon: 'ðŸ‘ƒ',
+    iconGenZ: 'ðŸ˜·',
     required: true,
     allowPhoto: false,
     ratingLabels: {
@@ -55,11 +55,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Excellent - Very fresh',
       },
       genZ: {
-        1: '🤢 Bau banget!',
-        2: '😷 Agak bau',
-        3: '😐 Lumayan',
-        4: '😊 Seger',
-        5: '🌸 Wangi poll!',
+        1: 'ðŸ¤¢ Bau banget!',
+        2: 'ðŸ˜· Agak bau',
+        3: 'ðŸ˜ Lumayan',
+        4: 'ðŸ˜Š Seger',
+        5: 'ðŸŒ¸ Wangi poll!',
       },
     },
   },
@@ -68,8 +68,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Floor Cleanliness',
     labelGenZ: 'Kebersihan Lantai',
     weight: 0.12,
-    icon: '🧹',
-    iconGenZ: '✨',
+    icon: 'ðŸ§¹',
+    iconGenZ: 'âœ¨',
     required: true,
     allowPhoto: true,
     ratingLabels: {
@@ -81,11 +81,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Spotless',
       },
       genZ: {
-        1: '🤮 Kotor parah',
-        2: '😣 Kotor',
-        3: '😐 Lumayan bersih',
-        4: '😊 Bersih',
-        5: '✨ Kinclong!',
+        1: 'ðŸ¤® Kotor parah',
+        2: 'ðŸ˜£ Kotor',
+        3: 'ðŸ˜ Lumayan bersih',
+        4: 'ðŸ˜Š Bersih',
+        5: 'âœ¨ Kinclong!',
       },
     },
   },
@@ -94,8 +94,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Wall & Tile Condition',
     labelGenZ: 'Kondisi Dinding',
     weight: 0.08,
-    icon: '🧱',
-    iconGenZ: '🎨',
+    icon: 'ðŸ§±',
+    iconGenZ: 'ðŸŽ¨',
     required: true,
     allowPhoto: true,
     ratingLabels: {
@@ -107,11 +107,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Excellent - Pristine',
       },
       genZ: {
-        1: '😨 Rusak/jamur',
-        2: '😟 Bernoda',
-        3: '😐 Ada noda dikit',
-        4: '😊 Bersih',
-        5: '🌟 Mulus!',
+        1: 'ðŸ˜¨ Rusak/jamur',
+        2: 'ðŸ˜Ÿ Bernoda',
+        3: 'ðŸ˜ Ada noda dikit',
+        4: 'ðŸ˜Š Bersih',
+        5: 'ðŸŒŸ Mulus!',
       },
     },
   },
@@ -120,8 +120,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Sink & Faucet Condition',
     labelGenZ: 'Kondisi Wastafel',
     weight: 0.10,
-    icon: '🚰',
-    iconGenZ: '💧',
+    icon: 'ðŸš°',
+    iconGenZ: 'ðŸ’§',
     required: true,
     allowPhoto: true,
     ratingLabels: {
@@ -133,11 +133,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Excellent - Perfect condition',
       },
       genZ: {
-        1: '❌ Rusak',
-        2: '😫 Mampet/bocor',
-        3: '😐 Agak bermasalah',
-        4: '😊 Lancar',
-        5: '💯 Perfect!',
+        1: 'âŒ Rusak',
+        2: 'ðŸ˜« Mampet/bocor',
+        3: 'ðŸ˜ Agak bermasalah',
+        4: 'ðŸ˜Š Lancar',
+        5: 'ðŸ’¯ Perfect!',
       },
     },
   },
@@ -146,8 +146,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Mirror Cleanliness',
     labelGenZ: 'Kebersihan Cermin',
     weight: 0.06,
-    icon: '🪞',
-    iconGenZ: '✨',
+    icon: 'ðŸªž',
+    iconGenZ: 'âœ¨',
     required: true,
     allowPhoto: false,
     ratingLabels: {
@@ -159,11 +159,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Spotless',
       },
       genZ: {
-        1: '😵 Kotor/rusak',
-        2: '😣 Banyak noda',
-        3: '😐 Ada noda dikit',
-        4: '😊 Bersih',
-        5: '✨ Bening!',
+        1: 'ðŸ˜µ Kotor/rusak',
+        2: 'ðŸ˜£ Banyak noda',
+        3: 'ðŸ˜ Ada noda dikit',
+        4: 'ðŸ˜Š Bersih',
+        5: 'âœ¨ Bening!',
       },
     },
   },
@@ -172,8 +172,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Toilet Bowl Condition',
     labelGenZ: 'Kondisi Kloset',
     weight: 0.15,
-    icon: '🚽',
-    iconGenZ: '🚽',
+    icon: 'ðŸš½',
+    iconGenZ: 'ðŸš½',
     required: true,
     allowPhoto: true,
     ratingLabels: {
@@ -185,11 +185,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Spotless - Sanitized',
       },
       genZ: {
-        1: '🤢 Jorok banget',
-        2: '😫 Kotor',
-        3: '😐 Perlu dibersihkan',
-        4: '😊 Bersih',
-        5: '🌟 Bersih banget!',
+        1: 'ðŸ¤¢ Jorok banget',
+        2: 'ðŸ˜« Kotor',
+        3: 'ðŸ˜ Perlu dibersihkan',
+        4: 'ðŸ˜Š Bersih',
+        5: 'ðŸŒŸ Bersih banget!',
       },
     },
   },
@@ -198,8 +198,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Urinal Condition (if applicable)',
     labelGenZ: 'Kondisi Urinoir',
     weight: 0.08,
-    icon: '🚿',
-    iconGenZ: '🚿',
+    icon: 'ðŸš¿',
+    iconGenZ: 'ðŸš¿',
     required: false, // not all toilets have urinals
     allowPhoto: true,
     ratingLabels: {
@@ -211,11 +211,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Excellent - Pristine',
       },
       genZ: {
-        1: '❌ Rusak',
-        2: '😫 Mampet/kotor',
-        3: '😐 Perlu perhatian',
-        4: '😊 Bersih & lancar',
-        5: '💯 Perfect!',
+        1: 'âŒ Rusak',
+        2: 'ðŸ˜« Mampet/kotor',
+        3: 'ðŸ˜ Perlu perhatian',
+        4: 'ðŸ˜Š Bersih & lancar',
+        5: 'ðŸ’¯ Perfect!',
       },
     },
   },
@@ -224,8 +224,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Hand Soap Availability',
     labelGenZ: 'Sabun Cuci Tangan',
     weight: 0.08,
-    icon: '🧴',
-    iconGenZ: '🧼',
+    icon: 'ðŸ§´',
+    iconGenZ: 'ðŸ§¼',
     required: true,
     allowPhoto: false,
     ratingLabels: {
@@ -237,11 +237,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Full - Well stocked',
       },
       genZ: {
-        1: '❌ Habis',
-        2: '😟 Tinggal dikit',
-        3: '😐 Setengah',
-        4: '😊 Cukup',
-        5: '✅ Full!',
+        1: 'âŒ Habis',
+        2: 'ðŸ˜Ÿ Tinggal dikit',
+        3: 'ðŸ˜ Setengah',
+        4: 'ðŸ˜Š Cukup',
+        5: 'âœ… Full!',
       },
     },
   },
@@ -250,8 +250,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Toilet Tissue Availability',
     labelGenZ: 'Tisu/Tissue',
     weight: 0.08,
-    icon: '🧻',
-    iconGenZ: '🧻',
+    icon: 'ðŸ§»',
+    iconGenZ: 'ðŸ§»',
     required: true,
     allowPhoto: false,
     ratingLabels: {
@@ -263,11 +263,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Full - Well stocked',
       },
       genZ: {
-        1: '❌ Habis',
-        2: '😟 Mau habis',
-        3: '😐 Setengah',
-        4: '😊 Cukup',
-        5: '✅ Full!',
+        1: 'âŒ Habis',
+        2: 'ðŸ˜Ÿ Mau habis',
+        3: 'ðŸ˜ Setengah',
+        4: 'ðŸ˜Š Cukup',
+        5: 'âœ… Full!',
       },
     },
   },
@@ -276,8 +276,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Air Freshener Status',
     labelGenZ: 'Pengharum Ruangan',
     weight: 0.05,
-    icon: '🌬️',
-    iconGenZ: '🌸',
+    icon: 'ðŸŒ¬ï¸',
+    iconGenZ: 'ðŸŒ¸',
     required: true,
     allowPhoto: false,
     ratingLabels: {
@@ -289,11 +289,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Excellent - Strong & pleasant',
       },
       genZ: {
-        1: '❌ Rusak/gak ada',
-        2: '😟 Habis/lemah',
-        3: '😐 Lumayan',
-        4: '😊 Bagus',
-        5: '🌸 Wangi poll!',
+        1: 'âŒ Rusak/gak ada',
+        2: 'ðŸ˜Ÿ Habis/lemah',
+        3: 'ðŸ˜ Lumayan',
+        4: 'ðŸ˜Š Bagus',
+        5: 'ðŸŒ¸ Wangi poll!',
       },
     },
   },
@@ -302,8 +302,8 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Trash Bin Condition',
     labelGenZ: 'Kondisi Tempat Sampah',
     weight: 0.05,
-    icon: '🗑️',
-    iconGenZ: '🗑️',
+    icon: 'ðŸ—‘ï¸',
+    iconGenZ: 'ðŸ—‘ï¸',
     required: true,
     allowPhoto: true,
     ratingLabels: {
@@ -315,11 +315,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
         5: 'Empty - Clean',
       },
       genZ: {
-        1: '🤮 Penuh meluber',
-        2: '😫 Hampir penuh',
-        3: '😐 Setengah',
-        4: '😊 Masih kosong',
-        5: '✅ Kosong & bersih!',
+        1: 'ðŸ¤® Penuh meluber',
+        2: 'ðŸ˜« Hampir penuh',
+        3: 'ðŸ˜ Setengah',
+        4: 'ðŸ˜Š Masih kosong',
+        5: 'âœ… Kosong & bersih!',
       },
     },
   },
@@ -354,37 +354,37 @@ export const getScoreStatus = (score: number): {
   if (score >= 90) {
     return {
       label: 'Excellent',
-      labelGenZ: 'Perfect! 🎉',
+      labelGenZ: 'Perfect! ðŸŽ‰',
       color: 'green',
-      emoji: '🌟',
+      emoji: 'ðŸŒŸ',
     };
   } else if (score >= 75) {
     return {
       label: 'Good',
-      labelGenZ: 'Bagus! 👍',
+      labelGenZ: 'Bagus! ðŸ‘',
       color: 'blue',
-      emoji: '😊',
+      emoji: 'ðŸ˜Š',
     };
   } else if (score >= 60) {
     return {
       label: 'Fair',
       labelGenZ: 'Lumayan',
       color: 'yellow',
-      emoji: '😐',
+      emoji: 'ðŸ˜',
     };
   } else if (score >= 40) {
     return {
       label: 'Poor',
       labelGenZ: 'Kurang nih',
       color: 'orange',
-      emoji: '😟',
+      emoji: 'ðŸ˜Ÿ',
     };
   } else {
     return {
       label: 'Very Poor',
       labelGenZ: 'Harus diperbaiki!',
       color: 'red',
-      emoji: '😨',
+      emoji: 'ðŸ˜¨',
     };
   }
 };
@@ -398,4 +398,52 @@ export interface InspectionFormData {
   issue_description?: string;
   requires_maintenance: boolean;
   maintenance_priority?: 'low' | 'medium' | 'high' | 'urgent';
+}
+
+// Response type for inspection records from database
+export interface InspectionResponse {
+  id: string;
+  location_id: string;
+  user_id: string;
+  template_id: string;
+  inspection_date: string;
+  inspection_time: string;
+  overall_status: string;
+  responses: Record<string, any>;
+  photo_urls: string[] | null;
+  notes: string | null;
+  submitted_at: string | null;
+  duration_seconds: number | null;
+  verification_notes: string | null;
+  verified_at: string | null;
+  verified_by: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Insert type for creating new inspection records
+export interface InspectionRecordInsert {
+  location_id: string;
+  user_id: string;
+  template_id: string;
+  inspection_date: string;
+  inspection_time: string;
+  overall_status: string;
+  responses: Record<string, any>;
+  photo_urls?: string[] | null;
+  notes?: string | null;
+  submitted_at?: string | null;
+  duration_seconds?: number | null;
+  verification_notes?: string | null;
+  verified_at?: string | null;
+  verified_by?: string | null;
+}
+
+// Template fields structure
+export interface InspectionTemplateFields {
+  components: InspectionComponentConfig[];
+  requiredPhotos?: number;
+  maxPhotos?: number;
+  allowNotes?: boolean;
+  [key: string]: any;
 }

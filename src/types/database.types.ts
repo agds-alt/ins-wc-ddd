@@ -12,8 +12,90 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      buildings: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          short_code: string
+          total_floors: number | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          short_code: string
+          total_floors?: number | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          short_code?: string
+          total_floors?: number | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buildings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_records: {
         Row: {
           duration_seconds: number | null
@@ -72,6 +154,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_records_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_with_details"
             referencedColumns: ["id"]
           },
           {
@@ -148,6 +237,7 @@ export type Database = {
         Row: {
           area: string | null
           building: string | null
+          building_id: string
           code: string | null
           coordinates: Json | null
           created_at: string | null
@@ -157,6 +247,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          organization_id: string
           photo_url: string | null
           qr_code: string
           section: string | null
@@ -165,6 +256,7 @@ export type Database = {
         Insert: {
           area?: string | null
           building?: string | null
+          building_id: string
           code?: string | null
           coordinates?: Json | null
           created_at?: string | null
@@ -174,6 +266,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          organization_id: string
           photo_url?: string | null
           qr_code: string
           section?: string | null
@@ -182,6 +275,7 @@ export type Database = {
         Update: {
           area?: string | null
           building?: string | null
+          building_id?: string
           code?: string | null
           coordinates?: Json | null
           created_at?: string | null
@@ -191,6 +285,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          organization_id?: string
           photo_url?: string | null
           qr_code?: string
           section?: string | null
@@ -198,7 +293,71 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "locations_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          phone: string | null
+          short_code: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          short_code: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          short_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
@@ -209,6 +368,8 @@ export type Database = {
       photos: {
         Row: {
           caption: string | null
+          created_at: string | null
+          created_by: string | null
           deleted_at: string | null
           deleted_by: string | null
           field_reference: string | null
@@ -220,11 +381,13 @@ export type Database = {
           is_deleted: boolean | null
           location_id: string | null
           mime_type: string | null
-          uploaded_at: string | null
-          uploaded_by: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           caption?: string | null
+          created_at?: string | null
+          created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           field_reference?: string | null
@@ -236,11 +399,13 @@ export type Database = {
           is_deleted?: boolean | null
           location_id?: string | null
           mime_type?: string | null
-          uploaded_at?: string | null
-          uploaded_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           caption?: string | null
+          created_at?: string | null
+          created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           field_reference?: string | null
@@ -252,8 +417,8 @@ export type Database = {
           is_deleted?: boolean | null
           location_id?: string | null
           mime_type?: string | null
-          uploaded_at?: string | null
-          uploaded_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -278,8 +443,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "photos_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations_with_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photos_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "photos_uploaded_by_fkey"
-            columns: ["uploaded_by"]
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -332,6 +511,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_occupations: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -387,7 +602,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login_at: string | null
-          password_hash: string
+          occupation_id: string | null
+          password_hash: string | null
           phone: string | null
           profile_photo_url: string | null
           updated_at: string | null
@@ -399,7 +615,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
-          password_hash: string
+          occupation_id?: string | null
+          password_hash?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           updated_at?: string | null
@@ -411,18 +628,77 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
-          password_hash?: string
+          occupation_id?: string | null
+          password_hash?: string | null
           phone?: string | null
           profile_photo_url?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_occupation_id_fkey"
+            columns: ["occupation_id"]
+            isOneToOne: false
+            referencedRelation: "user_occupations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      locations_with_details: {
+        Row: {
+          area: string | null
+          building: string | null
+          building_code: string | null
+          building_id: string | null
+          building_name: string | null
+          building_type: string | null
+          code: string | null
+          coordinates: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          floor: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          organization_code: string | null
+          organization_id: string | null
+          organization_name: string | null
+          photo_url: string | null
+          qr_code: string | null
+          section: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      is_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       user_has_any_role_level: {
         Args: { required_levels: string[] }
         Returns: boolean
@@ -559,6 +835,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
