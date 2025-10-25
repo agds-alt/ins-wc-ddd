@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx - COMPLETE REDESIGN
+// src/pages/Dashboard.tsx - COMPLETE FIXED VERSION
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -9,37 +9,33 @@ import {
   Sparkles, 
   Clock, 
   CheckCircle2,
-  AlertTriangle,
-  TrendingUp,
-  Camera,
-  FileText,
-  MapPin,
-  Settings,
   Bell,
   ChevronRight,
-  Calendar,
-  Users,
-  Building2
+  Camera,
+  FileText,
+  TrendingUp,
+  MapPin,
+  Building2,
+  Settings
 } from 'lucide-react';
 
-
 // Components
-import { Card, CardHeader } from '../components/ui/Card';
-import { StatCard, MiniStatCard } from '../components/ui/StatCard';
+import { Card } from '../components/ui/Card';
+import { MiniStatCard } from '../components/ui/StatCard';
 import { ActionButton } from '../components/ui/ActionButton';
-import { LoadingSpinner, CardSkeleton, ListSkeleton } from '../components/ui/LoadingSpinner';
-import { ErrorMessage, EmptyState } from '../components/ui/ErrorBoundary';
-import { StatusBadge, ScoreBadge } from '../components/ui/Badge';
+import { StatusBadge } from '../components/ui/Badge';
 import { BottomNav } from '../components/mobile/BottomNav';
-// Dashboard.tsx
-import { safeUserId, getScoreEmoji } from '../types/typeGuards';
 
-.eq('user_id', safeUserId(user?.id))
-{getScoreEmoji(stats?.avgScore)}
+// Helper function untuk score emoji
+const getScoreEmoji = (score: number | undefined) => {
+  if (!score) return '😐';
+  if (score >= 80) return '😊';
+  if (score >= 60) return '😐';
+  return '😟';
+};
 
-
-const Dashboard = () => {
-  const { user, profile, signOut } = useAuth();
+export const Dashboard = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -47,29 +43,32 @@ const Dashboard = () => {
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+
       const { data: inspections, error } = await supabase
         .from('inspection_records')
         .select('id, overall_status, inspection_date, responses')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('inspection_date', { ascending: false });
 
       if (error) throw error;
 
       // Calculate statistics
-      const total = inspections.length;
+      const total = inspections?.length || 0;
       const today = new Date().toISOString().split('T')[0];
-      const todayCount = inspections.filter(i => i.inspection_date === today).length;
-      const completedCount = inspections.filter(i => i.overall_status === 'completed').length;
+      const todayCount = inspections?.filter(i => i.inspection_date === today).length || 0;
+      const completedCount = inspections?.filter(i => i.overall_status === 'completed').length || 0;
       const pendingCount = total - completedCount;
 
-      // Calculate average score (simplified)
-      const totalScore = inspections.reduce((sum, inspection) => {
+      // Calculate average score
+      const totalScore = inspections?.reduce((sum, inspection) => {
         const responses = inspection.responses as any;
         const values = Object.values(responses || {});
         const goodCount = values.filter(v => v === true || v === 'good' || v === 'excellent').length;
         return sum + (values.length > 0 ? (goodCount / values.length) * 100 : 0);
-      }, 0);
-      const avgScore = inspections.length > 0 ? Math.round(totalScore / inspections.length) : 0;
+      }, 0) || 0;
+      
+      const avgScore = total > 0 ? Math.round(totalScore / total) : 0;
 
       return {
         total,
@@ -77,19 +76,19 @@ const Dashboard = () => {
         completedCount,
         pendingCount,
         avgScore,
-        recentInspections: inspections.slice(0, 5),
+        recentInspections: inspections?.slice(0, 5) || [],
       };
     },
     enabled: !!user?.id,
   });
 
   // Fetch recent locations
-  const { data: recentLocations, isLoading: locationsLoading } = useQuery({
-    queryKey: ['recent-locations', user?.id],
+  const { data: recentLocations } = useQuery({
+    queryKey: ['recent-locations'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('locations')
-        .select('id, name, building, floor, area')
+        .from('locations_with_details')
+        .select('id, name, building_name, floor, area')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(3);
@@ -118,10 +117,61 @@ const Dashboard = () => {
     }
   };
 
+  // Custom CardHeader component
+  const CardHeader = ({ 
+    title, 
+    subtitle, 
+    icon, 
+    action 
+  }: { 
+    title: string; 
+    subtitle?: string; 
+    icon?: React.ReactNode; 
+    action?: React.ReactNode; 
+  }) => (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-2">
+        {icon}
+        <div>
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+
+  // EmptyState component
+  const EmptyState = ({ 
+    icon, 
+    title, 
+    message, 
+    action 
+  }: { 
+    icon: React.ReactNode; 
+    title: string; 
+    message: string; 
+    action?: { label: string; onClick: () => void }; 
+  }) => (
+    <div className="text-center py-8">
+      <div className="w-12 h-12 text-gray-400 mx-auto mb-3">{icon}</div>
+      <h4 className="font-medium text-gray-900 mb-1">{title}</h4>
+      <p className="text-gray-600 text-sm mb-4">{message}</p>
+      {action && (
+        <button
+          onClick={action.onClick}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
+          {action.label}
+        </button>
+      )}
+    </div>
+  );
+
   if (statsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 pb-24">
-        <div className="gradient-header p-6 space-y-4">
+        <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 rounded-full animate-pulse" />
@@ -137,8 +187,8 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="p-4 space-y-4 -mt-6">
-          <CardSkeleton />
-          <ListSkeleton />
+          <div className="h-32 bg-white rounded-xl animate-pulse" />
+          <div className="h-48 bg-white rounded-xl animate-pulse" />
         </div>
       </div>
     );
@@ -147,38 +197,36 @@ const Dashboard = () => {
   if (statsError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <ErrorMessage
-          title="Failed to Load Dashboard"
-          message="Unable to fetch your statistics. Please try again."
-          onRetry={() => window.location.reload()}
-        />
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to Load Dashboard</h2>
+          <p className="text-gray-600 mb-4">Unable to fetch your statistics. Please try again.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* ========================================
-          GRADIENT HEADER (LIVIN STYLE)
-          ======================================== */}
-      <header className="gradient-header p-6 safe-area-top">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6">
         {/* Top Bar */}
         <div className="flex items-center justify-between text-white mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-2xl">
-              {profile?.profile_photo_url ? (
-                <img 
-                  src={profile.profile_photo_url} 
-                  alt={profile.full_name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <span>👤</span>
-              )}
+              <span>👤</span>
             </div>
             <div>
               <h1 className="text-xl font-bold">
-                Hi, {profile?.full_name?.split(' ')[0] || 'User'}! 👋
+                Hi, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}! 👋
               </h1>
               <p className="text-blue-100 text-sm">Ready for inspections today?</p>
             </div>
@@ -205,31 +253,29 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards in Header */}
+        {/* Stats Cards in Header - OPSI 1: PAKAI LABEL */}
         <div className="grid grid-cols-2 gap-3">
           <MiniStatCard
-            icon="✅"
-            value={stats?.completedCount || 0}
+            icon={CheckCircle2}
+            value={stats?.completedCount?.toString() || '0'}
             label="Completed Today"
             color="green"
             onClick={() => navigate('/history')}
           />
           <MiniStatCard
-            icon="⏰"
-            value={stats?.pendingCount || 0}
+            icon={Clock}
+            value={stats?.pendingCount?.toString() || '0'}
             label="Pending Tasks"
             color="yellow"
             onClick={() => navigate('/history')}
           />
         </div>
-      </header>
+      </div>
 
-      {/* ========================================
-          MAIN CONTENT AREA
-          ======================================== */}
+      {/* Main Content */}
       <main className="p-4 space-y-4 -mt-6 relative z-10">
         {/* Quick Actions Card */}
-        <Card>
+        <Card className="p-6">
           <CardHeader 
             title="Quick Actions"
             subtitle="Start your inspection workflow"
@@ -260,7 +306,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Performance Overview */}
-        <Card>
+        <Card className="p-6">
           <CardHeader 
             title="Today's Performance"
             subtitle={`${stats?.todayCount || 0} inspections completed`}
@@ -296,10 +342,10 @@ const Dashboard = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl">
-                  {stats?.avgScore >= 80 ? '😊' : stats?.avgScore >= 60 ? '😐' : '😟'}
+                  {getScoreEmoji(stats?.avgScore)}
                 </span>
                 <span className="text-lg font-bold text-blue-900">
-                  {stats?.avgScore >= 80 ? 'Excellent' : stats?.avgScore >= 60 ? 'Good' : 'Needs Work'}
+                  {stats?.avgScore && stats.avgScore >= 80 ? 'Excellent' : stats?.avgScore && stats.avgScore >= 60 ? 'Good' : 'Needs Work'}
                 </span>
               </div>
             </div>
@@ -307,7 +353,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Recent Inspections */}
-        <Card>
+        <Card className="p-6">
           <CardHeader 
             title="Recent Inspections"
             subtitle="Your latest inspection activity"
@@ -365,7 +411,7 @@ const Dashboard = () => {
 
         {/* Quick Access Locations */}
         {recentLocations && recentLocations.length > 0 && (
-          <Card>
+          <Card className="p-6">
             <CardHeader 
               title="Quick Access Locations"
               subtitle="Recently added locations"
@@ -385,7 +431,7 @@ const Dashboard = () => {
                     <div className="text-left">
                       <div className="font-medium text-gray-900">{location.name}</div>
                       <div className="text-sm text-gray-500">
-                        {location.building} • {location.floor}
+                        {location.building_name} • {location.floor}
                       </div>
                     </div>
                   </div>
@@ -397,7 +443,7 @@ const Dashboard = () => {
         )}
 
         {/* Tips Card */}
-        <Card variant="bordered">
+        <Card className="p-6 border border-yellow-200 bg-yellow-50">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-5 h-5 text-yellow-600" />
@@ -415,13 +461,10 @@ const Dashboard = () => {
         </Card>
       </main>
 
-      {/* ========================================
-          BOTTOM NAVIGATION
-          ======================================== */}
+      {/* Bottom Navigation */}
       <BottomNav />
     </div>
   );
 };
-
 
 export default Dashboard;

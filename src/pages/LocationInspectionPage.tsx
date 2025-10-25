@@ -18,6 +18,16 @@ export const LocationInspectionPage = () => {
   const [loading, setLoading] = useState(true);
   const [showInspectionForm, setShowInspectionForm] = useState(false);
 
+  // Check authentication - redirect if not logged in
+  useEffect(() => {
+    if (!user) {
+      toast.error('Please login to continue');
+      navigate('/login', { 
+        state: { from: `/location-inspection/${locationId}` } 
+      });
+    }
+  }, [user, navigate, locationId]);
+
   // Fetch location details
   useEffect(() => {
     const fetchLocation = async () => {
@@ -57,6 +67,22 @@ export const LocationInspectionPage = () => {
     setShowInspectionForm(false);
   };
 
+  const handleStartInspection = () => {
+    if (!user) {
+      toast.error('Please login to start inspection');
+      navigate('/login');
+      return;
+    }
+    
+    console.log('Starting inspection:', {
+      user: user.email,
+      locationId: locationId,
+      timestamp: new Date().toISOString()
+    });
+    
+    setShowInspectionForm(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -85,19 +111,33 @@ export const LocationInspectionPage = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate(-1)}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Toilet Inspection</h1>
-              <p className="text-gray-600">Complete inspection for this location</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate(-1)}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Toilet Inspection</h1>
+                <p className="text-gray-600">Complete inspection for this location</p>
+              </div>
             </div>
+            
+            {/* User Info Badge */}
+            {user && (
+              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-semibold">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <span className="font-medium">{user.email}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -107,7 +147,7 @@ export const LocationInspectionPage = () => {
         <Card className="p-6">
           <div className="flex items-start space-x-4">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-xl">
-              🚽
+              ðŸš½
             </div>
             <div className="flex-1">
               <h2 className="text-xl font-bold text-gray-900 mb-2">
@@ -171,7 +211,7 @@ export const LocationInspectionPage = () => {
           <Card className="p-6 text-center">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">📝</span>
+                <span className="text-2xl">ðŸ“</span>
               </div>
               
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -184,9 +224,10 @@ export const LocationInspectionPage = () => {
 
               <div className="space-y-3">
                 <Button
-                  onClick={() => setShowInspectionForm(true)}
+                  onClick={handleStartInspection}
                   className="w-full"
                   size="lg"
+                  disabled={!user}
                 >
                   Start Inspection
                 </Button>
@@ -260,7 +301,7 @@ const RecentInspections = ({ locationId }: { locationId: string }) => {
                   {new Date(inspection.inspection_date).toLocaleDateString('id-ID')}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {inspection.inspection_time} • 
+                  {inspection.inspection_time} â€¢ 
                   Status: <span className={`font-medium ${
                     inspection.overall_status === 'excellent' ? 'text-green-600' :
                     inspection.overall_status === 'good' ? 'text-blue-600' :

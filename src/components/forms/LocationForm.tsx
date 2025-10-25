@@ -54,7 +54,7 @@ export function LocationForm({
   // Reset building when organization changes (except for initial data)
   useEffect(() => {
     if (!initialData?.building_id && formData.organization_id) {
-      setFormData(prev => ({ ...prev, building_id: '' }));
+      setFormData((prev: LocationFormData) => ({ ...prev, building_id: '' }));
     }
   }, [formData.organization_id, initialData?.building_id]);
 
@@ -62,7 +62,7 @@ export function LocationForm({
     field: keyof LocationFormData,
     value: string
   ) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: LocationFormData) => ({ ...prev, [field]: value }));
     
     // Clear error for this field when user types
     if (errors[field]) {

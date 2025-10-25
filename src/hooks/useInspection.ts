@@ -1,10 +1,33 @@
-// src/hooks/useInspection.ts - PERBAIKI INI
+// src/hooks/useInspection.ts
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { TablesInsert } from '../types/database.types';
+import type { InspectionResponse } from '../types/inspection.types';
 
-export const useInspection = () => {
+
+// Make inspectionId optional to support both use cases
+export const useInspection = (inspectionId?: string) => {
+  // Get specific inspection by ID (only if inspectionId provided)
+  const getInspection = useQuery({
+    queryKey: ['inspection', inspectionId],
+    queryFn: async () => {
+      if (!inspectionId) return null;
+      
+      const { data, error } = await supabase
+        .from('inspection_records')
+        .select('*')
+        .eq('id', inspectionId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching inspection:', error);
+        throw error;
+      }
+      return data as InspectionResponse;
+    },
+    enabled: !!inspectionId,
+  });
   // Get default template
   const getDefaultTemplate = useQuery({
     queryKey: ['default-template'],
@@ -136,6 +159,7 @@ export const useInspection = () => {
   });
 
   return {
+    getInspection,
     getDefaultTemplate,
     getLocation,
     submitInspection,

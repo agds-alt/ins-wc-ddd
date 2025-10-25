@@ -1,16 +1,17 @@
-// src/components/admin/LocationManager.tsx - MOBILE-FIRST FIXED
+// src/components/admin/LocationManager.tsx - COMPLETE FIXED VERSION
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { Tables, TablesInsert } from '../../types/database.types';
-import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { QRCodeGenerator } from './QRCodeGenerator';
 
 type Location = Tables<'locations'>;
+type LocationInsert = TablesInsert<'locations'>;
 
 export const LocationManager = () => {
   const { user } = useAuth();
@@ -115,11 +116,36 @@ export const LocationManager = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-2xl font-bold text-white mb-2">Location Management</h1>
-        <p className="text-blue-100">Manage toilet locations & QR codes</p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Location Management</h1>
+            <p className="text-blue-100">Manage toilet locations & QR codes</p>
+          </div>
+          {/* User Info */}
+          {user && (
+            <div className="hidden sm:flex items-center space-x-2 bg-white/20 px-3 py-2 rounded-lg">
+              <User className="w-4 h-4 text-white" />
+              <span className="text-white text-sm font-medium">
+                {user.user_metadata?.name || user.email}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-4 space-y-4">
+        {/* User Info for Mobile */}
+        {user && (
+          <Card className="sm:hidden p-3 bg-blue-50 border-blue-200">
+            <div className="flex items-center space-x-2">
+              <User className="w-4 h-4 text-blue-600" />
+              <span className="text-blue-900 text-sm font-medium">
+                {user.user_metadata?.name || user.email}
+              </span>
+            </div>
+          </Card>
+        )}
+
         {/* Search & Actions */}
         <Card>
           <div className="space-y-3">
@@ -200,9 +226,16 @@ export const LocationManager = () => {
                       <p className="truncate">📍 {location.floor}</p>
                     )}
                     {location.area && (
-                      <p className="truncate">📌 {location.area}</p>
+                      <p className="truncate">🗺️ {location.area}</p>
                     )}
                   </div>
+
+                  {/* Created By Info */}
+                  {location.created_by && (
+                    <div className="text-xs text-gray-500 mb-2">
+                      Created by: {location.created_by === user?.id ? 'You' : location.created_by}
+                    </div>
+                  )}
 
                   {/* URL Preview - Collapsible */}
                   <details className="text-xs">
@@ -308,7 +341,7 @@ export const LocationManager = () => {
   );
 };
 
-// Location Form Modal Component (unchanged from original)
+// Location Form Modal Component - FIXED VERSION
 interface LocationFormModalProps {
   location: Location | null;
   onClose: () => void;
@@ -323,7 +356,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
   const [buildings, setBuildings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<LocationInsert>>({
     name: location?.name || '',
     code: location?.code || '',
     organization_id: location?.organization_id || '',
@@ -380,7 +413,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
   }, [formData.organization_id]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: Partial<LocationInsert>) => {
       // Validasi UUID
       if (!data.organization_id || !data.building_id) {
         throw new Error('Organization and Building are required');
@@ -388,24 +421,26 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
 
       if (location) {
         // UPDATE existing location
+        const updateData: Partial<LocationInsert> = {
+          name: data.name,
+          code: data.code,
+          organization_id: data.organization_id,
+          building_id: data.building_id,
+          floor: data.floor,
+          area: data.area,
+          section: data.section,
+          description: data.description,
+          updated_at: new Date().toISOString(),
+        };
+
         const { error } = await supabase
           .from('locations')
-          .update({
-            name: data.name,
-            code: data.code,
-            organization_id: data.organization_id,
-            building_id: data.building_id,
-            floor: data.floor,
-            area: data.area,
-            section: data.section,
-            description: data.description,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updateData)
           .eq('id', location.id);
 
         if (error) throw error;
       } else {
-        // INSERT new location
+        // INSERT new location using TablesInsert type
         const { data: building, error: buildingError } = await supabase
           .from('buildings')
           .select('short_code, organizations(short_code)')
@@ -424,11 +459,11 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
         
         const qrCode = orgCode + '-' + buildingCode + '-' + locationCode + '-' + uniqueId;
 
-        const newLocation = {
-          name: data.name,
+        const newLocation: LocationInsert = {
+          name: data.name!,
           code: data.code,
-          organization_id: data.organization_id,
-          building_id: data.building_id,
+          organization_id: data.organization_id!,
+          building_id: data.building_id!,
           floor: data.floor,
           area: data.area,
           section: data.section,
@@ -458,7 +493,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
+    if (!formData.name?.trim()) {
       toast.error('Location name is required');
       return;
     }
@@ -483,6 +518,11 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
           <h2 className="text-xl font-bold text-gray-900">
             {location ? 'Edit Location' : 'Add Location'}
           </h2>
+          {user && (
+            <p className="text-sm text-gray-600 mt-1">
+              Created by: {user.user_metadata?.name || user.email}
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -492,7 +532,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               Organization *
             </label>
             <select
-              value={formData.organization_id}
+              value={formData.organization_id || ''}
               onChange={(e) => setFormData({ ...formData, organization_id: e.target.value, building_id: '' })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
@@ -513,7 +553,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               Building *
             </label>
             <select
-              value={formData.building_id}
+              value={formData.building_id || ''}
               onChange={(e) => setFormData({ ...formData, building_id: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
@@ -539,7 +579,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
             </label>
             <input
               type="text"
-              value={formData.name}
+              value={formData.name || ''}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="e.g. Toilet Lantai 3"
@@ -555,7 +595,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
             </label>
             <input
               type="text"
-              value={formData.code}
+              value={formData.code || ''}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="e.g. WC-03, T-MEN-1"
@@ -571,7 +611,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               </label>
               <input
                 type="text"
-                value={formData.floor}
+                value={formData.floor || ''}
                 onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Lantai 3"
@@ -585,7 +625,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               </label>
               <input
                 type="text"
-                value={formData.section}
+                value={formData.section || ''}
                 onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Pria/Wanita"
@@ -600,7 +640,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               Area Type
             </label>
             <select
-              value={formData.area}
+              value={formData.area || ''}
               onChange={(e) => setFormData({ ...formData, area: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={saveMutation.isPending}
@@ -620,7 +660,7 @@ const LocationFormModal = ({ location, onClose, onSuccess }: LocationFormModalPr
               Description
             </label>
             <textarea
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={3}

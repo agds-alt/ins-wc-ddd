@@ -1,5 +1,4 @@
 // src/types/photo.types.ts
-// src/types/photo.types.ts
 
 import { Tables, TablesInsert } from './database.types';
 
@@ -63,28 +62,4 @@ export interface CloudinaryUploadResult {
   resource_type: string;
   created_at: string;
   bytes: number;
-}
-
-export interface PhotoWithMetadata {
-  file: File;
-  preview: string;
-  timestamp: string;
-  geolocation?: {
-    latitude: number;
-    longitude: number;
-    accuracy?: number;
-  };
-  metadata?: {
-    inspectionId?: string;
-    componentId?: string;
-    notes?: string;
-  };
-}
-
-export interface UploadedPhoto {
-  id: string;
-  url: string;
-  cloudinaryId: string;
-  uploadedAt: string;
-  metadata: PhotoWithMetadata['metadata'];
 }

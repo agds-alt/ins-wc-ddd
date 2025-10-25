@@ -6,11 +6,9 @@ import { useState } from 'react';
 import { EnhancedPhotoUpload } from './EnhancedPhotoUpload';
 import { useInspection } from '../../hooks/useInspection';
 import { useAuth } from '../../hooks/useAuth';
-import { toast } from 'sonner';
-// InspectionForm.tsx
+import { toast } from 'react-hot-toast';
 import { PhotoWithMetadata } from '../../types/photo.types';
-
-const [photos, setPhotos] = useState<PhotoWithMetadata[]>([]);
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 // Schema berdasarkan inspection_templates.fields 
 const inspectionSchema = z.object({
@@ -34,14 +32,13 @@ interface InspectionFormProps {
   onComplete: () => void;
 }
 
-// PASTIKAN ADA export di sini
 export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) => {
   const { user } = useAuth();
-  const { getLocation, submitInspection } = useInspection();
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { data: location } = getLocation(locationId);
+  const { data: location, isLoading: locationLoading } = Location (locationId);
+  const submitInspection = useInspection();
+  
+  const [photos, setPhotos] = useState<PhotoWithMetadata[]>([]);
+  const [startTime] = useState<Date>(new Date());
 
   const {
     register,
@@ -71,29 +68,58 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
       return;
     }
 
-    setIsSubmitting(true);
     try {
+      // Calculate duration
+      const endTime = new Date();
+      const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+
+      // Convert form data to inspection responses format
+      const responses = {
+        cleanliness: { value: data.cleanliness, timestamp: new Date().toISOString() },
+        toilet_paper: { value: data.toilet_paper, timestamp: new Date().toISOString() },
+        soap_supply: { value: data.soap_supply, timestamp: new Date().toISOString() },
+        hand_dryer: { value: data.hand_dryer, timestamp: new Date().toISOString() },
+        water_supply: { value: data.water_supply, timestamp: new Date().toISOString() },
+        drainage: { value: data.drainage, timestamp: new Date().toISOString() },
+        ventilation: { value: data.ventilation, timestamp: new Date().toISOString() },
+        lighting: { value: data.lighting, timestamp: new Date().toISOString() },
+        damage_reported: { value: data.damage_reported, timestamp: new Date().toISOString() },
+        ...(data.damage_notes && {
+          damage_notes: { value: data.damage_notes, timestamp: new Date().toISOString() }
+        }),
+      };
+
       await submitInspection.mutateAsync({
         location_id: locationId,
         user_id: user.id,
-        responses: data,
+        responses: responses,
         photos: photos,
         notes: data.additional_notes,
+        duration_seconds: durationSeconds,
       });
 
       toast.success('Inspection submitted successfully!');
       onComplete();
     } catch (error: any) {
+      console.error('Submission error:', error);
       toast.error(error.message || 'Failed to submit inspection');
-    } finally {
-      setIsSubmitting(false);
     }
   };
+
+  if (locationLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   if (!location) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <p className="text-gray-600">Location not found</p>
+        </div>
       </div>
     );
   }
@@ -109,7 +135,7 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
           <div className="flex-1">
             <h1 className="font-bold text-gray-900">{location.name}</h1>
             <p className="text-sm text-gray-600">
-              {location.building} • {location.floor} • {location.area}
+              {location.building_name} • {location.floor} • {location.area}
             </p>
           </div>
         </div>
@@ -179,7 +205,7 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
                 </div>
                 <input
                   type="checkbox"
-                  {...register(item.id as any)}
+                  {...register(item.id as keyof InspectionFormData)}
                   className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                 />
               </label>
@@ -213,6 +239,7 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
         {/* Photo Upload */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <EnhancedPhotoUpload
+            componentId="inspection_photos"
             photos={photos}
             onPhotosChange={setPhotos}
             maxPhotos={5}
@@ -237,16 +264,24 @@ export const InspectionForm = ({ locationId, onComplete }: InspectionFormProps) 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 safe-area-bottom">
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={submitInspection.isPending}
           className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Inspection'}
+          {useInspection.isPending ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Submitting...
+            </span>
+          ) : (
+            'Submit Inspection'
+          )}
         </button>
       </div>
     </form>
   );
 };
 
-// PASTIKAN ADA EXPORT DI SINI!
-export default InspectionForm; // ← ATAU INI
-// export { InspectionForm }; // ← ATAU INI
+export default InspectionForm;
