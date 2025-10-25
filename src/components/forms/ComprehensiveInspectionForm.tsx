@@ -42,7 +42,7 @@ export const ComprehensiveInspectionForm = ({
   onToggleMode,
 }: ComprehensiveInspectionFormProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { getLocation, submitInspection } = useInspection();
   
   // Form state

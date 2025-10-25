@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx - Main Dashboard with Enhanced Features
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -12,12 +12,10 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  MoreVertical,
   Filter,
   ChevronDown,
   BarChart3,
   ScanIcon,
-  User,
   Settings
 } from 'lucide-react';
 import { format, subDays, isToday, isYesterday, parseISO } from 'date-fns';

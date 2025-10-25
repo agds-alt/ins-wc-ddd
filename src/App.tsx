@@ -9,7 +9,7 @@ import { ProtectedRoute } from './components/admin/auth/ProtectedRoute';
 
 // Public Pages
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPageUpdated } from './pages/RegisterPage';
+import { RegisterPage } from './pages/RegisterPage';
 
 // Main App Pages
 import { DashboardEnhanced } from './pages/Dashboard';
@@ -44,7 +44,7 @@ function App() {
         <Routes>
           {/* ==================== PUBLIC ROUTES ==================== */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPageUpdated />} />
+          <Route path="/register" element={<RegisterPage />} />
 
           {/* ==================== PROTECTED USER ROUTES ==================== */}
           <Route

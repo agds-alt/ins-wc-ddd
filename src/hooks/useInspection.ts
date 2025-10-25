@@ -2,8 +2,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { uploadToCloudinary } from '../lib/cloudinary';
-import { Tables, TablesInsert } from '../../src/types/database.types';
-import type { InspectionResponse, ComponentRating } from '../types/inspection.types';
+import { TablesInsert } from '../../src/types/database.types';
+import type { InspectionResponse } from '../types/inspection.types';
 
 interface SubmitInspectionData {
   location_id: string;

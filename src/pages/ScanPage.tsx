@@ -28,6 +28,8 @@ export const ScanPage = () => {
   const { data: recentInspections, isLoading: loadingInspections } = useQuery({
     queryKey: ['recent-inspections', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       const { data, error } = await supabase
         .from('inspection_records')
         .select(`
@@ -43,7 +45,7 @@ export const ScanPage = () => {
             code
           )
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('inspection_date', { ascending: false })
         .order('inspection_time', { ascending: false })
         .limit(5);
@@ -58,10 +60,12 @@ export const ScanPage = () => {
   const { data: stats } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       const { data, error } = await supabase
         .from('inspection_records')
         .select('id, overall_status, inspection_date')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
 

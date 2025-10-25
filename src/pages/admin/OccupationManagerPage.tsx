@@ -9,8 +9,6 @@ import {
   Save, 
   X,
   Briefcase,
-  Palette,
-  Type
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardHeader } from '../../components/ui/Card';

@@ -19,13 +19,12 @@ import {
   Award,
   Settings,
   User as UserIcon,
-  Briefcase,
-  Shield // ← NEW for admin button
+  Shield // for admin button
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { BottomNavFixed } from '../components/mobile/BottomNavFixed';
-import { Card, CardHeader } from '../components/ui/Card';
+import { BottomNav } from '../components/mobile/BottomNav';
+import { Card } from '../components/ui/Card';
 
 interface UserStats {
   totalInspections: number;
@@ -75,6 +74,8 @@ export const ProfilePageWithAdmin = () => {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async (): Promise<UserStats> => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       const { data: inspections, error } = await supabase
         .from('inspection_records')
         .select(`
@@ -83,7 +84,7 @@ export const ProfilePageWithAdmin = () => {
           responses,
           locations (name)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('inspection_date', { ascending: false });
 
       if (error) throw error;
@@ -173,6 +174,8 @@ export const ProfilePageWithAdmin = () => {
   // Upload photo mutation
   const uploadPhotoMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       const formData = new FormData();
       formData.append('file', file);
       formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
@@ -194,7 +197,7 @@ export const ProfilePageWithAdmin = () => {
       const { error: updateError } = await supabase
         .from('users')
         .update({ profile_photo_url: photoUrl })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (updateError) throw updateError;
 
@@ -320,7 +323,7 @@ export const ProfilePageWithAdmin = () => {
             {occupation && (
               <div 
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium mb-2"
-                style={{ backgroundColor: occupation.color }}
+                style={{ backgroundColor: occupation.color || '#6B7280' }}
               >
                 <span className="text-lg">{occupation.icon}</span>
                 <span>{occupation.display_name}</span>
@@ -485,7 +488,7 @@ export const ProfilePageWithAdmin = () => {
         </div>
       </div>
 
-      <BottomNavFixed />
+      <BottomNav />
     </div>
   );
 };

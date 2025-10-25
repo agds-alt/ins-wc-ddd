@@ -1,6 +1,5 @@
 // src/pages/AnalyticsPage.tsx - Phase 1 Analytics Dashboard
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
@@ -10,17 +9,12 @@ import {
   TrendingDown,
   Clock,
   MapPin,
-  Users,
-  Calendar,
   Download,
-  Filter,
   ChevronDown,
-  Award,
   AlertTriangle,
-  Target,
   Activity
 } from 'lucide-react';
-import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
 
 // Components
 import { Card, CardHeader } from '../components/ui/Card';
@@ -72,8 +66,7 @@ interface AnalyticsData {
 }
 
 export const AnalyticsPage = () => {
-  const { user, profile } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('week');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 

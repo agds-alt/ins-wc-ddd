@@ -2,13 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { authStorage } from '../lib/authStorage';
-import type { User } from '@supabase/supabase-js';
 import type { Database } from '../types/database.types';
 
 // Define the profile type based on your database schema
-export type UserProfile = Database['public']['Tables']['users']['Row'];
+// Explicitly exclude password_hash for security - never expose it to frontend
+export type UserProfile = Omit<Database['public']['Tables']['users']['Row'], 'password_hash'>;
 
 // Extended user type that combines Supabase User with our profile
+
 export interface AppUser {
   id: string;
   email: string;
@@ -30,16 +31,6 @@ interface UseAuthReturn {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
-
-// Auth state constants for better debugging
-const AuthEvents = {
-  INIT: 'INIT',
-  SIGNED_IN: 'SIGNED_IN',
-  SIGNED_OUT: 'SIGNED_OUT',
-  TOKEN_REFRESHED: 'TOKEN_REFRESHED',
-  USER_UPDATED: 'USER_UPDATED',
-  USER_DELETED: 'USER_DELETED',
-} as const;
 
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AppUser | null>(null);

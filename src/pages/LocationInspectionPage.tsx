@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { InspectionForm } from '../components/forms/InspectionForm';
+import { ComprehensiveInspectionForm } from '../components/forms/ComprehensiveInspectionForm';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ArrowLeft, MapPin, Building, AlertCircle } from 'lucide-react';
@@ -16,7 +16,7 @@ export const LocationInspectionPage = () => {
   
   const [location, setLocation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showInspectionForm, setShowInspectionForm] = useState(false);
+  const [showComprehensiveInspectionForm, setShowComprehensiveInspectionForm] = useState(false);
 
   // Check authentication - redirect if not logged in
   useEffect(() => {
@@ -62,11 +62,6 @@ export const LocationInspectionPage = () => {
     fetchLocation();
   }, [locationId, navigate]);
 
-  const handleInspectionComplete = () => {
-    toast.success('Inspection completed successfully!');
-    setShowInspectionForm(false);
-  };
-
   const handleStartInspection = () => {
     if (!user) {
       toast.error('Please login to start inspection');
@@ -80,7 +75,7 @@ export const LocationInspectionPage = () => {
       timestamp: new Date().toISOString()
     });
     
-    setShowInspectionForm(true);
+    setShowComprehensiveInspectionForm(true);
   };
 
   if (loading) {
@@ -207,7 +202,7 @@ export const LocationInspectionPage = () => {
         </Card>
 
         {/* Action Section */}
-        {!showInspectionForm ? (
+        {!showComprehensiveInspectionForm ? (
           <Card className="p-6 text-center">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -244,9 +239,8 @@ export const LocationInspectionPage = () => {
           </Card>
         ) : (
           /* Inspection Form */
-          <InspectionForm
+          <ComprehensiveInspectionForm
             locationId={locationId!}
-            onComplete={handleInspectionComplete}
           />
         )}
 

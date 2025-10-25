@@ -15,15 +15,13 @@ import {
   CheckCircle2,
   TrendingUp,
   Award,
-  MapPin,
   Settings,
-  User as UserIcon,
-  Briefcase
+  User as UserIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { BottomNav } from '../components/mobile/BottomNav';
-import { Card, CardHeader } from '../components/ui/Card';
+import { Card } from '../components/ui/Card';
 
 interface UserStats {
   totalInspections: number;
@@ -46,6 +44,8 @@ export const ProfilePage = () => {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async (): Promise<UserStats> => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       const { data: inspections, error } = await supabase
         .from('inspection_records')
         .select(`
@@ -54,7 +54,7 @@ export const ProfilePage = () => {
           responses,
           locations (name)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('inspection_date', { ascending: false });
 
       if (error) throw error;
@@ -79,7 +79,6 @@ export const ProfilePage = () => {
       let currentStreak = 0;
       if (inspections && inspections.length > 0) {
         const dates = [...new Set(inspections.map(i => i.inspection_date))].sort().reverse();
-        const today = new Date().toISOString().split('T')[0];
         
         for (let i = 0; i < dates.length; i++) {
           const expectedDate = new Date();
@@ -148,6 +147,8 @@ export const ProfilePage = () => {
   // Upload photo mutation
   const uploadPhotoMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       // 1. Upload to Cloudinary
       const formData = new FormData();
       formData.append('file', file);
@@ -171,7 +172,7 @@ export const ProfilePage = () => {
       const { error: updateError } = await supabase
         .from('users')
         .update({ profile_photo_url: photoUrl })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (updateError) throw updateError;
 
@@ -246,17 +247,6 @@ export const ProfilePage = () => {
         </div>
       </div>
 
-      // ProfilePage.tsx
-{isAdmin && (
-  <button
-    onClick={() => navigate('/admin')}
-    className="w-full flex items-center justify-center gap-2 p-4 bg-purple-50 border-2 border-purple-200 rounded-2xl font-medium text-purple-600 hover:bg-purple-100 transition-colors"
-  >
-    <Settings className="w-5 h-5" />
-    <span>Admin Panel</span>
-  </button>
-)}
-
       {/* Profile Card (overlapping header) */}
       <div className="px-6 -mt-16">
         <Card className="relative">
@@ -312,7 +302,7 @@ export const ProfilePage = () => {
             {occupation && (
               <div 
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-white font-medium mb-2"
-                style={{ backgroundColor: occupation.color }}
+                style={{ backgroundColor: occupation.color || '#6B7280' }}
               >
                 <span className="text-lg">{occupation.icon}</span>
                 <span>{occupation.display_name}</span>
