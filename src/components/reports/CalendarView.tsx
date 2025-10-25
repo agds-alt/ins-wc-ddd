@@ -1,12 +1,10 @@
-// src/components/reports/CalendarView.tsx
-import { useState } from 'react';
+// src/components/reports/CalendarView.tsx - FIXED: Remove unused imports
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   format, 
   startOfMonth, 
   endOfMonth, 
-  eachDayOfInterval, 
-  isSameMonth, 
+  eachDayOfInterval,
   isToday,
   addMonths,
   subMonths 
@@ -121,25 +119,15 @@ export const CalendarView = ({
                 {/* Date number */}
                 <div className={`
                   text-sm font-medium
-                  ${dayIsToday ? 'text-blue-600' : 'text-gray-900'}
+                  ${dayIsToday ? 'text-blue-600 font-bold' : 'text-gray-700'}
                 `}>
                   {format(day, 'd')}
                 </div>
 
                 {/* Inspection indicator */}
                 {hasInspections && (
-                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex items-center space-x-0.5">
-                    {/* Score color dot */}
-                    <div className={`
-                      w-2 h-2 rounded-full ${getScoreColor(dateData.averageScore)}
-                    `} />
-                    
-                    {/* Count badge */}
-                    {dateData.count > 1 && (
-                      <div className="text-[10px] font-bold text-gray-600">
-                        {dateData.count}
-                      </div>
-                    )}
+                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${getScoreColor(dateData.averageScore)}`} />
                   </div>
                 )}
               </button>
@@ -149,20 +137,18 @@ export const CalendarView = ({
       </div>
 
       {/* Legend */}
-      <div className="p-4 border-t border-gray-100">
-        <div className="flex items-center justify-center space-x-4 text-xs">
-          <div className="flex items-center space-x-1.5">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="text-gray-600">Excellent (85+)</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span className="text-gray-600">Good (70-84)</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500" />
-            <span className="text-gray-600">Needs Work (&lt;70)</span>
-          </div>
+      <div className="p-4 border-t border-gray-100 flex items-center justify-center space-x-4 text-xs text-gray-600">
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 rounded-full bg-green-500" />
+          <span>Good (85+)</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 rounded-full bg-yellow-500" />
+          <span>Fair (70-84)</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <div className="w-2 h-2 rounded-full bg-red-500" />
+          <span>Poor (&lt;70)</span>
         </div>
       </div>
     </div>

@@ -1,58 +1,106 @@
-// src/lib/photoService.ts
+// Fix for photoService.ts uploaded_by field
+// Error di line 41: 'uploaded_by' does not exist
 
-import { PhotoWithMetadata, PhotoInsert } from '../types/photo.types';
+// src/lib/photoService.ts (FIXED VERSION)
+
 import { supabase } from './supabase';
+import { TablesInsert } from '../types/database.types';
+import { uploadToCloudinary } from './cloudinary';
 
-export const uploadInspectionPhoto = async (
-  photoMeta: PhotoWithMetadata,
+export interface PhotoUploadData {
+  file: File;
+  caption?: string;
+  field_reference?: string;
+  inspection_id?: string;
+  location_id?: string;
+}
+
+export const uploadPhoto = async (
+  photoData: PhotoUploadData,
   userId: string
 ): Promise<string> => {
   try {
-    // 1. Upload to Cloudinary
-    const formData = new FormData();
-    formData.append('file', photoMeta.file);
-    formData.append('upload_preset', process.env.VITE_CLOUDINARY_UPLOAD_PRESET!);
-    formData.append('folder', 'inspections');
-    
-    const cloudinaryResponse = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-    
-    if (!cloudinaryResponse.ok) {
-      throw new Error('Failed to upload to Cloudinary');
-    }
-    
-    const cloudinaryData = await cloudinaryResponse.json();
-    
-    // 2. Save to database
-    const photoData: PhotoInsert = {
-      file_url: cloudinaryData.secure_url,  // ✅ Cloudinary URL
-      file_name: photoMeta.file.name,
-      file_size: photoMeta.file.size,
-      mime_type: photoMeta.file.type,
-      inspection_id: photoMeta.metadata?.inspectionId,
-      location_id: photoMeta.metadata?.locationId,
-      field_reference: photoMeta.metadata?.fieldReference,
-      caption: photoMeta.metadata?.caption,
-      uploaded_by: userId,
+    // Upload to Cloudinary first
+    const fileUrl = await uploadToCloudinary(photoData.file);
+
+    // Create photo record in database dengan TablesInsert type
+    const photoRecord: TablesInsert<'photos'> = {
+      file_url: fileUrl,
+      file_name: photoData.file.name,
+      file_size: photoData.file.size,
+      mime_type: photoData.file.type,
+      caption: photoData.caption || null,
+      field_reference: photoData.field_reference || null,
+      inspection_id: photoData.inspection_id || null,
+      location_id: photoData.location_id || null,
+      uploaded_by: userId, // ✅ This field exists in TablesInsert<'photos'>
+      uploaded_at: new Date().toISOString(),
+      is_deleted: false,
     };
-    
+
     const { data, error } = await supabase
       .from('photos')
-      .insert(photoData)
-      .select('id')
+      .insert(photoRecord)
+      .select()
       .single();
-    
+
     if (error) throw error;
-    
-    // 3. Return photo ID
+
     return data.id;
   } catch (error) {
-    console.error('Photo upload failed:', error);
+    console.error('Error uploading photo:', error);
+    throw error;
+  }
+};
+
+export const deletePhoto = async (photoId: string, userId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('photos')
+      .update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        deleted_by: userId,
+      })
+      .eq('id', photoId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting photo:', error);
+    throw error;
+  }
+};
+
+export const getPhotosByInspection = async (inspectionId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('inspection_id', inspectionId)
+      .eq('is_deleted', false)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching photos:', error);
+    throw error;
+  }
+};
+
+export const getPhotosByLocation = async (locationId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('location_id', locationId)
+      .eq('is_deleted', false)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching location photos:', error);
     throw error;
   }
 };

@@ -1,11 +1,13 @@
-// src/components/admin/QRCodeGenerator.tsx - UPDATED: Use full URL with location ID
+// Fix for QRCodeGenerator.tsx useReactToPrint API
+// Error di line 27: 'content' does not exist
+
+// src/pages/admin/QRCodeGenerator.tsx (FIXED VERSION)
+
 import { useRef } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
+import { QRCodeSVG } from 'qrcode.react';
+import { X, Download, Printer } from 'lucide-react';
 import { Tables } from '../../types/database.types';
-import { X, Printer, Download } from 'lucide-react';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
 
 type Location = Tables<'locations'>;
 
@@ -17,259 +19,123 @@ interface QRCodeGeneratorProps {
 export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) => {
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Generate URL for location
-  const getLocationURL = (id: string) => {
-    const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-    return `${baseUrl}/locations/${id}`;
-  };
-
+  // ✅ FIXED: useReactToPrint v3.x API
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: `QR-Codes-${new Date().toISOString().split('T')[0]}`,
+    contentRef: printRef, // v3.x menggunakan contentRef bukan content
+    documentTitle: 'WC-Check-QR-Codes',
     pageStyle: `
       @page {
         size: A4;
-        margin: 15mm;
+        margin: 20mm;
       }
       @media print {
         body {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
+        .page-break {
+          page-break-after: always;
+        }
       }
     `,
   });
 
-  const handleDownloadSingle = (location: Location) => {
-    const svg = document.getElementById(`qr-${location.id}`)?.querySelector('svg');
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-
-    canvas.width = 512;
-    canvas.height = 512;
-
-    img.onload = () => {
-      ctx?.drawImage(img, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.download = `QR-${location.code || location.name}.png`;
-          link.href = url;
-          link.click();
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+  const handleDownloadPDF = () => {
+    if (handlePrint) {
+      handlePrint();
+    }
   };
 
+  const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-white pb-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">QR Code Generator</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Generate QR Codes</h2>
             <p className="text-sm text-gray-600 mt-1">
-              {locations.length} location{locations.length > 1 ? 's' : ''} • URL Format
+              {locations.length} location{locations.length !== 1 ? 's' : ''} selected
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div className="flex space-x-3 my-4">
-          <Button
-            onClick={handlePrint}
-            className="flex-1 flex items-center justify-center space-x-2"
-          >
-            <Printer className="w-5 h-5" />
-            <span>Print All ({locations.length})</span>
-          </Button>
-        </div>
-
-        {/* QR Codes Preview */}
-        <div className="space-y-4">
-          {locations.map((location) => {
-            const locationURL = getLocationURL(location.id);
-            
-            return (
-              <Card key={location.id} className="bg-gray-50">
-                <div className="flex items-center space-x-4">
-                  {/* QR Code */}
-                  <div id={`qr-${location.id}`} className="flex-shrink-0 bg-white p-2 rounded-lg">
-                    <QRCodeSVG
-                      value={locationURL}
-                      size={120}
-                      level="H"
-                      includeMargin={true}
-                    />
-                  </div>
-
-                  {/* Location Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate">
-                      {location.name}
-                    </h3>
-                    {location.code && (
-                      <p className="text-sm text-blue-600 font-medium">
-                        Code: {location.code}
-                      </p>
-                    )}
-                    <div className="text-sm text-gray-600 mt-1 space-y-0.5">
-                      {location.building && <p>🏢 {location.building}</p>}
-                      {location.floor && <p>📍 {location.floor}</p>}
-                      {location.area && <p>📌 {location.area}</p>}
-                    </div>
-                    
-                    {/* URL Display */}
-                    <div className="mt-2 p-2 bg-white rounded border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">QR URL:</p>
-                      <p className="text-xs font-mono text-gray-700 break-all">
-                        {locationURL}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Download Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownloadSingle(location)}
-                    className="flex-shrink-0"
-                    title="Download PNG"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Print Content (Hidden) */}
-        <div style={{ display: 'none' }}>
-          <div ref={printRef}>
-            <style>
-              {`
-                @media print {
-                  .qr-print-item {
-                    page-break-inside: avoid;
-                    page-break-after: auto;
-                    margin-bottom: 30mm;
-                  }
-                  .qr-print-item:last-child {
-                    page-break-after: avoid;
-                  }
-                }
-              `}
-            </style>
-            {locations.map((location) => {
-              const locationURL = getLocationURL(location.id);
-              
-              return (
-                <div key={location.id} className="qr-print-item">
-                  <div style={{
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '20mm',
-                    textAlign: 'center',
-                    background: 'white',
-                  }}>
-                    {/* QR Code */}
-                    <div style={{ marginBottom: '10mm' }}>
-                      <QRCodeSVG
-                        value={locationURL}
-                        size={200}
-                        level="H"
-                        includeMargin={true}
-                      />
-                    </div>
-
-                    {/* Location Info */}
-                    <div style={{ textAlign: 'center' }}>
-                      <h2 style={{
-                        fontSize: '24px',
-                        fontWeight: 'bold',
-                        marginBottom: '8px',
-                        color: '#111827',
-                      }}>
-                        {location.name}
-                      </h2>
-                      
-                      {location.code && (
-                        <p style={{
-                          fontSize: '18px',
-                          color: '#2563eb',
-                          fontWeight: '600',
-                          marginBottom: '8px',
-                        }}>
-                          {location.code}
-                        </p>
-                      )}
-
-                      {location.building && (
-                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '2px' }}>
-                          🏢 {location.building}
-                        </p>
-                      )}
-
-                      {location.floor && (
-                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '2px' }}>
-                          📍 {location.floor}
-                        </p>
-                      )}
-
-                      {location.area && (
-                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '2px' }}>
-                          📌 {location.area}
-                        </p>
-                      )}
-
-                      {/* URL - Small print at bottom */}
-                      <div style={{
-                        marginTop: '12mm',
-                        paddingTop: '8px',
-                        borderTop: '1px solid #e5e7eb',
-                      }}>
-                        <p style={{
-                          fontSize: '9px',
-                          color: '#9ca3af',
-                          fontFamily: 'monospace',
-                          wordBreak: 'break-all',
-                          lineHeight: '1.4',
-                        }}>
-                          {locationURL}
-                        </p>
-                      </div>
-
-                      <p style={{
-                        marginTop: '12px',
-                        fontSize: '14px',
-                        color: '#374151',
-                        fontWeight: '500',
-                      }}>
-                        📱 Scan untuk mulai inspeksi
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
         </div>
-      </Card>
+
+        {/* Preview */}
+        <div className="flex-1 overflow-auto p-6">
+          <div ref={printRef} className="space-y-8">
+            {locations.map((location, index) => (
+              <div
+                key={location.id}
+                className={`bg-white border-2 border-gray-200 rounded-2xl p-8 ${
+                  index < locations.length - 1 ? 'page-break' : ''
+                }`}
+              >
+                {/* Location Info */}
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    {location.name}
+                  </h3>
+                  <div className="text-gray-600 space-y-1">
+                    {location.building && (
+                      <p className="text-lg">Building: {location.building}</p>
+                    )}
+                    {location.floor && (
+                      <p className="text-lg">Floor: {location.floor}</p>
+                    )}
+                    {location.code && (
+                      <p className="text-sm font-mono bg-gray-100 inline-block px-3 py-1 rounded">
+                        {location.code}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* QR Code */}
+                <div className="flex justify-center mb-6">
+                  <div className="bg-white p-6 rounded-2xl border-4 border-gray-900">
+                    <QRCodeSVG
+                      value={`${baseUrl}/locations/${location.id}`}
+                      size={300}
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="text-center text-gray-600 space-y-2">
+                  <p className="text-lg font-medium">Scan to Inspect</p>
+                  <p className="text-sm">
+                    Use the WC Check app to scan this QR code and start your inspection
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div className="mt-6 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
+                  <p>WC Check - Toilet Monitoring System</p>
+                  <p className="mt-1 font-mono">{location.id}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -23,7 +23,7 @@ interface EnhancedPhotoUploadProps {
 }
 
 export const EnhancedPhotoUpload = ({
-  componentId,
+  // componentId tidak dipakai, tapi tetap ada di props untuk compatibility
   photos,
   onPhotosChange,
   maxPhotos = 3,
@@ -138,25 +138,25 @@ export const EnhancedPhotoUpload = ({
             flex flex-col items-center justify-center
             transition-all
             ${isProcessing
-              ? 'bg-gray-50 border-gray-300 cursor-wait'
+              ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
               : genZMode
-                ? 'border-purple-300 bg-purple-50 hover:border-purple-400 hover:bg-purple-100 text-purple-700'
-                : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 text-gray-700'
+                ? 'border-purple-300 hover:border-purple-500 hover:bg-purple-50'
+                : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
             }
           `}
         >
           {isProcessing ? (
             <>
-              <Loader2 className="w-6 h-6 mb-1 animate-spin" />
-              <span className="text-sm font-medium">Processing...</span>
+              <Loader2 className="w-8 h-8 text-gray-400 animate-spin mb-2" />
+              <span className="text-sm text-gray-500">Processing...</span>
             </>
           ) : (
             <>
-              <Camera className="w-6 h-6 mb-1" />
-              <span className="text-sm font-medium">
-                {genZMode ? '📸 Ambil Foto (Optional)' : 'Take Photo (Optional)'}
+              <Camera className={`w-8 h-8 mb-2 ${genZMode ? 'text-purple-500' : 'text-gray-400'}`} />
+              <span className={`text-sm font-medium ${genZMode ? 'text-purple-600' : 'text-gray-600'}`}>
+                {genZMode ? '📸 Foto yuk!' : 'Take Photo'}
               </span>
-              <span className="text-xs text-gray-500 mt-1">
+              <span className="text-xs text-gray-400 mt-1">
                 {photos.length}/{maxPhotos} photos
               </span>
             </>
@@ -172,16 +172,6 @@ export const EnhancedPhotoUpload = ({
         onChange={handleCapture}
         className="hidden"
       />
-
-      {/* Info Text */}
-      {photos.length > 0 && (
-        <p className="text-xs text-gray-500 text-center">
-          {genZMode 
-            ? '✨ Foto otomatis include timestamp & lokasi GPS'
-            : '✨ Photos automatically include timestamp & GPS location'
-          }
-        </p>
-      )}
     </div>
   );
 };
@@ -189,166 +179,81 @@ export const EnhancedPhotoUpload = ({
 // Helper functions
 const getCurrentLocation = (): Promise<{ lat: number; lng: number } | null> => {
   return new Promise((resolve) => {
-    if (!navigator.geolocation) {
-      console.warn('Geolocation not supported');
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        () => resolve(null),
+        { timeout: 5000 }
+      );
+    } else {
       resolve(null);
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      (error) => {
-        console.warn('Geolocation error:', error);
-        resolve(null);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0,
-      }
-    );
   });
 };
 
 const getAddressFromCoords = async (lat: number, lng: number): Promise<string | undefined> => {
   try {
-    // Using Nominatim (free reverse geocoding)
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      {
-        headers: {
-          'User-Agent': 'ToiletCheck/1.0',
-        },
-      }
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
     );
-    
-    if (!response.ok) throw new Error('Geocoding failed');
-    
     const data = await response.json();
-    
-    // Format address nicely
-    const address = data.display_name;
-    return address;
-  } catch (error) {
-    console.error('Reverse geocoding error:', error);
+    return data.display_name;
+  } catch {
     return undefined;
   }
 };
 
 const createPhotoWithOverlay = async (
   file: File,
-  metadata: {
-    timestamp: string;
-    location?: { lat: number; lng: number; address?: string };
-  }
+  metadata: { timestamp: string; location?: { lat: number; lng: number; address?: string } }
 ): Promise<string> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    const img = new Image();
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
-      const img = new Image();
       img.src = e.target?.result as string;
-      
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        const ctx = canvas.getContext('2d')!;
-        
-        // Draw original image
-        ctx.drawImage(img, 0, 0);
-        
-        // Calculate dimensions
-        const padding = img.width * 0.03;
-        const fontSize = Math.max(16, img.width * 0.025);
-        
-        // Format timestamp
-        const timeStr = format(new Date(metadata.timestamp), 'dd/MM/yyyy HH:mm:ss');
-        
-        // Format location
-        let locationStr = '';
-        if (metadata.location) {
-          if (metadata.location.address) {
-            // Truncate address if too long
-            const maxLength = 50;
-            locationStr = metadata.location.address.length > maxLength
-              ? metadata.location.address.substring(0, maxLength) + '...'
-              : metadata.location.address;
-          } else {
-            locationStr = `${metadata.location.lat.toFixed(6)}, ${metadata.location.lng.toFixed(6)}`;
-          }
-        }
-        
-        // Calculate text metrics
-        ctx.font = `bold ${fontSize}px Arial`;
-        const timeWidth = ctx.measureText(timeStr).width;
-        const locationWidth = metadata.location ? ctx.measureText(`📍 ${locationStr}`).width : 0;
-        const maxWidth = Math.max(timeWidth, locationWidth);
-        
-        // Draw semi-transparent background
-        const bgHeight = metadata.location ? fontSize * 4.5 : fontSize * 3;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(
-          padding,
-          img.height - bgHeight - padding,
-          maxWidth + padding * 2,
-          bgHeight
-        );
-        
-        // Draw timestamp
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${fontSize}px Arial`;
-        ctx.fillText(
-          timeStr,
-          padding * 1.5,
-          img.height - (metadata.location ? fontSize * 2.8 : fontSize * 1.8) - padding
-        );
-        
-        // Draw location if available
-        if (metadata.location && locationStr) {
-          ctx.font = `${fontSize * 0.8}px Arial`;
-          ctx.fillText(
-            `📍 ${locationStr}`,
-            padding * 1.5,
-            img.height - fontSize * 1.2 - padding
-          );
-        }
-        
-        // Add watermark
-        ctx.font = `bold ${fontSize * 0.7}px Arial`;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        const watermark = 'TOILET-CHECK';
-        const watermarkWidth = ctx.measureText(watermark).width;
-        ctx.fillText(
-          watermark,
-          img.width - watermarkWidth - padding * 1.5,
-          padding * 2 + fontSize * 0.7
-        );
-        
-        // Convert to blob URL
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(URL.createObjectURL(blob));
-            } else {
-              reject(new Error('Failed to create photo overlay'));
-            }
-          },
-          'image/jpeg',
-          0.9
-        );
-      };
-      
-      img.onerror = () => reject(new Error('Failed to load image'));
     };
-    
-    reader.onerror = () => reject(new Error('Failed to read file'));
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(URL.createObjectURL(file));
+        return;
+      }
+
+      // Draw image
+      ctx.drawImage(img, 0, 0);
+
+      // Add overlay
+      const overlayHeight = 60;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(0, canvas.height - overlayHeight, canvas.width, overlayHeight);
+
+      // Add text
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 16px Arial';
+      
+      const timestamp = format(new Date(metadata.timestamp), 'dd/MM/yyyy HH:mm:ss');
+      ctx.fillText(timestamp, 10, canvas.height - 35);
+
+      if (metadata.location) {
+        ctx.font = '14px Arial';
+        ctx.fillText(`📍 ${metadata.location.lat.toFixed(5)}, ${metadata.location.lng.toFixed(5)}`, 10, canvas.height - 10);
+      }
+
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+
     reader.readAsDataURL(file);
   });
 };
