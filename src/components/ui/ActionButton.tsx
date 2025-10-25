@@ -1,108 +1,106 @@
 // src/components/ui/ActionButton.tsx
-import { ReactNode } from 'react';
+import React from 'react';
 import { LucideIcon } from 'lucide-react';
-import { clsx } from 'clsx';
 
 interface ActionButtonProps {
-  icon: LucideIcon | string;
+  icon: LucideIcon;
   label: string;
-  badge?: string | number;
-  onClick?: () => void;
-  variant?: 'default' | 'primary' | 'ghost';
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'danger' | 'success';
+  size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
+  className?: string;
 }
 
-export const ActionButton = ({ 
-  icon, 
-  label, 
-  badge,
+export const ActionButton: React.FC<ActionButtonProps> = ({
+  icon: Icon,
+  label,
   onClick,
-  variant = 'default',
-  disabled = false
-}: ActionButtonProps) => {
-  const Icon = typeof icon === 'string' ? null : icon;
-
-  const variantStyles = {
-    default: 'bg-white border border-gray-200',
-    primary: 'bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0',
-    ghost: 'bg-transparent border border-transparent hover:bg-gray-50',
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  className = '',
+}) => {
+  const baseClasses = 'flex flex-col items-center justify-center gap-2 rounded-xl transition-all duration-200';
+  
+  const variantClasses = {
+    primary: 'bg-blue-500 hover:bg-blue-600 text-white active:scale-95',
+    secondary: 'bg-gray-500 hover:bg-gray-600 text-white active:scale-95',
+    danger: 'bg-red-500 hover:bg-red-600 text-white active:scale-95',
+    success: 'bg-green-500 hover:bg-green-600 text-white active:scale-95',
   };
+
+  const sizeClasses = {
+    sm: 'p-3 min-h-[80px]',
+    md: 'p-4 min-h-[100px]',
+    lg: 'p-6 min-h-[120px]',
+  };
+
+  const iconSizes = {
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-10 h-10',
+  };
+
+  const disabledClasses = disabled
+    ? 'opacity-50 cursor-not-allowed'
+    : 'cursor-pointer shadow-lg hover:shadow-xl';
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={clsx(
-        'action-button relative',
-        variantStyles[variant],
-        disabled && 'opacity-50 cursor-not-allowed'
-      )}
+      className={`
+        ${baseClasses}
+        ${variantClasses[variant]}
+        ${sizeClasses[size]}
+        ${disabledClasses}
+        ${className}
+      `}
     >
-      {/* Badge */}
-      {badge && (
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center">
-          {badge}
-        </div>
-      )}
-
-      {/* Icon */}
-      <div className={clsx(
-        'action-button-icon',
-        variant === 'primary' ? 'bg-white/20' : ''
-      )}>
-        {Icon ? (
-          <Icon className={clsx(
-            'w-6 h-6',
-            variant === 'primary' ? 'text-white' : 'text-blue-600'
-          )} />
-        ) : (
-          <span className="text-2xl">{icon}</span>
-        )}
-      </div>
-
-      {/* Label */}
-      <span className={clsx(
-        'text-xs font-medium',
-        variant === 'primary' ? 'text-white' : 'text-gray-700'
-      )}>
+      <Icon className={iconSizes[size]} />
+      <span className={`font-medium ${size === 'sm' ? 'text-sm' : size === 'md' ? 'text-base' : 'text-lg'}`}>
         {label}
       </span>
     </button>
   );
 };
 
-// Compact Action Button (for toolbar)
-interface CompactActionButtonProps {
-  icon: LucideIcon | string;
+// MiniActionButton variant
+interface MiniActionButtonProps {
+  icon: LucideIcon;
   label: string;
-  onClick?: () => void;
-  active?: boolean;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'outline';
+  disabled?: boolean;
 }
 
-export const CompactActionButton = ({ 
-  icon, 
-  label, 
+export const MiniActionButton: React.FC<MiniActionButtonProps> = ({
+  icon: Icon,
+  label,
   onClick,
-  active = false 
-}: CompactActionButtonProps) => {
-  const Icon = typeof icon === 'string' ? null : icon;
+  variant = 'primary',
+  disabled = false,
+}) => {
+  const variantClasses = {
+    primary: 'bg-blue-500 hover:bg-blue-600 text-white',
+    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
+    outline: 'border-2 border-blue-500 text-blue-500 hover:bg-blue-50',
+  };
 
   return (
     <button
       onClick={onClick}
-      className={clsx(
-        'flex flex-col items-center gap-1 p-2 rounded-xl transition-all',
-        active 
-          ? 'bg-blue-100 text-blue-600' 
-          : 'text-gray-600 hover:bg-gray-100'
-      )}
+      disabled={disabled}
+      className={`
+        flex items-center gap-2 px-4 py-2 rounded-lg
+        transition-all duration-200 active:scale-95
+        ${variantClasses[variant]}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+      `}
     >
-      {Icon ? (
-        <Icon className="w-5 h-5" />
-      ) : (
-        <span className="text-xl">{icon}</span>
-      )}
-      <span className="text-xs font-medium">{label}</span>
+      <Icon className="w-5 h-5" />
+      <span className="font-medium text-sm">{label}</span>
     </button>
   );
 };

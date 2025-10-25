@@ -22,6 +22,7 @@ import {
   Building2
 } from 'lucide-react';
 
+
 // Components
 import { Card, CardHeader } from '../components/ui/Card';
 import { StatCard, MiniStatCard } from '../components/ui/StatCard';
@@ -30,6 +31,12 @@ import { LoadingSpinner, CardSkeleton, ListSkeleton } from '../components/ui/Loa
 import { ErrorMessage, EmptyState } from '../components/ui/ErrorBoundary';
 import { StatusBadge, ScoreBadge } from '../components/ui/Badge';
 import { BottomNav } from '../components/mobile/BottomNav';
+// Dashboard.tsx
+import { safeUserId, getScoreEmoji } from '../types/typeGuards';
+
+.eq('user_id', safeUserId(user?.id))
+{getScoreEmoji(stats?.avgScore)}
+
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth();

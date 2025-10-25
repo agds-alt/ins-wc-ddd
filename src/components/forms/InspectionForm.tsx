@@ -7,6 +7,10 @@ import { EnhancedPhotoUpload } from './EnhancedPhotoUpload';
 import { useInspection } from '../../hooks/useInspection';
 import { useAuth } from '../../hooks/useAuth';
 import { toast } from 'sonner';
+// InspectionForm.tsx
+import { PhotoWithMetadata } from '../../types/photo.types';
+
+const [photos, setPhotos] = useState<PhotoWithMetadata[]>([]);
 
 // Schema berdasarkan inspection_templates.fields 
 const inspectionSchema = z.object({

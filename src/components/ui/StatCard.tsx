@@ -1,105 +1,103 @@
 // src/components/ui/StatCard.tsx
-import { ReactNode } from 'react';
-import { clsx } from 'clsx';
+import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
-  icon: LucideIcon | string;
-  value: string | number;
+  icon: LucideIcon;
   label: string;
-  color?: 'success' | 'warning' | 'danger' | 'info' | 'primary';
+  value: string | number;
   trend?: {
     value: number;
-    direction: 'up' | 'down';
+    isPositive: boolean;
   };
-  onClick?: () => void;
+  variant?: 'default' | 'success' | 'warning' | 'danger';
+  className?: string;
 }
 
-export const StatCard = ({ 
-  icon, 
-  value, 
-  label, 
-  color = 'primary',
+export const StatCard: React.FC<StatCardProps> = ({
+  icon: Icon,
+  label,
+  value,
   trend,
-  onClick 
-}: StatCardProps) => {
-  const colorStyles = {
-    success: 'bg-green-100 text-green-600',
-    warning: 'bg-yellow-100 text-yellow-600',
-    danger: 'bg-red-100 text-red-600',
-    info: 'bg-blue-100 text-blue-600',
-    primary: 'bg-gradient-to-br from-blue-500 to-blue-600 text-white',
+  variant = 'default',
+  className = '',
+}) => {
+  const variantClasses = {
+    default: 'bg-white border-gray-200',
+    success: 'bg-green-50 border-green-200',
+    warning: 'bg-yellow-50 border-yellow-200',
+    danger: 'bg-red-50 border-red-200',
   };
 
-  const Icon = typeof icon === 'string' ? null : icon;
+  const iconColors = {
+    default: 'text-blue-500',
+    success: 'text-green-500',
+    warning: 'text-yellow-500',
+    danger: 'text-red-500',
+  };
 
   return (
-    <button
-      onClick={onClick}
-      className="stat-card w-full text-left"
+    <div
+      className={`
+        border rounded-xl p-6 shadow-sm
+        ${variantClasses[variant]}
+        ${className}
+      `}
     >
-      <div className={clsx('stat-icon', color !== 'primary' && colorStyles[color])}>
-        {Icon ? (
-          <Icon className="w-6 h-6" />
-        ) : (
-          <span className="text-2xl">{icon}</span>
-        )}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2">
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-sm text-gray-600 mb-1">{label}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
+          
           {trend && (
-            <div
-              className={clsx(
-                'text-xs font-medium',
-                trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
-              )}
-            >
-              {trend.direction === 'up' ? '↑' : '↓'} {Math.abs(trend.value)}%
+            <div className={`flex items-center gap-1 mt-2 text-sm ${
+              trend.isPositive ? 'text-green-600' : 'text-red-600'
+            }`}>
+              <span>{trend.isPositive ? '↑' : '↓'}</span>
+              <span>{Math.abs(trend.value)}%</span>
             </div>
           )}
         </div>
-        <div className="text-sm text-gray-500 mt-0.5">{label}</div>
+        
+        <div className={`p-3 rounded-lg bg-opacity-10 ${iconColors[variant]}`}>
+          <Icon className="w-8 h-8" />
+        </div>
       </div>
-    </button>
+    </div>
   );
 };
 
-// Mini Stat Card (for grid layouts)
+// MiniStatCard variant
 interface MiniStatCardProps {
-  icon: string | ReactNode;
-  value: string | number;
+  icon: LucideIcon;
   label: string;
-  color: 'green' | 'yellow' | 'red' | 'blue';
+  value: string | number;
   onClick?: () => void;
 }
 
-export const MiniStatCard = ({ icon, value, label, color, onClick }: MiniStatCardProps) => {
-  const colorClasses = {
-    green: 'from-green-400 to-green-500',
-    yellow: 'from-yellow-400 to-yellow-500',
-    red: 'from-red-400 to-red-500',
-    blue: 'from-blue-400 to-blue-500',
-  };
+export const MiniStatCard: React.FC<MiniStatCardProps> = ({
+  icon: Icon,
+  label,
+  value,
+  onClick,
+}) => {
+  const baseClasses = 'bg-white border border-gray-200 rounded-lg p-4 transition-all duration-200';
+  const interactiveClasses = onClick ? 'cursor-pointer hover:shadow-md hover:border-blue-300 active:scale-98' : '';
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className={clsx(
-        'bg-gradient-to-br text-white rounded-2xl p-4 shadow-lg',
-        'active:scale-95 transition-transform',
-        colorClasses[color]
-      )}
+      className={`${baseClasses} ${interactiveClasses}`}
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-3xl">{icon}</span>
-        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-          <span className="text-xs font-bold">→</span>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-50 rounded-lg">
+          <Icon className="w-5 h-5 text-blue-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-gray-600 truncate">{label}</p>
+          <p className="text-xl font-bold text-gray-900">{value}</p>
         </div>
       </div>
-      <div className="text-3xl font-bold mb-1">{value}</div>
-      <div className="text-sm opacity-90">{label}</div>
-    </button>
+    </div>
   );
 };

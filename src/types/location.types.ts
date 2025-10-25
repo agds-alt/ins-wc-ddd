@@ -1,5 +1,5 @@
 // src/features/locations/types/location.types.ts
-import { Tables } from '@/types/database.types';
+import { Tables } from '../types/database.types';
 
 /**
  * Base database types
@@ -225,5 +225,89 @@ export const AREA_TYPES = [
   'Service Area',
   'Emergency Area',
 ] as const;
+
+
+export interface LocationCoordinates {
+  [key: string]: any; // Index signature for Json compatibility
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  altitude?: number;
+  altitudeAccuracy?: number;
+  heading?: number;
+  speed?: number;
+}
+
+/**
+ * Convert LocationCoordinates to Json type
+ */
+export function coordinatesToJson(coords: LocationCoordinates | null): Json | null {
+  if (!coords) return null;
+  return coords as Json;
+}
+
+/**
+ * Convert Json to LocationCoordinates
+ */
+export function jsonToCoordinates(json: Json | null): LocationCoordinates | null {
+  if (!json) return null;
+  if (typeof json !== 'object') return null;
+  return json as LocationCoordinates;
+}
+
+/**
+ * Validate coordinates
+ */
+
+
+/**
+ * Location form data interface
+ */
+export interface LocationFormData {
+  name: string;
+  organization_id: string;
+  building_id: string;
+  floor: string | null;
+  section: string | null;
+  area: string | null;
+  code: string | null;
+  description: string | null;
+  coordinates: LocationCoordinates | null;
+  photo_url: string | null;
+  qr_code: string;
+  created_by: string;
+  is_active: boolean;
+}
+
+/**
+ * Building type for multi-tenant
+ */
+export interface BuildingType {
+  id: string;
+  name: string;
+  organization_id: string;
+  type: 'apartment' | 'mall' | 'office' | 'hospital' | 'other';
+  address: string;
+  city: string;
+  province: string;
+  postal_code: string | null;
+  coordinates: LocationCoordinates | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Organization type
+ */
+export interface OrganizationType {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  created_at: string;
+  is_active: boolean;
+}
+
+
 
 export type AreaType = typeof AREA_TYPES[number];
