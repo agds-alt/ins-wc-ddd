@@ -134,7 +134,7 @@ export const ScanPage = () => {
             <p className="text-blue-100 mt-1">Ready for inspection?</p>
           </div>
           <button 
-            onClick={() => navigate('/admin/locations')}
+            onClick={() => navigate('/locations')}
             className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors"
             title="Manage Locations"
           >
@@ -188,7 +188,7 @@ export const ScanPage = () => {
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate('/admin/locations')}
+            onClick={() => navigate('/locations')}
             className="h-24 flex flex-col items-center justify-center space-y-2"
           >
             <MapPin className="w-6 h-6 text-blue-600" />

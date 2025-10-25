@@ -1,4 +1,4 @@
-// src/App.tsx - COMPLETE ROUTING
+// src/App.tsx - FIXED ROUTING
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -9,7 +9,6 @@ import { Dashboard } from './pages/Dashboard';
 import { ScanPage } from './pages/ScanPage';
 import { InspectionPage } from './pages/InspectionPage';
 import { ReportsPage } from './pages/ReportsPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LocationsManager } from './pages/admin/LocationsManager';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -51,14 +50,10 @@ function AppContent() {
         element={!user ? <RegisterPage /> : <Navigate to="/" replace />} 
       />
 
-      {/* Protected Routes - Main */}
+      {/* Protected Routes */}
       <Route 
         path="/" 
         element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/dashboard" 
-        element={user ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} 
       />
       <Route 
         path="/scan" 
@@ -71,14 +66,6 @@ function AppContent() {
       <Route 
         path="/reports" 
         element={user ? <ReportsPage /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/history" 
-        element={user ? <ReportsPage /> : <Navigate to="/login" replace />} 
-      />
-      <Route 
-        path="/analytics" 
-        element={user ? <AnalyticsPage /> : <Navigate to="/login" replace />} 
       />
       <Route 
         path="/locations" 
