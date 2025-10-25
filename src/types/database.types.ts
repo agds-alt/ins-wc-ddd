@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       buildings: {
@@ -343,6 +368,8 @@ export type Database = {
       photos: {
         Row: {
           caption: string | null
+          created_at: string | null
+          created_by: string | null
           deleted_at: string | null
           deleted_by: string | null
           field_reference: string | null
@@ -354,11 +381,13 @@ export type Database = {
           is_deleted: boolean | null
           location_id: string | null
           mime_type: string | null
-          uploaded_at: string | null
-          uploaded_by: string | null
+          updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           caption?: string | null
+          created_at?: string | null
+          created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           field_reference?: string | null
@@ -370,11 +399,13 @@ export type Database = {
           is_deleted?: boolean | null
           location_id?: string | null
           mime_type?: string | null
-          uploaded_at?: string | null
-          uploaded_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           caption?: string | null
+          created_at?: string | null
+          created_by?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
           field_reference?: string | null
@@ -386,8 +417,8 @@ export type Database = {
           is_deleted?: boolean | null
           location_id?: string | null
           mime_type?: string | null
-          uploaded_at?: string | null
-          uploaded_by?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -419,8 +450,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "photos_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "photos_uploaded_by_fkey"
-            columns: ["uploaded_by"]
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -659,6 +697,8 @@ export type Database = {
       }
     }
     Functions: {
+      is_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       user_has_any_role_level: {
         Args: { required_levels: string[] }
         Returns: boolean
@@ -795,6 +835,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

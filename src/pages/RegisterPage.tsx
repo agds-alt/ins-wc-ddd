@@ -348,3 +348,5 @@ export const RegisterPageUpdated = () => {
     </div>
   );
 };
+
+export default registerSchema;

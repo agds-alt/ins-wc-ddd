@@ -6,8 +6,8 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { Tables, TablesInsert } from '../../types/database.types';
 import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User } from 'lucide-react';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 import { QRCodeGenerator } from './QRCodeGenerator';
 
 type Location = Tables<'locations'>;

@@ -1,323 +1,231 @@
-// src/App.tsx - FULL CODE
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+// src/App.tsx - COMPLETE ROUTER CONFIGURATION EXAMPLE
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
-import { useAuth } from './hooks/useAuth';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import Dashboard from './pages/Dashboard';
+import { Toaster } from 'sonner';
+
+// Auth Components
+import { AdminRoute } from './components/admin/auth/AdminRoute';
+import { ProtectedRoute } from './components/admin/auth/ProtectedRoute' />
+<com></com>;
+
+// Public Pages
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+
+// Main App Pages
+import { DashboardEnhanced } from './pages/Dashboard';
+import { ReportsPage } from './pages/ReportsPage'; // History page
 import { ScanPage } from './pages/ScanPage';
-import { InspectionPage } from './pages/InspectionPage';
-import { LocationManager } from './components/admin/LocationManager';
-import { ReportsPage } from './pages/ReportsPage';
-import { TestPage } from './pages/TestPage';
-import { ProtectedLayout } from './components/layout/ProtectedLayout';
-import { LocationInspectionPage } from './pages/LocationInspectionPage';
-import './App.css';
-import { useEffect } from 'react';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { ProfilePage } from './pages/ProfilePage';
-import { AdminRoute } from './components/auth/AdminRoute';
+import { LocationsManager } from './pages/admin/LocationManager';
+import { InspectionPage } from './pages/InspectionPage';
+
+// Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { OccupationManagerPage } from './pages/admin/OccupationManagerPage';
+// Add more admin pages as needed:
+// import { UserManagementPage } from './pages/admin/UserManagementPage';
+// import { LocationManagerPage } from './pages/admin/LocationManagerPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
-// Shareable Location Page - Redirects to inspection
-function ShareableLocationPage() {
-  const { locationId } = useParams<{ locationId: string }>();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!locationId) {
-      navigate('/scan');
-      return;
-    }
-
-    if (user) {
-      // User logged in → Go to inspection
-      navigate(`/locations/${locationId}`, { replace: true });
-    } else {
-      // Not logged in → Go to login with redirect
-      navigate(`/login?redirect=/locations/${locationId}`, { replace: true });
-    }
-  }, [user, locationId, navigate]);
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading location...</p>
-      </div>
-    </div>
-  );
-}
-
-function AppContent() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <Routes>
-      {/* Public Routes (No BottomNav) */}
-      <Route 
-        path="/login" 
-        element={!user ? <LoginPage /> : <Navigate to="/" replace />} 
-      />
-      <Route 
-        path="/register" 
-        element={!user ? <RegisterPage /> : <Navigate to="/" replace />} 
-      />
-
-      {/* Shareable Location Route (works for logged in & logged out) */}
-      <Route 
-        path="/locations/:locationId/share" 
-        element={<ShareableLocationPage />} 
-      />
-
-      {/* Protected Routes (WITH BottomNav via ProtectedLayout) */}
-      
-      {/* ROOT PATH */}
-      <Route 
-        path="/" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <Dashboard />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-      
-      {/* Dashboard route */}
-      <Route 
-        path="/dashboard" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <Dashboard />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-      
-      {/* Scan Route */}
-      <Route 
-        path="/scan" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <ScanPage />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-      
-      {/* Location Inspection Route - NEW */}
-      <Route 
-        path="/locations/:locationId" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <LocationInspectionPage />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-
-       {/* Admin routes - Protected */}
-  <Route 
-    path="/admin" 
-    element={
-      <AdminRoute>
-        <AdminDashboard />
-      </AdminRoute>
-    } 
-  />
-  <Route 
-    path="/admin/occupations" 
-    element={
-      <AdminRoute>
-        <OccupationManagerPage />
-      </AdminRoute>
-    } 
-  />
-  <Route 
-    path="/admin/users" 
-    element={
-      <AdminRoute>
-        <UserManagementPage />  {/* You'll create this */}
-      </AdminRoute>
-    } 
-  />
-  <Route 
-    path="/admin/locations" 
-    element={
-      <AdminRoute>
-        <LocationManagementPage />  {/* Existing or new */}
-      </AdminRoute>
-    } 
-  />
-</Routes>
-
-      {/* Old Inspection Route (keep for compatibility) */}
-      <Route 
-        path="/inspect/:locationId" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <InspectionPage />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-
-
-
-      {/* Reports Route */}
-      <Route 
-        path="/history" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <ReportsPage />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-      
-      {/* Admin Routes */}
-      <Route 
-        path="/analytics" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <AnalyticsPage />
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-
-      {/* Profile Route */}
-      <Route 
-        path="/profile" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <ProfilePage/>
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-
-
-      {/* Analytics Route */}
-      <Route 
-        path="/analytics" 
-        element={
-          user ? (
-            <ProtectedLayout>
-              <div className="min-h-screen bg-gray-50 p-4">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">Analytics</h1>
-                <p className="text-gray-600">Analytics page coming soon...</p>
-              </div>
-            </ProtectedLayout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } 
-      />
-
-      {/* Development Routes */}
-      {process.env.NODE_ENV === 'development' && (
-        <Route path="/test-db" element={<TestPage />} />
-      )}
-
-      {/* 404 Not Found */}
-      <Route 
-        path="*" 
-        element={
-          <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <div className="text-center">
-              <h1 className="text-6xl font-bold text-gray-300 mb-4">404</h1>
-              <p className="text-gray-600 mb-4">Page not found</p>
-              <a 
-                href="/" 
-                className="text-blue-600 hover:underline"
-              >
-                Back to Home
-              </a>
-            </div>
-          </div>
-        } 
-      />
-    </Routes>
-  );
-}
-
-export default function App() {
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AppContent />
+      <BrowserRouter>
+        <Routes>
+          {/* ==================== PUBLIC ROUTES ==================== */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* ==================== PROTECTED USER ROUTES ==================== */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <DashboardEnhanced />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/scan"
+            element={
+              <ProtectedRoute>
+                <ScanPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/locations"
+            element={
+              <ProtectedRoute>
+                <LocationsManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inspect/:locationId"
+            element={
+              <ProtectedRoute>
+                <InspectionPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ==================== ADMIN ROUTES ==================== */}
+          {/* Main Admin Dashboard */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+
+          {/* Occupation Management */}
+          <Route
+            path="/admin/occupations"
+            element={
+              <AdminRoute>
+                <OccupationManagerPage />
+              </AdminRoute>
+            }
+          />
+
+          {/* User Management - Uncomment when created */}
+          {/* <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <UserManagementPage />
+              </AdminRoute>
+            }
+          /> */}
+
+          {/* Location Management - Uncomment when created */}
+          {/* <Route
+            path="/admin/locations"
+            element={
+              <AdminRoute>
+                <LocationManagerPage />
+              </AdminRoute>
+            }
+          /> */}
+
+          {/* Organizations - Uncomment when created */}
+          {/* <Route
+            path="/admin/organizations"
+            element={
+              <AdminRoute>
+                <OrganizationManagerPage />
+              </AdminRoute>
+            }
+          /> */}
+
+          {/* Templates - Uncomment when created */}
+          {/* <Route
+            path="/admin/templates"
+            element={
+              <AdminRoute>
+                <TemplateManagerPage />
+              </AdminRoute>
+            }
+          /> */}
+
+          {/* Admin Reports - Uncomment when created */}
+          {/* <Route
+            path="/admin/reports"
+            element={
+              <AdminRoute>
+                <AdminReportsPage />
+              </AdminRoute>
+            }
+          /> */}
+
+          {/* ==================== CATCH ALL / 404 ==================== */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        {/* Global Toast Notifications */}
         <Toaster 
-          position="top-center"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-              borderRadius: '12px',
-            },
-            success: {
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
-              },
-            },
-            error: {
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
-            },
-          }}
+          position="top-center" 
+          richColors 
+          closeButton 
+          duration={3000}
         />
-      </Router>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
+
+export default App;
+
+/* ==================== ROUTE STRUCTURE OVERVIEW ====================
+
+PUBLIC ROUTES (No auth required):
+├─ /login                    → LoginPage
+└─ /register                 → RegisterPage
+
+PROTECTED USER ROUTES (Auth required):
+├─ /                         → DashboardEnhanced (Home)
+├─ /history                  → ReportsPage (Calendar view)
+├─ /scan                     → ScanPage (QR Scanner)
+├─ /analytics                → AnalyticsPage (Charts & metrics)
+├─ /profile                  → ProfilePage (User profile + Admin button)
+├─ /locations                → LocationsPage
+└─ /inspect/:locationId      → InspectionPage
+
+ADMIN ROUTES (Admin/Super Admin only):
+├─ /admin                    → AdminDashboard (Main admin page)
+├─ /admin/occupations        → OccupationManagerPage (CRUD occupations)
+├─ /admin/users              → UserManagementPage (To be created)
+├─ /admin/locations          → LocationManagerPage (To be created)
+├─ /admin/organizations      → OrganizationManagerPage (To be created)
+├─ /admin/templates          → TemplateManagerPage (To be created)
+└─ /admin/reports            → AdminReportsPage (To be created)
+
+BOTTOM NAVIGATION MAPPING:
+[Home]      → /              (DashboardEnhanced)
+[History]   → /history       (ReportsPage)
+[Scan]      → /scan          (ScanPage) - Center FAB
+[Analytics] → /analytics     (AnalyticsPage)
+[Profile]   → /profile       (ProfilePage)
+
+ADMIN ACCESS:
+Profile → [Admin Dashboard] button → /admin → Choose admin function
+
+================================================================== */
