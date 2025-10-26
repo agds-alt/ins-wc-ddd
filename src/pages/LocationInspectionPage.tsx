@@ -8,8 +8,10 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ArrowLeft, MapPin, Building, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { usePerformance } from '../hooks/usePerformance';
 
 export const LocationInspectionPage = () => {
+  usePerformance('Dashboard');
   const { locationId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();

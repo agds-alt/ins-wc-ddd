@@ -21,7 +21,7 @@ import {
 import { AdminCard } from '../../components/admin/AdminCard';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { format, subDays } from 'date-fns';
-
+import { usePerformance } from '../../hooks/usePerformance'
 interface AdminStats {
   totalUsers: number;
   totalLocations: number;
@@ -34,6 +34,7 @@ interface AdminStats {
 }
 
 export const AdminDashboard = () => {
+   usePerformance('HomePage');
   const { profile } = useAuth();
   const navigate = useNavigate();
 

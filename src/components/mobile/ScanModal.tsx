@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { X, CameraOff, Camera } from 'lucide-react';
 
+
 interface ScanModalProps {
   isOpen: boolean;
   onClose: () => void;

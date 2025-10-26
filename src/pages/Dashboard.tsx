@@ -10,15 +10,15 @@ import {
   User,
   ChevronRight,
   Droplets,
-  TrendingUp,
-  Clock,
+    Clock,
   CheckCircle2,
-  AlertCircle,
-  Settings
+    Settings
 } from 'lucide-react';
 import { BottomNav } from '../components/mobile/BottomNav';
+import { usePerformance } from '../hooks/usePerformance';
 
 export const Dashboard = () => {
+    usePerformance('Dashboard');
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 

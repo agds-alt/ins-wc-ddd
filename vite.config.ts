@@ -1,100 +1,129 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { visualizer } from 'rollup-plugin-visualizer'
+// vite.config.ts - FIXED: Proper env handling
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-    process.env.ANALYZE && visualizer({
-      filename: 'dist/bundle-analysis.html',
-      open: true,
-    })
-  ].filter(Boolean),
-  server: {
-    port: 5173,
-    host: true
-  },
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ],
+
   build: {
-    outDir: 'dist',
-    sourcemap: false, // ❌ MATIIN SOURCEMAP BUAT PRODUCTION
-    minify: 'terser', // ✅ PAKAI TERSER YANG LEBIH AGGRESIVE
-    target: 'es2015', // ✅ TARGET BROWSER LEBIH RENDAH
+    chunkSizeWarningLimit: 500,
     
-    // ✅ ROLLUP OPTIONS AGGRESIF
     rollupOptions: {
       output: {
-        // ✅ CHUNK SPLITING YANG LEBIH AGGRESIF
         manualChunks: (id) => {
+          // React ecosystem
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-vendor';
+          }
+          if (id.includes('react-router')) {
+            return 'router-vendor';
+          }
+          
+          // Supabase
+          if (id.includes('@supabase') || id.includes('gotrue')) {
+            return 'supabase-vendor';
+          }
+          
+          // React Query
+          if (id.includes('@tanstack/react-query')) {
+            return 'query-vendor';
+          }
+          
+          // UI Libraries
+          if (id.includes('lucide-react')) {
+            return 'icons-vendor';
+          }
+          if (id.includes('sonner') || id.includes('react-hot-toast')) {
+            return 'toast-vendor';
+          }
+          if (id.includes('framer-motion')) {
+            return 'animation-vendor';
+          }
+          
+          // Date & Time
+          if (id.includes('date-fns')) {
+            return 'date-vendor';
+          }
+          
+          // QR Code
+          if (id.includes('html5-qrcode') || id.includes('qrcode')) {
+            return 'qr-vendor';
+          }
+          
+          // Admin pages
+          if (id.includes('pages/admin')) {
+            return 'admin';
+          }
+          
+          // Reports & Analytics
+          if (id.includes('pages/ReportsPage') || id.includes('pages/AnalyticsPage')) {
+            return 'reports';
+          }
+          
+          // Inspection form
+          if (id.includes('pages/InspectionPage') || id.includes('ComprehensiveInspectionForm')) {
+            return 'inspection';
+          }
+          
+          // Other vendors
           if (id.includes('node_modules')) {
-            // React & Core
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react'
-            }
-            // Supabase
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase'
-            }
-            // Icons (Lucide biasanya gede)
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons'
-            }
-            // Date library
-            if (id.includes('date-fns')) {
-              return 'vendor-date'
-            }
-            // Forms
-            if (id.includes('react-hook-form')) {
-              return 'vendor-forms'
-            }
-            // Charts (jika ada)
-            if (id.includes('recharts') || id.includes('chart.js')) {
-              return 'vendor-charts'
-            }
-            // Lainnya
-            return 'vendor-other'
+            return 'vendor';
           }
         },
-        // ✅ OPTIMASI NAMING
+        
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
-      onwarn(warning, warn) {
-        if (warning.code?.startsWith('TS') || warning.code === 'CIRCULAR_DEPENDENCY') return;
-        warn(warning);
-      }
     },
-    // ✅ KURANGI WARNING LIMIT
-    chunkSizeWarningLimit: 500,
-  },
-  
-  // ✅ ESBUILD AGGRESIF
-  esbuild: {
-    drop: ['console', 'debugger'],
-    minify: true,
-    target: 'es2015'
-  },
-  
-  // ✅ TERSE R OPTIMIZATION (TAMBAHIN INI)
-  terserOptions: {
-    compress: {
-      drop_console: true,
-      drop_debugger: true,
-      pure_funcs: ['console.log', 'console.info'],
-      passes: 2 // LEBIH BANYAK PASS UNTUK MINIFICATION
+    
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production', // FIXED: Use mode parameter
+        drop_debugger: true,
+      },
     },
-    mangle: {
-      toplevel: true
-    }
+    
+    sourcemap: false,
   },
-  
-  // ✅ OPTIMIZE DEPS
+
+  server: {
+    port: 5174,
+    host: true,
+  },
+
   optimizeDeps: {
     include: [
-      'react', 
+      'react',
       'react-dom',
-      'react-router-dom'
+      'react-router-dom',
+      '@tanstack/react-query',
+      'date-fns',
+      'lucide-react',
+      '@supabase/supabase-js',
     ],
-    exclude: ['lucide-react'] // ❌ EXCLUDE YANG GEDE
-  }
-})
+  },
+}));
