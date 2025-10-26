@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@supabase/supabase-js": "^2.76.1",
     "@tanstack/react-query": "^5.17.0",
+    "browser-image-compression": "^2.0.2",
     "cloudinary": "^2.8.0",
     "cloudinary-react": "^1.8.1",
     "date-fns": "^2.30.0",

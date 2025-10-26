@@ -162,67 +162,127 @@ export const ComprehensiveInspectionForm = ({
 
     return true;
   };
+// src/components/forms/ComprehensiveInspectionForm.tsx
+// HANYA UPDATE BAGIAN handleSubmit
 
-  const handleSubmit = async () => {
-    if (!user) {
-      toast.error('Please login first');
+const handleSubmit = async () => {
+  if (!user) {
+    toast.error('Please login first');
+    return;
+  }
+
+  if (!validateForm()) return;
+
+  setIsSubmitting(true);
+  
+  try {
+    const endTime = new Date();
+    const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+
+    // Collect all photos
+    const allPhotos: File[] = [];
+    const photoComponentMap = new Map<string, number>(); // Track which photo belongs to which component
+    
+    let photoIndex = 0;
+    for (const [componentId, componentPhotos] of photos.entries()) {
+      for (const photo of componentPhotos) {
+        allPhotos.push(photo.file);
+        photoComponentMap.set(`${photoIndex}`, photoIndex);
+        photoIndex++;
+      }
+    }
+
+    const totalPhotos = allPhotos.length;
+    
+    if (totalPhotos === 0) {
+      toast.error('Please add at least one photo');
       return;
     }
 
-    if (!validateForm()) return;
+    // Progress toast
+    const toastId = toast.loading(
+      `📸 Compressing ${totalPhotos} photos...`
+    );
 
-    setIsSubmitting(true);
+    // Batch upload with progress tracking
+    const uploadedUrls = await batchUploadToCloudinary(
+      allPhotos,
+      (current, total) => {
+        toast.loading(
+          `☁️ Uploading... ${current}/${total} photos`,
+          { id: toastId }
+        );
+      }
+    );
+
+    // Update toast - saving
+    toast.loading('💾 Saving inspection...', { id: toastId });
+
+    // Map uploaded URLs back to components
+    const updatedRatings = new Map(ratings);
+    photoIndex = 0;
     
-    // Combine ALL photos first
-    const allPhotos = [
-      ...Array.from(photos.values()).flat().map((p) => p.file),
-      ...generalPhotos.map((p) => p.file),
-    ];
-    
-    setUploadProgress({ current: 0, total: allPhotos.length });
-
-    try {
-      const endTime = new Date();
-      const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-
-      // Prepare responses
-      const responses = {
-        ratings: Array.from(ratings.values()),
-        issues: issuesFound ? { description: issueDescription } : null,
-        maintenance: requiresMaintenance
-          ? { required: true, priority: maintenancePriority }
-          : null,
-        inspection_mode: genZMode ? 'genz' : 'professional',
-      };
-
-      // Submit inspection with progress tracking
-      await submitInspection.mutateAsync({
-        location_id: locationId,
-        user_id: user.id,
-        responses,
-        photos: allPhotos,
-        notes: generalNotes,
-        duration_seconds: durationSeconds,
-        onProgress: (current, total) => {
-          setUploadProgress({ current, total });
-        },
-      });
-
-      toast.success(
-        genZMode
-          ? `🎉 Inspection selesai! Score: ${currentScore}`
-          : `Inspection submitted successfully! Score: ${currentScore}`
-      );
-
-      navigate('/scan');
-    } catch (error: any) {
-      console.error('Submission error:', error);
-      toast.error(error.message || 'Failed to submit inspection');
-    } finally {
-      setIsSubmitting(false);
-      setUploadProgress({ current: 0, total: 0 });
+    for (const [componentId, componentPhotos] of photos.entries()) {
+      const rating = updatedRatings.get(componentId);
+      if (rating && componentPhotos.length > 0) {
+        // Get the first photo URL for this component
+        rating.photo = uploadedUrls[photoIndex];
+        updatedRatings.set(componentId, rating);
+        photoIndex += componentPhotos.length;
+      }
     }
-  };
+
+    // Prepare responses
+    const responses: Record<string, any> = {
+      ratings: Array.from(updatedRatings.values()),
+      score: currentScore,
+      issues_found: issuesFound,
+      issue_description: issuesFound ? issueDescription.trim() : null,
+      requires_maintenance: requiresMaintenance,
+      maintenance_priority: requiresMaintenance ? maintenancePriority : null,
+      inspection_mode: genZMode ? 'genz' : 'professional',
+      submitted_at: new Date().toISOString(),
+      inspector: {
+        id: user.id,
+        name: profile?.full_name || user.email?.split('@')[0] || 'Unknown',
+        email: user.email,
+        profile_id: profile?.id,
+      },
+    };
+
+    // Submit to database
+    await submitInspection.mutateAsync({
+      location_id: locationId,
+      user_id: user.id,
+      responses,
+      photos: allPhotos,
+      notes: generalNotes.trim() || undefined,
+      duration_seconds: durationSeconds,
+    });
+
+    // Success
+    toast.success(
+      genZMode 
+        ? `🎉 Sukses! Score: ${currentScore}` 
+        : `✅ Inspection saved! Score: ${currentScore}`,
+      { id: toastId, duration: 2000 }
+    );
+
+    setTimeout(() => {
+      navigate('/scan', { replace: true });
+    }, 1500);
+
+  } catch (error: any) {
+    console.error('Submission error:', error);
+    toast.error(
+      genZMode 
+        ? '😢 Gagal submit, coba lagi!' 
+        : error.message || 'Failed to submit inspection'
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   if (locationLoading) {
     return (
