@@ -16,6 +16,8 @@ export const formatTime = (time: string) => {
   }
 }
 
+
+
 export const formatDateTime = (date: string | Date) => {
   const dateObject = typeof date === 'string' ? parseISO(date) : date
   if (!isValid(dateObject)) return '-'
@@ -173,10 +175,12 @@ export const processAndUploadImage = async (file: File): Promise<string> => {
 
 // Generate QR code URL
 export const generateQRUrl = (locationId: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://wc-check.com'
-  return `${baseUrl}/locations/${locationId}`
+  const productionUrl = 'https://wc-checks.vercel.app';
+  const baseUrl = import.meta.env.DEV 
+    ? (import.meta.env.VITE_APP_URL || 'http://localhost:5173')
+    : productionUrl;
+  return `${baseUrl}/locations/${locationId}`;
 }
-
 // Calculate inspection score (0-100)
 export const calculateInspectionScore = (responses: Record<string, any>): number => {
   const items = Object.values(responses)

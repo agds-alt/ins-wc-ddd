@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { TablesInsert } from '../../src/types/database.types';
-import type { InspectionResponse } from '../types/inspection.types';
+import type { InspectionComponent } from '../types/inspection.types';
 
 interface SubmitInspectionData {
   location_id: string;
@@ -48,7 +48,7 @@ export const useInspection = (inspectionId?: string) => {
         throw new Error(`Failed to fetch inspection: ${error.message}`);
       }
       
-      return data as InspectionResponse;
+      return data as InspectionComponent;
     },
     enabled: !!inspectionId,
   });
