@@ -1,7 +1,6 @@
-// lib/cloudinary.ts
 // src/lib/cloudinary.ts
 import imageCompression from 'browser-image-compression';
-export const uploadToCloudinary = async (file: File): Promise<string> => {
+
 /**
  * Compress image before upload
  */
