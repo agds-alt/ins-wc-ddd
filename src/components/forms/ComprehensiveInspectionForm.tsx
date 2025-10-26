@@ -47,6 +47,7 @@ export const ComprehensiveInspectionForm = ({
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [startTime] = useState(new Date());
   const [currentScore, setCurrentScore] = useState(0);
   const [expandedComponent, setExpandedComponent] = useState<InspectionComponent | null>(
@@ -171,6 +172,14 @@ export const ComprehensiveInspectionForm = ({
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    
+    // Combine ALL photos first
+    const allPhotos = [
+      ...Array.from(photos.values()).flat().map((p) => p.file),
+      ...generalPhotos.map((p) => p.file),
+    ];
+    
+    setUploadProgress({ current: 0, total: allPhotos.length });
 
     try {
       const endTime = new Date();
@@ -186,19 +195,17 @@ export const ComprehensiveInspectionForm = ({
         inspection_mode: genZMode ? 'genz' : 'professional',
       };
 
-      // Combine ALL photos (per-component + general)
-      const allPhotos = [
-        ...Array.from(photos.values()).flat().map((p) => p.file),
-        ...generalPhotos.map((p) => p.file),
-      ];
-
-      // Submit inspection
+      // Submit inspection with progress tracking
       await submitInspection.mutateAsync({
         location_id: locationId,
         user_id: user.id,
         responses,
         photos: allPhotos,
         notes: generalNotes,
+        duration_seconds: durationSeconds,
+        onProgress: (current, total) => {
+          setUploadProgress({ current, total });
+        },
       });
 
       toast.success(
@@ -213,6 +220,7 @@ export const ComprehensiveInspectionForm = ({
       toast.error(error.message || 'Failed to submit inspection');
     } finally {
       setIsSubmitting(false);
+      setUploadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -574,9 +582,13 @@ export const ComprehensiveInspectionForm = ({
           `}
         >
           {isSubmitting
-            ? genZMode
-              ? '⏳ Submitting...'
-              : 'Submitting...'
+            ? uploadProgress.total > 0
+              ? genZMode
+                ? `📸 Upload ${uploadProgress.current}/${uploadProgress.total}...`
+                : `Uploading ${uploadProgress.current}/${uploadProgress.total} photos...`
+              : genZMode
+                ? '⏳ Submitting...'
+                : 'Submitting...'
             : genZMode
               ? `🚀 Submit (Score: ${currentScore})`
               : `Submit Inspection (Score: ${currentScore})`}
