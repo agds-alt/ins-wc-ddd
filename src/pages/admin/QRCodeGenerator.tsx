@@ -4,8 +4,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useReactToPrint } from 'react-to-print';
 import { Tables } from '../../types/database.types';
 import { X, Printer, Download } from 'lucide-react';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
 type Location = Tables<'locations'>;
 
