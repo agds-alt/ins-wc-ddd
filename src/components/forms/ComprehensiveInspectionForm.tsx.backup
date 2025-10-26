@@ -1,8 +1,8 @@
-// src/components/forms/ComprehensiveInspectionForm.tsx - FINAL: Both photo types
+// src/components/forms/ComprehensiveInspectionForm.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   InspectionComponent,
   ComponentRating,
@@ -13,8 +13,7 @@ import {
   PhotoWithMetadata,
 } from '../../types/inspection.types';
 import { RatingSelector } from './RatingSelector';
-import { EnhancedPhotoUpload } from './EnhancedPhotoUpload'; // Per-component photos
-import { GeneralPhotoUpload } from './GeneralPhotoUpload'; // General photos
+import { EnhancedPhotoUpload } from './EnhancedPhotoUpload';
 import { useAuth } from '../../hooks/useAuth';
 import { useInspection } from '../../hooks/useInspection';
 
@@ -35,8 +34,7 @@ export const ComprehensiveInspectionForm = ({
 
   // Form state
   const [ratings, setRatings] = useState<Map<InspectionComponent, ComponentRating>>(new Map());
-  const [photos, setPhotos] = useState<Map<InspectionComponent, PhotoWithMetadata[]>>(new Map()); // Per-component
-  const [generalPhotos, setGeneralPhotos] = useState<PhotoWithMetadata[]>([]); // General (mandatory)
+  const [photos, setPhotos] = useState<Map<InspectionComponent, PhotoWithMetadata[]>>(new Map());
   const [generalNotes, setGeneralNotes] = useState('');
   const [issuesFound, setIssuesFound] = useState(false);
   const [issueDescription, setIssueDescription] = useState('');
@@ -78,9 +76,6 @@ export const ComprehensiveInspectionForm = ({
       if (!ratings.has(nextComponent.id)) {
         setExpandedComponent(nextComponent.id);
       }
-    } else {
-      // All done, close all
-      setExpandedComponent(null);
     }
   };
 
@@ -131,16 +126,6 @@ export const ComprehensiveInspectionForm = ({
       return false;
     }
 
-    // VALIDATE: General photos REQUIRED (min 1)
-    if (generalPhotos.length === 0) {
-      toast.error(
-        genZMode
-          ? '📸 Wajib upload minimal 1 foto dokumentasi!'
-          : '📸 At least 1 documentation photo is required!'
-      );
-      return false;
-    }
-
     if (issuesFound && !issueDescription.trim()) {
       toast.error(
         genZMode
@@ -186,18 +171,14 @@ export const ComprehensiveInspectionForm = ({
         inspection_mode: genZMode ? 'genz' : 'professional',
       };
 
-      // Combine ALL photos (per-component + general)
-      const allPhotos = [
-        ...Array.from(photos.values()).flat().map((p) => p.file),
-        ...generalPhotos.map((p) => p.file),
-      ];
-
       // Submit inspection
       await submitInspection.mutateAsync({
         location_id: locationId,
         user_id: user.id,
         responses,
-        photos: allPhotos,
+        photos: Array.from(photos.values())
+          .flat()
+          .map((p) => p.file),
         notes: generalNotes,
       });
 
@@ -207,6 +188,7 @@ export const ComprehensiveInspectionForm = ({
           : `Inspection submitted successfully! Score: ${currentScore}`
       );
 
+      // Navigate back
       navigate('/scan');
     } catch (error: any) {
       console.error('Submission error:', error);
@@ -271,6 +253,7 @@ export const ComprehensiveInspectionForm = ({
               <ArrowLeft className="w-5 h-5" />
             </button>
 
+            {/* Mode Toggle */}
             {onToggleMode && (
               <button
                 onClick={onToggleMode}
@@ -288,6 +271,7 @@ export const ComprehensiveInspectionForm = ({
             )}
           </div>
 
+          {/* Location Info */}
           <div className="flex items-center space-x-3 mb-3">
             <div
               className={`
@@ -305,6 +289,7 @@ export const ComprehensiveInspectionForm = ({
             </div>
           </div>
 
+          {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className={genZMode ? 'text-white/90' : 'text-gray-600'}>
@@ -332,7 +317,6 @@ export const ComprehensiveInspectionForm = ({
 
       {/* Form Content */}
       <div className="p-4 space-y-4">
-        {/* Checklist Components */}
         {INSPECTION_COMPONENTS.map((component) => {
           const rating = ratings.get(component.id);
           const componentPhotos = photos.get(component.id) || [];
@@ -348,7 +332,7 @@ export const ComprehensiveInspectionForm = ({
                   onPhotoAdd={
                     component.allowPhoto
                       ? () => {
-                          /* Photo handled below */
+                          /* Photo handled by EnhancedPhotoUpload below */
                         }
                       : undefined
                   }
@@ -391,18 +375,19 @@ export const ComprehensiveInspectionForm = ({
                 </button>
               )}
 
-              {/* Per-Component Photo Upload (optional) */}
+              {/* Photo Upload (shown when expanded and photos allowed) */}
               {isExpanded && component.allowPhoto && (
                 <div className="mt-3">
                   <EnhancedPhotoUpload
                     componentId={component.id}
                     photos={componentPhotos}
-                    onPhotosChange={(photos) => handlePhotosChange(component.id, photos)}
+                    onPhotosChange={(PhotoWithMetadata) => handlePhotosChange(component.id, PhotoWithMetadata)}
                     genZMode={genZMode}
                   />
                 </div>
               )}
 
+              {/* Collapse button */}
               {isExpanded && (
                 <button
                   type="button"
@@ -422,40 +407,6 @@ export const ComprehensiveInspectionForm = ({
             </div>
           );
         })}
-
-        {/* === GENERAL PHOTO SECTION (MANDATORY) === */}
-        {completedCount >= totalRequired && (
-          <div
-            className={`${
-              genZMode ? 'bg-gradient-to-br from-purple-100 to-pink-100' : 'bg-blue-50'
-            } rounded-2xl p-4 shadow-sm border-2 ${
-              genZMode ? 'border-purple-400' : 'border-blue-400'
-            }`}
-          >
-            <div className="flex items-center space-x-2 mb-2">
-              <Camera className={`w-5 h-5 ${genZMode ? 'text-purple-700' : 'text-blue-700'}`} />
-              <h3 className="font-bold text-gray-900">
-                {genZMode ? '📸 Foto Dokumentasi' : '📸 Documentation Photos'}
-                <span className="text-red-500 ml-1">*</span>
-              </h3>
-            </div>
-            
-            <p className={`text-sm mb-4 ${genZMode ? 'text-purple-900' : 'text-blue-900'}`}>
-              {genZMode 
-                ? '⚠️ WAJIB minimal 1 foto! Auto watermark: Tanggal, Jam, GPS, Nama Toilet.'
-                : '⚠️ REQUIRED: Minimum 1 photo! Auto watermark: Date, Time, GPS, Toilet Name.'
-              }
-            </p>
-
-            <GeneralPhotoUpload
-              photos={generalPhotos}
-              onPhotosChange={setGeneralPhotos}
-              maxPhotos={5}
-              genZMode={genZMode}
-              locationName={`${location.name} - ${location.building}`}
-            />
-          </div>
-        )}
 
         {/* Issues Section */}
         <div
@@ -554,6 +505,28 @@ export const ComprehensiveInspectionForm = ({
             rows={3}
           />
         </div>
+
+        {/* Photo Preview Section */}
+        {Array.from(photos.values()).flat().length > 0 && (
+          <div
+            className={`${
+              genZMode ? 'bg-white/80' : 'bg-white'
+            } rounded-2xl p-4 shadow-sm border border-gray-100`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900">
+                {genZMode ? '📸 Foto yang akan diupload' : '📸 Photos to Upload'}
+              </h3>
+              <span
+                className={`text-sm px-3 py-1 rounded-full ${
+                  genZMode ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {Array.from(photos.values()).flat().length} photos
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Submit Button (Sticky Bottom) */}
@@ -561,11 +534,11 @@ export const ComprehensiveInspectionForm = ({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSubmitting || completedCount < totalRequired || generalPhotos.length === 0}
+          disabled={isSubmitting || completedCount < totalRequired}
           className={`
             w-full py-4 rounded-xl font-bold text-white transition-all
             ${
-              isSubmitting || completedCount < totalRequired || generalPhotos.length === 0
+              isSubmitting || completedCount < totalRequired
                 ? 'bg-gray-300 cursor-not-allowed'
                 : genZMode
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
@@ -582,23 +555,12 @@ export const ComprehensiveInspectionForm = ({
               : `Submit Inspection (Score: ${currentScore})`}
         </button>
 
-        {(completedCount < totalRequired || generalPhotos.length === 0) && (
-          <div className="text-center text-sm text-red-600 mt-2 space-y-1">
-            {completedCount < totalRequired && (
-              <p>
-                {genZMode
-                  ? `❌ Masih kurang ${totalRequired - completedCount} komponen wajib`
-                  : `❌ ${totalRequired - completedCount} required components remaining`}
-              </p>
-            )}
-            {generalPhotos.length === 0 && (
-              <p>
-                {genZMode
-                  ? '📸 Wajib upload minimal 1 foto dokumentasi'
-                  : '📸 At least 1 documentation photo required'}
-              </p>
-            )}
-          </div>
+        {completedCount < totalRequired && (
+          <p className="text-center text-sm text-red-600 mt-2">
+            {genZMode
+              ? `Masih kurang ${totalRequired - completedCount} komponen wajib!`
+              : `${totalRequired - completedCount} required components remaining`}
+          </p>
         )}
       </div>
     </div>
