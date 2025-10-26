@@ -643,10 +643,7 @@ const handleSubmit = async () => {
       </div>
 
 
-// ===============================================
-// UPLOAD PROGRESS UI - Tambahkan di bagian return JSX
-// Letakkan SEBELUM Submit Button (sekitar line 650-660)
-// ===============================================
+
 
 {/* Upload Progress Indicator */}
 {uploadProgress && (
