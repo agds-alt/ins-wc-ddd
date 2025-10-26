@@ -22,54 +22,32 @@ export const compressImage = async (file: File): Promise<File> => {
   }
 };
 
+
+// src/lib/cloudinary.ts - FIXED WITH BATCH UPLOAD
+
 /**
- * Upload to Cloudinary with auto-format and quality optimization
+ * Upload single file to Cloudinary
  */
-export const uploadToCloudinary = async (
-  file: File,
-  onProgress?: (progress: number) => void
-): Promise<string> => {
-  // Compress first
-  const compressedFile = await compressImage(file);
-  
+export const uploadToCloudinary = async (file: File): Promise<string> => {
   const formData = new FormData();
-  formData.append('file', compressedFile);
+  formData.append('file', file);
   formData.append('upload_preset', 'toilet-checks');
   formData.append('cloud_name', 'dcg56qkae');
   formData.append('folder', 'toilet-inspections');
-  
-  // Cloudinary transformations for additional optimization
-  formData.append('quality', 'auto:good');
-  formData.append('fetch_format', 'auto');
 
   try {
-    // Create XMLHttpRequest for progress tracking
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      
-      // Track upload progress
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable && onProgress) {
-          const percentComplete = (e.loaded / e.total) * 100;
-          onProgress(Math.round(percentComplete));
-        }
-      });
-      
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          resolve(data.secure_url);
-        } else {
-          reject(new Error('Upload failed'));
-        }
-      });
-      
-      xhr.addEventListener('error', () => reject(new Error('Network error')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
-      
-      xhr.open('POST', 'https://api.cloudinary.com/v1_1/dcg56qkae/image/upload');
-      xhr.send(formData);
-    });
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/dcg56qkae/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'Upload failed');
+    
+    return data.secure_url;
   } catch (error) {
     console.error('Cloudinary upload error:', error);
     throw new Error('Failed to upload photo');
@@ -77,7 +55,7 @@ export const uploadToCloudinary = async (
 };
 
 /**
- * Batch upload with concurrency limit
+ * Batch upload with concurrency limit and progress tracking
  */
 export const batchUploadToCloudinary = async (
   files: File[],

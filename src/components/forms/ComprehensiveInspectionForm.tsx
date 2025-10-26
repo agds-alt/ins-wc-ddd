@@ -17,6 +17,7 @@ import { EnhancedPhotoUpload } from './EnhancedPhotoUpload'; // Per-component ph
 import { GeneralPhotoUpload } from './GeneralPhotoUpload'; // General photos
 import { useAuth } from '../../hooks/useAuth';
 import { useInspection } from '../../hooks/useInspection';
+import { batchUploadToCloudinary } from '../../lib/cloudinary';
 
 interface ComprehensiveInspectionFormProps {
   locationId: string;
@@ -30,7 +31,7 @@ export const ComprehensiveInspectionForm = ({
   onToggleMode,
 }: ComprehensiveInspectionFormProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { getLocation, submitInspection } = useInspection();
 
   // Form state
@@ -41,20 +42,33 @@ export const ComprehensiveInspectionForm = ({
   const [issuesFound, setIssuesFound] = useState(false);
   const [issueDescription, setIssueDescription] = useState('');
   const [requiresMaintenance, setRequiresMaintenance] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+  current: number;
+  total: number;
+  percentage: number;
+} | null>(null);
   const [maintenancePriority, setMaintenancePriority] = useState<
     'low' | 'medium' | 'high' | 'urgent'
   >('low');
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [startTime] = useState(new Date());
   const [currentScore, setCurrentScore] = useState(0);
+  // ✅ ADD THIS
+const [uploadProgress, setUploadProgress] = useState<{
+  current: number;
+  total: number;
+  percentage: number;
+} | null>(null);
   const [expandedComponent, setExpandedComponent] = useState<InspectionComponent | null>(
     INSPECTION_COMPONENTS[0].id
+    
   );
 
   const { data: location, isLoading: locationLoading } = getLocation(locationId);
+
+  
 
   // Calculate score whenever ratings change
   useEffect(() => {
@@ -165,6 +179,9 @@ export const ComprehensiveInspectionForm = ({
 // src/components/forms/ComprehensiveInspectionForm.tsx
 // HANYA UPDATE BAGIAN handleSubmit
 
+// ===============================================
+// REPLACE handleSubmit FUNCTION:
+// ===============================================
 const handleSubmit = async () => {
   if (!user) {
     toast.error('Please login first');
@@ -181,10 +198,11 @@ const handleSubmit = async () => {
 
     // Collect all photos
     const allPhotos: File[] = [];
-    const photoComponentMap = new Map<string, number>(); // Track which photo belongs to which component
+    const photoComponentMap = new Map<string, number>();
     
     let photoIndex = 0;
     for (const [componentId, componentPhotos] of photos.entries()) {
+      console.log('Processing photos for component:', componentId);
       for (const photo of componentPhotos) {
         allPhotos.push(photo.file);
         photoComponentMap.set(`${photoIndex}`, photoIndex);
@@ -199,6 +217,8 @@ const handleSubmit = async () => {
       return;
     }
 
+    console.log(`📸 Total photos to upload: ${totalPhotos}`);
+
     // Progress toast
     const toastId = toast.loading(
       `📸 Compressing ${totalPhotos} photos...`
@@ -207,13 +227,15 @@ const handleSubmit = async () => {
     // Batch upload with progress tracking
     const uploadedUrls = await batchUploadToCloudinary(
       allPhotos,
-      (current, total) => {
+      (current: number, total: number) => {
         toast.loading(
           `☁️ Uploading... ${current}/${total} photos`,
           { id: toastId }
         );
       }
     );
+
+    console.log(`✅ Uploaded ${uploadedUrls.length} photos`);
 
     // Update toast - saving
     toast.loading('💾 Saving inspection...', { id: toastId });
@@ -273,7 +295,7 @@ const handleSubmit = async () => {
     }, 1500);
 
   } catch (error: any) {
-    console.error('Submission error:', error);
+    console.error('❌ Submission error:', error);
     toast.error(
       genZMode 
         ? '😢 Gagal submit, coba lagi!' 
@@ -283,6 +305,7 @@ const handleSubmit = async () => {
     setIsSubmitting(false);
   }
 };
+
 
   if (locationLoading) {
     return (
@@ -623,6 +646,111 @@ const handleSubmit = async () => {
           />
         </div>
       </div>
+
+
+// ===============================================
+// UPLOAD PROGRESS UI - Tambahkan di bagian return JSX
+// Letakkan SEBELUM Submit Button (sekitar line 650-660)
+// ===============================================
+
+{/* Upload Progress Indicator */}
+{uploadProgress && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+      {/* Progress Title */}
+      <div className="text-center mb-4">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg 
+            className="w-8 h-8 text-blue-600 animate-spin" 
+            fill="none" 
+            viewBox="0 0 24 24"
+          >
+            <circle 
+              className="opacity-25" 
+              cx="12" 
+              cy="12" 
+              r="10" 
+              stroke="currentColor" 
+              strokeWidth="4"
+            />
+            <path 
+              className="opacity-75" 
+              fill="currentColor" 
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-1">
+          {genZMode ? 'Upload Foto...' : 'Uploading Photos...'}
+        </h3>
+        <p className="text-sm text-gray-600">
+          {uploadProgress.current} of {uploadProgress.total} photos
+        </p>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="relative">
+        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300 ease-out"
+            style={{ width: `${uploadProgress.percentage}%` }}
+          />
+        </div>
+        <div className="mt-2 text-center">
+          <span className="text-2xl font-bold text-blue-600">
+            {uploadProgress.percentage}%
+          </span>
+        </div>
+      </div>
+
+      {/* Info Text */}
+      <p className="text-xs text-gray-500 text-center mt-4">
+        {genZMode 
+          ? 'Sabar ya, lagi upload...' 
+          : 'Please wait while we upload your photos...'}
+      </p>
+    </div>
+  </div>
+)}
+
+{/* Submit Button - SETELAH progress indicator */}
+<button
+  type="button"
+  onClick={handleSubmit}
+  disabled={isSubmitting || uploadProgress !== null}
+  className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
+    isSubmitting || uploadProgress !== null
+      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+      : genZMode
+      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg active:scale-[0.98]'
+      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg active:scale-[0.98]'
+  }`}
+>
+  {isSubmitting || uploadProgress !== null ? (
+    <div className="flex items-center justify-center gap-2">
+      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      {uploadProgress 
+        ? `Uploading ${uploadProgress.percentage}%...` 
+        : genZMode 
+        ? 'Processing...' 
+        : 'Submitting...'}
+    </div>
+  ) : (
+    <>
+      <Save className="w-5 h-5 inline-block mr-2" />
+      {genZMode ? 'Submit Dong! ✨' : 'Submit Inspection'}
+    </>
+  )}
+</button>
+
+
+
+{/* Upload Progress Indicator */}
+{uploadProgress && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    {/* ... full progress UI dari artifact ... */}
+  </div>
+)}
 
       {/* Submit Button (Sticky Bottom) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg">
