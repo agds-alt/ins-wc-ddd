@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
 import {
   InspectionComponent,
   ComponentRating,
@@ -56,11 +56,6 @@ export const ComprehensiveInspectionForm = ({
   const [startTime] = useState(new Date());
   const [currentScore, setCurrentScore] = useState(0);
   // ✅ ADD THIS
-const [uploadProgress, setUploadProgress] = useState<{
-  current: number;
-  total: number;
-  percentage: number;
-} | null>(null);
   const [expandedComponent, setExpandedComponent] = useState<InspectionComponent | null>(
     INSPECTION_COMPONENTS[0].id
     
