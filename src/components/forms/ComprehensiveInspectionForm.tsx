@@ -1,7 +1,7 @@
 // src/components/forms/ComprehensiveInspectionForm.tsx - FINAL: Both photo types
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { ArrowLeft, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
 import {
   InspectionComponent,
