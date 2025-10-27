@@ -1,4 +1,5 @@
-// src/pages/ProfilePage.tsx - ULTRA SIMPLE (NO ERRORS!)
+// src/pages/ProfilePage.tsx - WITH SIDEBAR
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -6,13 +7,16 @@ import {
   Mail,
   Calendar,
   Clock,
-  User as UserIcon
+  User as UserIcon,
+  Menu
 } from 'lucide-react';
 import { BottomNav } from '../components/mobile/BottomNav';
+import { Sidebar } from '../components/mobile/Sidebar';
 
 export const ProfilePage = () => {
   const { user, profile, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     const confirm = window.confirm('Are you sure you want to logout?');
@@ -69,9 +73,20 @@ export const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-white pb-24">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       {/* Simple Header - White */}
       <div className="bg-white pt-12 pb-8 px-6 border-b border-gray-100">
-        <h1 className="text-xl font-bold text-gray-900">Profile</h1>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+          >
+            <Menu className="w-5 h-5 text-gray-600" />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">Profile</h1>
+        </div>
       </div>
 
       {/* Profile Card */}
