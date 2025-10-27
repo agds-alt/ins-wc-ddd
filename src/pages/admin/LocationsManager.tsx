@@ -7,10 +7,12 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { Tables, TablesInsert } from '../../types/database.types';
-import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User, ShieldAlert } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User, ShieldAlert, Menu } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { QRCodeGenerator } from './QRCodeGenerator';
+import { Sidebar } from '../../components/mobile/Sidebar';
+import { BottomNav } from '../../components/mobile/BottomNav';
 
 type Location = Tables<'locations'>;
 type LocationInsert = TablesInsert<'locations'>;
@@ -36,6 +38,7 @@ export const LocationsManager = () => {
   const [showQRGenerator, setShowQRGenerator] = useState(false);
   const [qrLocations, setQrLocations] = useState<Location[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch locations
   const { data: locations, isLoading } = useQuery({
@@ -177,15 +180,25 @@ export const LocationsManager = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 rounded-b-3xl shadow-lg">
         <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Location Management</h1>
-            <p className="text-blue-100">Manage toilet locations & QR codes</p>
+          {/* Left: Menu + Title */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+            >
+              <Menu className="w-5 h-5 text-white" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Location Management</h1>
+              <p className="text-blue-100 text-sm">Manage toilet locations & QR codes</p>
+            </div>
           </div>
-          {/* User Info */}
+
+          {/* Right: User Info */}
           {user && (
             <div className="hidden sm:flex items-center space-x-2 bg-white/20 px-3 py-2 rounded-lg">
               <User className="w-4 h-4 text-white" />
@@ -401,6 +414,12 @@ export const LocationsManager = () => {
           }}
         />
       )}
+
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };
