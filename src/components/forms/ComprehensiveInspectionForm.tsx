@@ -331,8 +331,9 @@ const handleSubmit = async () => {
       { id: toastId, duration: 2000 }
     );
 
+    // Navigate back to dashboard (safer than /scan)
     setTimeout(() => {
-      navigate('/scan', { replace: true });
+      navigate('/', { replace: true });
     }, 1500);
 
   } catch (error: any) {

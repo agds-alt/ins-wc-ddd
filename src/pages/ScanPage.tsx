@@ -21,8 +21,11 @@ import { toast } from 'react-hot-toast';
 
 export const ScanPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const [showScanner, setShowScanner] = useState(false);
+
+  // ✅ Wait for auth to complete before querying
+  const isReady = !authLoading && !!user?.id;
 
   // Fetch recent inspections
   const { data: recentInspections, isLoading: loadingInspections } = useQuery({
@@ -53,7 +56,8 @@ export const ScanPage = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: isReady,
+    staleTime: 30 * 1000, // Cache 30 seconds
   });
 
   // Fetch user stats
@@ -79,7 +83,8 @@ export const ScanPage = () => {
 
       return { total, completed, today };
     },
-    enabled: !!user?.id,
+    enabled: isReady,
+    staleTime: 60 * 1000, // Cache 1 minute
   });
 
   const handleScan = async (locationId: string) => {
@@ -124,13 +129,27 @@ export const ScanPage = () => {
     }
   };
 
+  // Show loading while auth completes
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header with Gradient */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 rounded-b-3xl shadow-lg">
         <div className="flex items-center justify-between text-white mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Hi, {user?.email?.split('@')[0]}! 👋</h1>
+            <h1 className="text-2xl font-bold">
+              Hi, {user?.email?.split('@')[0] || 'Guest'}! 👋
+            </h1>
             <p className="text-blue-100 mt-1">Ready for inspection?</p>
           </div>
           <button 
