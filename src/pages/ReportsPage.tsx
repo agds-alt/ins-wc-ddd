@@ -6,6 +6,7 @@ import { CalendarView } from '../components/reports/CalendarView';
 import { InspectionDrawer } from '../components/reports/InspectionDrawer';
 import { InspectionDetailModal } from '../components/reports/InspectionDetailModal';
 import { Sidebar } from '../components/mobile/Sidebar';
+import { BottomNav } from '../components/mobile/BottomNav';
 import { Calendar, TrendingUp, FileText, Menu } from 'lucide-react';
 
 export const ReportsPage = () => {
@@ -166,6 +167,9 @@ export const ReportsPage = () => {
         onClose={handleCloseDetail}
         inspection={selectedInspection}
       />
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };

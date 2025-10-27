@@ -1,5 +1,5 @@
-// src/pages/AddLocationPage.tsx - Add New Location
-import { useState } from 'react';
+// src/pages/AddLocationPage.tsx - Add New Location (SCALABLE VERSION)
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,14 +14,28 @@ import {
   Hash,
   Save,
   ArrowLeft,
+  Home as HomeIcon,
+  Map,
+  Grid,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { TablesInsert } from '../types/database.types';
 
-interface LocationFormData {
+type LocationInsert = TablesInsert<'locations'>;
+
+interface Organization {
+  id: string;
   name: string;
-  building: string;
-  floor: string;
-  code: string;
+  short_code: string;
+  is_active: boolean;
+}
+
+interface Building {
+  id: string;
+  name: string;
+  short_code: string;
+  organization_id: string;
   is_active: boolean;
 }
 
@@ -31,39 +45,124 @@ export const AddLocationPage = () => {
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [formData, setFormData] = useState<LocationFormData>({
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [loadingBuildings, setLoadingBuildings] = useState(false);
+
+  const [formData, setFormData] = useState({
+    organization_id: '',
+    building_id: '',
     name: '',
-    building: '',
-    floor: '',
     code: '',
-    is_active: true,
+    floor: '',
+    area: '',
+    section: '',
+    description: '',
   });
+
+  // Fetch organizations on mount
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching organizations:', error);
+        toast.error('Failed to load organizations');
+        return;
+      }
+
+      setOrganizations(data || []);
+    };
+
+    fetchOrganizations();
+  }, []);
+
+  // Fetch buildings when organization changes
+  useEffect(() => {
+    const fetchBuildings = async () => {
+      if (!formData.organization_id) {
+        setBuildings([]);
+        return;
+      }
+
+      setLoadingBuildings(true);
+      const { data, error } = await supabase
+        .from('buildings')
+        .select('*')
+        .eq('organization_id', formData.organization_id)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching buildings:', error);
+        toast.error('Failed to load buildings');
+      } else {
+        setBuildings(data || []);
+      }
+      setLoadingBuildings(false);
+    };
+
+    fetchBuildings();
+  }, [formData.organization_id]);
 
   // Create location mutation
   const createLocationMutation = useMutation({
-    mutationFn: async (data: LocationFormData) => {
+    mutationFn: async (data: typeof formData) => {
       if (!user?.id) throw new Error('User not authenticated');
+      if (!data.organization_id || !data.building_id) {
+        throw new Error('Organization and Building are required');
+      }
 
-      const { data: newLocation, error } = await supabase
+      // Fetch building to generate QR code
+      const { data: building, error: buildingError } = await supabase
+        .from('buildings')
+        .select('short_code, organizations(short_code)')
+        .eq('id', data.building_id)
+        .single();
+
+      if (buildingError || !building) {
+        throw new Error('Building not found');
+      }
+
+      // Generate QR code
+      const orgCode = (building.organizations as any).short_code;
+      const buildingCode = building.short_code;
+      const locationCode = data.code || 'LOC';
+      const uniqueId = Date.now().toString(36).slice(-4);
+
+      const qrCode = `${orgCode}-${buildingCode}-${locationCode}-${uniqueId}`.toUpperCase();
+
+      // Create location object
+      const newLocation: LocationInsert = {
+        name: data.name.trim(),
+        code: data.code.trim() || null,
+        organization_id: data.organization_id,
+        building_id: data.building_id,
+        floor: data.floor.trim() || null,
+        area: data.area || null,
+        section: data.section.trim() || null,
+        description: data.description.trim() || null,
+        qr_code: qrCode,
+        is_active: true,
+        created_by: user.id,
+      };
+
+      const { data: newLocationData, error } = await supabase
         .from('locations')
-        .insert([
-          {
-            name: data.name.trim(),
-            building: data.building.trim(),
-            floor: data.floor.trim(),
-            code: data.code.trim() || null,
-            is_active: data.is_active,
-            created_at: new Date().toISOString(),
-          },
-        ])
+        .insert(newLocation)
         .select()
         .single();
 
       if (error) throw error;
-      return newLocation;
+      return newLocationData;
     },
-    onSuccess: (newLocation) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['locations-list'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
       toast.success('Location added successfully!');
       navigate('/locations');
     },
@@ -76,24 +175,30 @@ export const AddLocationPage = () => {
     e.preventDefault();
 
     // Validation
+    if (!formData.organization_id) {
+      toast.error('Please select an organization');
+      return;
+    }
+    if (!formData.building_id) {
+      toast.error('Please select a building');
+      return;
+    }
     if (!formData.name.trim()) {
       toast.error('Location name is required');
-      return;
-    }
-    if (!formData.building.trim()) {
-      toast.error('Building name is required');
-      return;
-    }
-    if (!formData.floor.trim()) {
-      toast.error('Floor is required');
       return;
     }
 
     createLocationMutation.mutate(formData);
   };
 
-  const handleChange = (field: keyof LocationFormData, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => {
+      // Reset building when organization changes
+      if (field === 'organization_id') {
+        return { ...prev, [field]: value, building_id: '' };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   if (authLoading) {
@@ -144,6 +249,70 @@ export const AddLocationPage = () => {
       {/* Form */}
       <div className="p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Organization Dropdown */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <HomeIcon className="w-4 h-4 text-blue-600" />
+              Organization *
+            </label>
+            <select
+              value={formData.organization_id}
+              onChange={(e) => handleChange('organization_id', e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+              disabled={createLocationMutation.isPending}
+            >
+              <option value="">Select Organization</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name} ({org.short_code})
+                </option>
+              ))}
+            </select>
+            {organizations.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">
+                No organizations found. Please contact admin.
+              </p>
+            )}
+          </div>
+
+          {/* Building Dropdown */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Building2 className="w-4 h-4 text-blue-600" />
+              Building *
+            </label>
+            <select
+              value={formData.building_id}
+              onChange={(e) => handleChange('building_id', e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={
+                !formData.organization_id ||
+                loadingBuildings ||
+                createLocationMutation.isPending
+              }
+            >
+              <option value="">
+                {loadingBuildings
+                  ? 'Loading buildings...'
+                  : !formData.organization_id
+                  ? 'Select organization first'
+                  : 'Select Building'}
+              </option>
+              {buildings.map((building) => (
+                <option key={building.id} value={building.id}>
+                  {building.name} ({building.short_code})
+                </option>
+              ))}
+            </select>
+            {formData.organization_id && buildings.length === 0 && !loadingBuildings && (
+              <p className="text-xs text-orange-500 mt-1">
+                No buildings found for this organization.
+              </p>
+            )}
+          </div>
+
           {/* Location Name */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -157,38 +326,7 @@ export const AddLocationPage = () => {
               placeholder="e.g., Men's Toilet, Women's Restroom"
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
-            />
-          </div>
-
-          {/* Building */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <Building2 className="w-4 h-4 text-blue-600" />
-              Building *
-            </label>
-            <input
-              type="text"
-              value={formData.building}
-              onChange={(e) => handleChange('building', e.target.value)}
-              placeholder="e.g., Building A, Main Tower"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          {/* Floor */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <Layers className="w-4 h-4 text-blue-600" />
-              Floor *
-            </label>
-            <input
-              type="text"
-              value={formData.floor}
-              onChange={(e) => handleChange('floor', e.target.value)}
-              placeholder="e.g., Floor 1, Ground Floor, 2F"
-              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
+              disabled={createLocationMutation.isPending}
             />
           </div>
 
@@ -201,30 +339,84 @@ export const AddLocationPage = () => {
             <input
               type="text"
               value={formData.code}
-              onChange={(e) => handleChange('code', e.target.value)}
-              placeholder="e.g., WC-A1, TL-B2"
+              onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
+              placeholder="e.g., WC-01, TL-A1"
               className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={createLocationMutation.isPending}
             />
-            <p className="text-xs text-gray-500 mt-1">Unique identifier for this location</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Will be used for QR code generation
+            </p>
           </div>
 
-          {/* Active Status */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <div className="font-medium text-gray-900">Active Status</div>
-                <div className="text-sm text-gray-500">Location is ready for inspections</div>
-              </div>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={formData.is_active}
-                  onChange={(e) => handleChange('is_active', e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </div>
+          {/* Floor & Section - Two columns */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Layers className="w-4 h-4 text-gray-400" />
+                Floor
+              </label>
+              <input
+                type="text"
+                value={formData.floor}
+                onChange={(e) => handleChange('floor', e.target.value)}
+                placeholder="e.g., 1F, Ground"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={createLocationMutation.isPending}
+              />
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <Grid className="w-4 h-4 text-gray-400" />
+                Section
+              </label>
+              <input
+                type="text"
+                value={formData.section}
+                onChange={(e) => handleChange('section', e.target.value)}
+                placeholder="e.g., Men, Women"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={createLocationMutation.isPending}
+              />
+            </div>
+          </div>
+
+          {/* Area Type */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Map className="w-4 h-4 text-gray-400" />
+              Area Type
             </label>
+            <select
+              value={formData.area}
+              onChange={(e) => handleChange('area', e.target.value)}
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={createLocationMutation.isPending}
+            >
+              <option value="">Select Area Type (Optional)</option>
+              <option value="Public Area">Public Area</option>
+              <option value="Staff Area">Staff Area</option>
+              <option value="VIP Area">VIP Area</option>
+              <option value="Service Area">Service Area</option>
+              <option value="Emergency Area">Emergency Area</option>
+            </select>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <FileText className="w-4 h-4 text-gray-400" />
+              Description (Optional)
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              placeholder="Additional notes or special instructions..."
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              disabled={createLocationMutation.isPending}
+            />
           </div>
 
           {/* Submit Button */}
@@ -250,7 +442,8 @@ export const AddLocationPage = () => {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="w-full bg-white border-2 border-gray-200 text-gray-700 py-4 rounded-2xl font-medium hover:bg-gray-50 active:scale-[0.98] transition-all"
+              disabled={createLocationMutation.isPending}
+              className="w-full bg-white border-2 border-gray-200 text-gray-700 py-4 rounded-2xl font-medium hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               Cancel
             </button>
@@ -261,10 +454,10 @@ export const AddLocationPage = () => {
         <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4">
           <p className="text-sm text-blue-900 font-medium mb-2">💡 Tips:</p>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Use clear, descriptive names</li>
-            <li>• Include gender-specific identifiers if needed</li>
-            <li>• Location code helps with QR generation</li>
-            <li>• Inactive locations won't appear in inspection lists</li>
+            <li>• Select organization first, then building</li>
+            <li>• QR code will be auto-generated from codes</li>
+            <li>• Use clear, descriptive location names</li>
+            <li>• Location will be active by default</li>
           </ul>
         </div>
       </div>
