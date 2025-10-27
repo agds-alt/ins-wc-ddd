@@ -69,13 +69,17 @@ export const GeneralPhotoUpload = ({
 
       // Get current location
       const location = await getCurrentLocation();
-      
-      // Get address if location available
-      const address = location 
-        ? await getAddressFromCoords(location.lat, location.lng) 
-        : undefined;
 
-      // Create watermarked photo
+      // ✅ NON-BLOCKING reverse geocoding (don't await, just start it)
+      let address: string | undefined = undefined;
+      if (location) {
+        // Fire and forget - we'll use GPS coords if address fails
+        getAddressFromCoords(location.lat, location.lng)
+          .then(addr => { address = addr; })
+          .catch(() => { /* Silent fail - GPS coords still available */ });
+      }
+
+      // Create watermarked photo immediately (don't wait for address)
       const watermarkedBlob = await addWatermarkToPhoto(file, {
         timestamp: new Date().toISOString(),
         location: location ? { ...location, address } : undefined,
@@ -285,17 +289,27 @@ const getCurrentLocation = (): Promise<{ lat: number; lng: number } | null> => {
 
 const getAddressFromCoords = async (lat: number, lng: number): Promise<string | undefined> => {
   try {
+    // ✅ Add timeout protection - fail fast after 3 seconds
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`,
       {
         headers: { 'User-Agent': 'ToiletCheck/1.0' },
+        signal: controller.signal,
       }
     );
-    
-    if (!response.ok) throw new Error('Geocoding failed');
-    
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn('⚠️ Geocoding failed:', response.status);
+      return undefined;
+    }
+
     const data = await response.json();
-    
+
     // Get short address (road + suburb)
     const address = data.address;
     const parts = [
@@ -303,10 +317,15 @@ const getAddressFromCoords = async (lat: number, lng: number): Promise<string | 
       address.suburb || address.neighbourhood,
       address.city || address.county
     ].filter(Boolean);
-    
+
     return parts.slice(0, 2).join(', ');
-  } catch (error) {
-    console.error('Reverse geocoding error:', error);
+  } catch (error: any) {
+    // ✅ Silent fail - GPS coordinates are enough
+    if (error.name === 'AbortError') {
+      console.warn('⚠️ Geocoding timeout - using GPS coords only');
+    } else {
+      console.warn('⚠️ Geocoding error - using GPS coords only');
+    }
     return undefined;
   }
 };
