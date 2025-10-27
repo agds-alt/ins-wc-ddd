@@ -1,8 +1,8 @@
-// src/components/forms/ComprehensiveInspectionForm.tsx - FINAL: Both photo types
+// src/components/forms/ComprehensiveInspectionForm.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   InspectionComponent,
   ComponentRating,
@@ -13,11 +13,9 @@ import {
   PhotoWithMetadata,
 } from '../../types/inspection.types';
 import { RatingSelector } from './RatingSelector';
-import { EnhancedPhotoUpload } from './EnhancedPhotoUpload'; // Per-component photos
-import { GeneralPhotoUpload } from './GeneralPhotoUpload'; // General photos
+import { EnhancedPhotoUpload } from './EnhancedPhotoUpload';
 import { useAuth } from '../../hooks/useAuth';
 import { useInspection } from '../../hooks/useInspection';
-import { batchUploadToCloudinary } from '../../lib/cloudinary';
 
 interface ComprehensiveInspectionFormProps {
   locationId: string;
@@ -31,22 +29,16 @@ export const ComprehensiveInspectionForm = ({
   onToggleMode,
 }: ComprehensiveInspectionFormProps) => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { getLocation, submitInspection } = useInspection();
 
   // Form state
   const [ratings, setRatings] = useState<Map<InspectionComponent, ComponentRating>>(new Map());
-  const [photos, setPhotos] = useState<Map<InspectionComponent, PhotoWithMetadata[]>>(new Map()); // Per-component
-  const [generalPhotos, setGeneralPhotos] = useState<PhotoWithMetadata[]>([]); // General (mandatory)
+  const [photos, setPhotos] = useState<Map<InspectionComponent, PhotoWithMetadata[]>>(new Map());
   const [generalNotes, setGeneralNotes] = useState('');
   const [issuesFound, setIssuesFound] = useState(false);
   const [issueDescription, setIssueDescription] = useState('');
   const [requiresMaintenance, setRequiresMaintenance] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{
-  current: number;
-  total: number;
-  percentage: number;
-} | null>(null);
   const [maintenancePriority, setMaintenancePriority] = useState<
     'low' | 'medium' | 'high' | 'urgent'
   >('low');
@@ -55,15 +47,11 @@ export const ComprehensiveInspectionForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState(new Date());
   const [currentScore, setCurrentScore] = useState(0);
-  // ✅ ADD THIS
   const [expandedComponent, setExpandedComponent] = useState<InspectionComponent | null>(
     INSPECTION_COMPONENTS[0].id
-    
   );
 
   const { data: location, isLoading: locationLoading } = getLocation(locationId);
-
-  
 
   // Calculate score whenever ratings change
   useEffect(() => {
@@ -88,9 +76,6 @@ export const ComprehensiveInspectionForm = ({
       if (!ratings.has(nextComponent.id)) {
         setExpandedComponent(nextComponent.id);
       }
-    } else {
-      // All done, close all
-      setExpandedComponent(null);
     }
   };
 
@@ -141,16 +126,6 @@ export const ComprehensiveInspectionForm = ({
       return false;
     }
 
-    // VALIDATE: General photos REQUIRED (min 1)
-    if (generalPhotos.length === 0) {
-      toast.error(
-        genZMode
-          ? '📸 Wajib upload minimal 1 foto dokumentasi!'
-          : '📸 At least 1 documentation photo is required!'
-      );
-      return false;
-    }
-
     if (issuesFound && !issueDescription.trim()) {
       toast.error(
         genZMode
@@ -171,136 +146,57 @@ export const ComprehensiveInspectionForm = ({
 
     return true;
   };
-// src/components/forms/ComprehensiveInspectionForm.tsx
-// HANYA UPDATE BAGIAN handleSubmit
 
-// ===============================================
-// REPLACE handleSubmit FUNCTION:
-// ===============================================
-const handleSubmit = async () => {
-  if (!user) {
-    toast.error('Please login first');
-    return;
-  }
-
-  if (!validateForm()) return;
-
-  setIsSubmitting(true);
-  
-  try {
-    const endTime = new Date();
-    const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-
-    // Collect all photos
-    const allPhotos: File[] = [];
-    const photoComponentMap = new Map<string, number>();
-    
-    let photoIndex = 0;
-    for (const [componentId, componentPhotos] of photos.entries()) {
-      console.log('Processing photos for component:', componentId);
-      for (const photo of componentPhotos) {
-        allPhotos.push(photo.file);
-        photoComponentMap.set(`${photoIndex}`, photoIndex);
-        photoIndex++;
-      }
-    }
-
-    const totalPhotos = allPhotos.length;
-    
-    if (totalPhotos === 0) {
-      toast.error('Please add at least one photo');
+  const handleSubmit = async () => {
+    if (!user) {
+      toast.error('Please login first');
       return;
     }
 
-    console.log(`📸 Total photos to upload: ${totalPhotos}`);
+    if (!validateForm()) return;
 
-    // Progress toast
-    const toastId = toast.loading(
-      `📸 Compressing ${totalPhotos} photos...`
-    );
+    setIsSubmitting(true);
 
-    // Batch upload with progress tracking
-    const uploadedUrls = await batchUploadToCloudinary(
-      allPhotos,
-      (current: number, total: number) => {
-        toast.loading(
-          `☁️ Uploading... ${current}/${total} photos`,
-          { id: toastId }
-        );
-      }
-    );
+    try {
+      const endTime = new Date();
+      const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-    console.log(`✅ Uploaded ${uploadedUrls.length} photos`);
+      // Prepare responses
+      const responses = {
+        ratings: Array.from(ratings.values()),
+        issues: issuesFound ? { description: issueDescription } : null,
+        maintenance: requiresMaintenance
+          ? { required: true, priority: maintenancePriority }
+          : null,
+        inspection_mode: genZMode ? 'genz' : 'professional',
+      };
 
-    // Update toast - saving
-    toast.loading('💾 Saving inspection...', { id: toastId });
+      // Submit inspection
+      await submitInspection.mutateAsync({
+        location_id: locationId,
+        user_id: user.id,
+        responses,
+        photos: Array.from(photos.values())
+          .flat()
+          .map((p) => p.file),
+        notes: generalNotes,
+      });
 
-    // Map uploaded URLs back to components
-    const updatedRatings = new Map(ratings);
-    photoIndex = 0;
-    
-    for (const [componentId, componentPhotos] of photos.entries()) {
-      const rating = updatedRatings.get(componentId);
-      if (rating && componentPhotos.length > 0) {
-        // Get the first photo URL for this component
-        rating.photo = uploadedUrls[photoIndex];
-        updatedRatings.set(componentId, rating);
-        photoIndex += componentPhotos.length;
-      }
+      toast.success(
+        genZMode
+          ? `🎉 Inspection selesai! Score: ${currentScore}`
+          : `Inspection submitted successfully! Score: ${currentScore}`
+      );
+
+      // Navigate back
+      navigate('/scan');
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      toast.error(error.message || 'Failed to submit inspection');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Prepare responses
-    const responses: Record<string, any> = {
-      ratings: Array.from(updatedRatings.values()),
-      score: currentScore,
-      issues_found: issuesFound,
-      issue_description: issuesFound ? issueDescription.trim() : null,
-      requires_maintenance: requiresMaintenance,
-      maintenance_priority: requiresMaintenance ? maintenancePriority : null,
-      inspection_mode: genZMode ? 'genz' : 'professional',
-      submitted_at: new Date().toISOString(),
-      inspector: {
-        id: user.id,
-        name: profile?.full_name || user.email?.split('@')[0] || 'Unknown',
-        email: user.email,
-        profile_id: profile?.id,
-      },
-    };
-
-    // Submit to database
-    await submitInspection.mutateAsync({
-      location_id: locationId,
-      user_id: user.id,
-      responses,
-      photos: allPhotos,
-      notes: generalNotes.trim() || undefined,
-      duration_seconds: durationSeconds,
-    });
-
-    // Success
-    toast.success(
-      genZMode 
-        ? `🎉 Sukses! Score: ${currentScore}` 
-        : `✅ Inspection saved! Score: ${currentScore}`,
-      { id: toastId, duration: 2000 }
-    );
-
-    setTimeout(() => {
-      navigate('/scan', { replace: true });
-    }, 1500);
-
-  } catch (error: any) {
-    console.error('❌ Submission error:', error);
-    toast.error(
-      genZMode 
-        ? '😢 Gagal submit, coba lagi!' 
-        : error.message || 'Failed to submit inspection'
-    );
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
+  };
 
   if (locationLoading) {
     return (
@@ -357,6 +253,7 @@ const handleSubmit = async () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
 
+            {/* Mode Toggle */}
             {onToggleMode && (
               <button
                 onClick={onToggleMode}
@@ -374,6 +271,7 @@ const handleSubmit = async () => {
             )}
           </div>
 
+          {/* Location Info */}
           <div className="flex items-center space-x-3 mb-3">
             <div
               className={`
@@ -391,6 +289,7 @@ const handleSubmit = async () => {
             </div>
           </div>
 
+          {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className={genZMode ? 'text-white/90' : 'text-gray-600'}>
@@ -418,7 +317,6 @@ const handleSubmit = async () => {
 
       {/* Form Content */}
       <div className="p-4 space-y-4">
-        {/* Checklist Components */}
         {INSPECTION_COMPONENTS.map((component) => {
           const rating = ratings.get(component.id);
           const componentPhotos = photos.get(component.id) || [];
@@ -434,7 +332,7 @@ const handleSubmit = async () => {
                   onPhotoAdd={
                     component.allowPhoto
                       ? () => {
-                          /* Photo handled below */
+                          /* Photo handled by EnhancedPhotoUpload below */
                         }
                       : undefined
                   }
@@ -477,18 +375,19 @@ const handleSubmit = async () => {
                 </button>
               )}
 
-              {/* Per-Component Photo Upload (optional) */}
+              {/* Photo Upload (shown when expanded and photos allowed) */}
               {isExpanded && component.allowPhoto && (
                 <div className="mt-3">
                   <EnhancedPhotoUpload
                     componentId={component.id}
                     photos={componentPhotos}
-                    onPhotosChange={(photos) => handlePhotosChange(component.id, photos)}
+                    onPhotosChange={(PhotoWithMetadata) => handlePhotosChange(component.id, PhotoWithMetadata)}
                     genZMode={genZMode}
                   />
                 </div>
               )}
 
+              {/* Collapse button */}
               {isExpanded && (
                 <button
                   type="button"
@@ -508,40 +407,6 @@ const handleSubmit = async () => {
             </div>
           );
         })}
-
-        {/* === GENERAL PHOTO SECTION (MANDATORY) === */}
-        {completedCount >= totalRequired && (
-          <div
-            className={`${
-              genZMode ? 'bg-gradient-to-br from-purple-100 to-pink-100' : 'bg-blue-50'
-            } rounded-2xl p-4 shadow-sm border-2 ${
-              genZMode ? 'border-purple-400' : 'border-blue-400'
-            }`}
-          >
-            <div className="flex items-center space-x-2 mb-2">
-              <Camera className={`w-5 h-5 ${genZMode ? 'text-purple-700' : 'text-blue-700'}`} />
-              <h3 className="font-bold text-gray-900">
-                {genZMode ? '📸 Foto Dokumentasi' : '📸 Documentation Photos'}
-                <span className="text-red-500 ml-1">*</span>
-              </h3>
-            </div>
-            
-            <p className={`text-sm mb-4 ${genZMode ? 'text-purple-900' : 'text-blue-900'}`}>
-              {genZMode 
-                ? '⚠️ WAJIB minimal 1 foto! Auto watermark: Tanggal, Jam, GPS, Nama Toilet.'
-                : '⚠️ REQUIRED: Minimum 1 photo! Auto watermark: Date, Time, GPS, Toilet Name.'
-              }
-            </p>
-
-            <GeneralPhotoUpload
-              photos={generalPhotos}
-              onPhotosChange={setGeneralPhotos}
-              maxPhotos={5}
-              genZMode={genZMode}
-              locationName={`${location.name} - ${location.building}`}
-            />
-          </div>
-        )}
 
         {/* Issues Section */}
         <div
@@ -640,120 +505,40 @@ const handleSubmit = async () => {
             rows={3}
           />
         </div>
-      </div>
 
-
-
-
-{/* Upload Progress Indicator */}
-{uploadProgress && (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-      {/* Progress Title */}
-      <div className="text-center mb-4">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-          <svg 
-            className="w-8 h-8 text-blue-600 animate-spin" 
-            fill="none" 
-            viewBox="0 0 24 24"
+        {/* Photo Preview Section */}
+        {Array.from(photos.values()).flat().length > 0 && (
+          <div
+            className={`${
+              genZMode ? 'bg-white/80' : 'bg-white'
+            } rounded-2xl p-4 shadow-sm border border-gray-100`}
           >
-            <circle 
-              className="opacity-25" 
-              cx="12" 
-              cy="12" 
-              r="10" 
-              stroke="currentColor" 
-              strokeWidth="4"
-            />
-            <path 
-              className="opacity-75" 
-              fill="currentColor" 
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        </div>
-        <h3 className="text-lg font-bold text-gray-900 mb-1">
-          {genZMode ? 'Upload Foto...' : 'Uploading Photos...'}
-        </h3>
-        <p className="text-sm text-gray-600">
-          {uploadProgress.current} of {uploadProgress.total} photos
-        </p>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900">
+                {genZMode ? '📸 Foto yang akan diupload' : '📸 Photos to Upload'}
+              </h3>
+              <span
+                className={`text-sm px-3 py-1 rounded-full ${
+                  genZMode ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {Array.from(photos.values()).flat().length} photos
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Progress Bar */}
-      <div className="relative">
-        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300 ease-out"
-            style={{ width: `${uploadProgress.percentage}%` }}
-          />
-        </div>
-        <div className="mt-2 text-center">
-          <span className="text-2xl font-bold text-blue-600">
-            {uploadProgress.percentage}%
-          </span>
-        </div>
-      </div>
-
-      {/* Info Text */}
-      <p className="text-xs text-gray-500 text-center mt-4">
-        {genZMode 
-          ? 'Sabar ya, lagi upload...' 
-          : 'Please wait while we upload your photos...'}
-      </p>
-    </div>
-  </div>
-)}
-
-{/* Submit Button - SETELAH progress indicator */}
-<button
-  type="button"
-  onClick={handleSubmit}
-  disabled={isSubmitting || uploadProgress !== null}
-  className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
-    isSubmitting || uploadProgress !== null
-      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-      : genZMode
-      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg active:scale-[0.98]'
-      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg active:scale-[0.98]'
-  }`}
->
-  {isSubmitting || uploadProgress !== null ? (
-    <div className="flex items-center justify-center gap-2">
-      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      {uploadProgress 
-        ? `Uploading ${uploadProgress.percentage}%...` 
-        : genZMode 
-        ? 'Processing...' 
-        : 'Submitting...'}
-    </div>
-  ) : (
-    <>
-      <Save className="w-5 h-5 inline-block mr-2" />
-      {genZMode ? 'Submit Dong! ✨' : 'Submit Inspection'}
-    </>
-  )}
-</button>
-
-
-
-{/* Upload Progress Indicator */}
-{uploadProgress && (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    {/* ... full progress UI dari artifact ... */}
-  </div>
-)}
 
       {/* Submit Button (Sticky Bottom) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg">
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSubmitting || completedCount < totalRequired || generalPhotos.length === 0}
+          disabled={isSubmitting || completedCount < totalRequired}
           className={`
             w-full py-4 rounded-xl font-bold text-white transition-all
             ${
-              isSubmitting || completedCount < totalRequired || generalPhotos.length === 0
+              isSubmitting || completedCount < totalRequired
                 ? 'bg-gray-300 cursor-not-allowed'
                 : genZMode
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
@@ -762,35 +547,20 @@ const handleSubmit = async () => {
           `}
         >
           {isSubmitting
-            ? uploadProgress.total > 0
-              ? genZMode
-                ? `📸 Upload ${uploadProgress.current}/${uploadProgress.total}...`
-                : `Uploading ${uploadProgress.current}/${uploadProgress.total} photos...`
-              : genZMode
-                ? '⏳ Submitting...'
-                : 'Submitting...'
+            ? genZMode
+              ? '⏳ Submitting...'
+              : 'Submitting...'
             : genZMode
               ? `🚀 Submit (Score: ${currentScore})`
               : `Submit Inspection (Score: ${currentScore})`}
         </button>
 
-        {(completedCount < totalRequired || generalPhotos.length === 0) && (
-          <div className="text-center text-sm text-red-600 mt-2 space-y-1">
-            {completedCount < totalRequired && (
-              <p>
-                {genZMode
-                  ? `❌ Masih kurang ${totalRequired - completedCount} komponen wajib`
-                  : `❌ ${totalRequired - completedCount} required components remaining`}
-              </p>
-            )}
-            {generalPhotos.length === 0 && (
-              <p>
-                {genZMode
-                  ? '📸 Wajib upload minimal 1 foto dokumentasi'
-                  : '📸 At least 1 documentation photo required'}
-              </p>
-            )}
-          </div>
+        {completedCount < totalRequired && (
+          <p className="text-center text-sm text-red-600 mt-2">
+            {genZMode
+              ? `Masih kurang ${totalRequired - completedCount} komponen wajib!`
+              : `${totalRequired - completedCount} required components remaining`}
+          </p>
         )}
       </div>
     </div>

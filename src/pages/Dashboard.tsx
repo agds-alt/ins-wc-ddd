@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx - IMPROVED NAVIGATION
+// src/pages/Dashboard.tsx - FIXED WITH submitted_at
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -10,11 +10,9 @@ import {
   User,
   ChevronRight,
   Droplets,
-  TrendingUp,
   Clock,
   CheckCircle2,
   AlertCircle,
-  Settings
 } from 'lucide-react';
 import { BottomNav } from '../components/mobile/BottomNav';
 
@@ -22,221 +20,211 @@ export const Dashboard = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch user statistics
-  const { data: stats, isLoading } = useQuery({
+  console.log('🏠 Dashboard mounted - User:', user?.id);
+
+  // Fetch user statistics - OPTIMIZED
+  const { data: stats, isLoading, error } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async () => {
+      if (!user?.id) {
+        console.warn('⚠️ No user ID available');
+        return null;
+      }
+
+      console.log('📊 Fetching stats for user:', user.id);
+
+      // ✅ Order by submitted_at (most accurate timestamp)
       const { data: inspections, error } = await supabase
         .from('inspection_records')
-        .select('id, overall_status, inspection_date')
-        .eq('user_id', user?.id)
-        .order('inspection_date', { ascending: false });
+        .select('id, overall_status, inspection_date, inspection_time, responses, submitted_at')
+        .eq('user_id', user.id)
+        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching inspections:', error);
+        throw error;
+      }
 
-      const total = inspections.length;
+      console.log(`✅ Fetched ${inspections?.length || 0} inspections`);
+
+      const total = inspections?.length || 0;
       const today = new Date().toISOString().split('T')[0];
-      const todayCount = inspections.filter(i => i.inspection_date === today).length;
-      const completed = inspections.filter(i => i.overall_status === 'completed').length;
+      const todayCount = inspections?.filter(i => i.inspection_date === today).length || 0;
+      
+      // Calculate completed based on status OR score
+      const completed = inspections?.filter(i => {
+        // Check status first
+        if (i.overall_status === 'completed' || 
+            i.overall_status === 'excellent' || 
+            i.overall_status === 'good') {
+          return true;
+        }
+        // Fallback: check score in responses
+        if (i.responses?.score && i.responses.score >= 60) {
+          return true;
+        }
+        return false;
+      }).length || 0;
+
+      const recentData = inspections?.slice(0, 3) || [];
+      
+      console.log('📈 Stats calculated:', { total, todayCount, completed });
 
       return {
         total,
         todayCount,
         completed,
-        recent: inspections.slice(0, 3),
+        recent: recentData,
       };
     },
     enabled: !!user?.id,
+    staleTime: 30 * 1000, // Cache 30 seconds
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
-  // Fetch recent locations
-  const { data: locations } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('locations')
-        .select('id, name, building, floor')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(5);
+  // Log rendering
+  console.log('🎨 Dashboard render - Loading:', isLoading, 'Stats:', stats);
 
-      if (error) throw error;
-      return data;
-    },
-  });
+  if (isLoading) {
+    console.log('⏳ Dashboard loading...');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const quickActions = [
-    {
-      title: 'Scan QR Code',
-      description: 'Scan lokasi toilet',
-      icon: QrCode,
-      path: '/scan',
-      color: 'blue',
-      primary: true
-    },
-    {
-      title: 'Locations',
-      description: 'Kelola lokasi',
-      icon: MapPin,
-      path: '/locations',
-      color: 'purple',
-    },
-    {
-      title: 'Reports',
-      description: 'Lihat laporan',
-      icon: Calendar,
-      path: '/reports',
-      color: 'green',
-    },
-    {
-      title: 'Profile',
-      description: 'Pengaturan akun',
-      icon: User,
-      path: '/profile',
-      color: 'orange',
-    },
-  ];
+  if (error) {
+    console.error('❌ Dashboard error:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Dashboard</h3>
+          <p className="text-gray-600 mb-4">{error.message || 'Failed to load data'}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  const colorClasses = {
-    blue: 'bg-blue-500 hover:bg-blue-600',
-    purple: 'bg-purple-500 hover:bg-purple-600',
-    green: 'bg-green-500 hover:bg-green-600',
-    orange: 'bg-orange-500 hover:bg-orange-600',
-  };
+  if (!stats) {
+    console.warn('⚠️ No stats data available');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 mb-4">No data available yet</p>
+          <button
+            onClick={() => navigate('/scan')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium"
+          >
+            Start First Inspection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 pt-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 safe-area-top">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold">
-              Hi, {profile?.full_name?.split(' ')[0] || 'User'}! 👋
-            </h1>
-            <p className="text-blue-100 text-sm mt-1">
-              Ready for inspection today?
+            <h1 className="text-2xl font-bold">WC Check</h1>
+            <p className="text-blue-100 text-sm">
+              Welcome, {profile?.full_name || user?.email?.split('@')[0]}
             </p>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/profile')}
-            className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center"
+            className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
           >
-            <Settings className="w-5 h-5" />
+            <User className="w-5 h-5" />
           </button>
         </div>
 
         {/* Stats Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-3 gap-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 h-20 animate-pulse" />
-            ))}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+            <p className="text-blue-100 text-xs mb-1">Total</p>
+            <p className="text-2xl font-bold">{stats.total}</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold">{stats?.total || 0}</div>
-              <div className="text-xs text-blue-100 mt-1">Total</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold">{stats?.todayCount || 0}</div>
-              <div className="text-xs text-blue-100 mt-1">Today</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <div className="text-3xl font-bold">{stats?.completed || 0}</div>
-              <div className="text-xs text-blue-100 mt-1">Done</div>
-            </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+            <p className="text-blue-100 text-xs mb-1">Today</p>
+            <p className="text-2xl font-bold">{stats.todayCount}</p>
           </div>
-        )}
-      </div>
-
-      <main className="p-6 space-y-6">
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.path}
-                  onClick={() => navigate(action.path)}
-                  className={`
-                    ${action.primary ? 'col-span-2' : ''}
-                    ${action.primary ? colorClasses[action.color as keyof typeof colorClasses] : 'bg-white'}
-                    ${action.primary ? 'text-white' : 'text-gray-900'}
-                    ${action.primary ? 'p-6' : 'p-4'}
-                    rounded-2xl shadow-sm
-                    transition-all duration-200
-                    hover:shadow-md
-                    active:scale-95
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`
-                      ${action.primary ? 'w-14 h-14 bg-white/20' : 'w-12 h-12 bg-gray-100'}
-                      rounded-xl flex items-center justify-center flex-shrink-0
-                    `}>
-                      <Icon className={`w-6 h-6 ${action.primary ? '' : 'text-gray-700'}`} />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold">{action.title}</div>
-                      <div className={`text-xs mt-0.5 ${action.primary ? 'text-white/80' : 'text-gray-500'}`}>
-                        {action.description}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
+            <p className="text-blue-100 text-xs mb-1">Done</p>
+            <p className="text-2xl font-bold">{stats.completed}</p>
           </div>
         </div>
+      </div>
 
-        {/* Recent Locations */}
-        {locations && locations.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Locations</h2>
-              <button 
-                onClick={() => navigate('/locations')}
-                className="text-sm text-blue-600 font-medium"
-              >
-                View All
-              </button>
+      {/* Main Content */}
+      <main className="p-4 space-y-4">
+        {/* Primary Action */}
+        <button
+          onClick={() => {
+            console.log('🎯 Navigating to scan page');
+            navigate('/scan');
+          }}
+          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-6 shadow-lg active:scale-[0.98] transition-transform"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                <QrCode className="w-7 h-7" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-lg">Scan QR Code</p>
+                <p className="text-blue-100 text-sm">Start new inspection</p>
+              </div>
             </div>
-            <div className="space-y-2">
-              {locations.map((location) => (
-                <button
-                  key={location.id}
-                  onClick={() => navigate(`/inspect/${location.id}`)}
-                  className="w-full flex items-center justify-between p-4 bg-white rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-medium text-gray-900">{location.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {location.building} • {location.floor}
-                      </div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
-                </button>
-              ))}
-            </div>
+            <ChevronRight className="w-6 h-6" />
           </div>
-        )}
+        </button>
 
-        {/* Recent Inspections */}
-        {stats?.recent && stats.recent.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Inspections</h2>
-              <button 
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate('/locations')}
+            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+          >
+            <MapPin className="w-6 h-6 text-blue-600 mb-2" />
+            <p className="font-semibold text-gray-900 text-sm">Locations</p>
+            <p className="text-gray-500 text-xs">View all</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/reports')}
+            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+          >
+            <Calendar className="w-6 h-6 text-blue-600 mb-2" />
+            <p className="font-semibold text-gray-900 text-sm">Reports</p>
+            <p className="text-gray-500 text-xs">View history</p>
+          </button>
+        </div>
+
+        {/* Recent Activity */}
+        {stats.recent && stats.recent.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-900">Recent Activity</h2>
+              <button
                 onClick={() => navigate('/reports')}
-                className="text-sm text-blue-600 font-medium"
+                className="text-blue-600 text-sm font-medium"
               >
                 View All
               </button>
@@ -245,24 +233,22 @@ export const Dashboard = () => {
               {stats.recent.map((inspection: any) => (
                 <div
                   key={inspection.id}
-                  className="flex items-center gap-3 p-4 bg-white rounded-xl"
+                  className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Droplets className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">
-                      {new Date(inspection.inspection_date).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {inspection.overall_status === 'completed' ? 'Completed' : 'Pending'}
+                  <div className="flex items-center gap-3">
+                    <Droplets className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        Inspection
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {inspection.inspection_date} {inspection.inspection_time}
+                      </p>
                     </div>
                   </div>
-                  {inspection.overall_status === 'completed' ? (
+                  {inspection.overall_status === 'completed' || 
+                   inspection.overall_status === 'excellent' ||
+                   inspection.overall_status === 'good' ? (
                     <CheckCircle2 className="w-5 h-5 text-green-500" />
                   ) : (
                     <Clock className="w-5 h-5 text-orange-500" />
@@ -274,7 +260,7 @@ export const Dashboard = () => {
         )}
 
         {/* Empty State */}
-        {(!stats || stats.total === 0) && !isLoading && (
+        {stats.total === 0 && (
           <div className="text-center py-12">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <QrCode className="w-10 h-10 text-gray-400" />
