@@ -1,24 +1,26 @@
-// src/pages/Dashboard.tsx - FIXED WITH submitted_at
+// src/pages/Dashboard.tsx - WITH SIDEBAR
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { 
-  QrCode, 
-  MapPin, 
-  Calendar, 
+import {
+  QrCode,
+  MapPin,
+  Calendar,
   User,
   ChevronRight,
-  Droplets,
   Clock,
   CheckCircle2,
-  AlertCircle,
+  Menu,
 } from 'lucide-react';
 import { BottomNav } from '../components/mobile/BottomNav';
+import { Sidebar } from '../components/mobile/Sidebar';
 
 export const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ✅ WAIT for auth to complete AND user to exist
   const isAuthReady = !authLoading && !!user?.id;
@@ -94,14 +96,25 @@ export const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-white pb-20">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       {/* Simple Header - White */}
       <div className="bg-white p-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">WC Check</h1>
-            <p className="text-sm text-gray-500">
-              Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}
-            </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+            >
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">WC Check</h1>
+              <p className="text-sm text-gray-500">
+                Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => navigate('/profile')}

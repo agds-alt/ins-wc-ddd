@@ -1,20 +1,18 @@
-// src/pages/ScanPage.tsx - UPDATED: Query by location ID
+// src/pages/ScanPage.tsx - WITH SIDEBAR
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { ScanModal } from '../components/mobile/ScanModal';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { 
-  QrCode, 
-  History, 
-  MapPin, 
+import { Sidebar } from '../components/mobile/Sidebar';
+import {
+  QrCode,
+  MapPin,
   TrendingUp,
   Clock,
   CheckCircle2,
-  AlertCircle,
+  Menu,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -23,6 +21,7 @@ export const ScanPage = () => {
   const navigate = useNavigate();
   const { user, authLoading } = useAuth();
   const [showScanner, setShowScanner] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // ✅ Wait for auth to complete before querying
   const isReady = !authLoading && !!user?.id;
@@ -143,14 +142,25 @@ export const ScanPage = () => {
 
   return (
     <div className="min-h-screen bg-white pb-20">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       {/* Simple Header - White */}
       <div className="bg-white p-6 border-b border-gray-100">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              Hi, {user?.email?.split('@')[0] || 'Guest'}! 👋
-            </h1>
-            <p className="text-sm text-gray-500">Ready to scan?</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+            >
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                Hi, {user?.email?.split('@')[0] || 'Guest'}! 👋
+              </h1>
+              <p className="text-sm text-gray-500">Ready to scan?</p>
+            </div>
           </div>
         </div>
 
