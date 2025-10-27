@@ -705,38 +705,6 @@ const handleSubmit = async () => {
   </div>
 )}
 
-{/* Submit Button - SETELAH progress indicator */}
-<button
-  type="button"
-  onClick={handleSubmit}
-  disabled={isSubmitting || uploadProgress !== null}
-  className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
-    isSubmitting || uploadProgress !== null
-      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-      : genZMode
-      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg active:scale-[0.98]'
-      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg active:scale-[0.98]'
-  }`}
->
-  {isSubmitting || uploadProgress !== null ? (
-    <div className="flex items-center justify-center gap-2">
-      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      {uploadProgress 
-        ? `Uploading ${uploadProgress.percentage}%...` 
-        : genZMode 
-        ? 'Processing...' 
-        : 'Submitting...'}
-    </div>
-  ) : (
-    <>
-      <Save className="w-5 h-5 inline-block mr-2" />
-      {genZMode ? 'Submit Dong! ✨' : 'Submit Inspection'}
-    </>
-  )}
-</button>
-
-
-
 {/* Upload Progress Indicator */}
 {uploadProgress && (
   <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
