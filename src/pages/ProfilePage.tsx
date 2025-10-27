@@ -367,7 +367,7 @@ export const ProfilePage = () => {
               </div>
             )}
           </div>
-        </Card>
+        </div>
 
         {/* Stats Cards */}
         <div className="mt-4">
