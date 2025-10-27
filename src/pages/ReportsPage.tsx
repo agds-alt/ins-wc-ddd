@@ -85,28 +85,28 @@ export const ReportsPage = () => {
           <Calendar className="w-6 h-6 text-gray-400" />
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - White Theme */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
+          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4">
             <div className="flex items-center space-x-2 mb-1">
-              <FileText className="w-4 h-4 text-white" />
-              <span className="text-xs text-blue-100">This Month</span>
+              <FileText className="w-4 h-4 text-blue-600" />
+              <span className="text-xs text-gray-500">This Month</span>
             </div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-gray-900">
               {totalInspections}
             </div>
-            <div className="text-xs text-blue-100 mt-1">Inspections</div>
+            <div className="text-xs text-gray-500 mt-1">Inspections</div>
           </div>
 
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
+          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4">
             <div className="flex items-center space-x-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-white" />
-              <span className="text-xs text-blue-100">Average</span>
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              <span className="text-xs text-gray-500">Average</span>
             </div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-gray-900">
               {averageScore}
             </div>
-            <div className="text-xs text-blue-100 mt-1">Score</div>
+            <div className="text-xs text-gray-500 mt-1">Score</div>
           </div>
         </div>
       </div>
