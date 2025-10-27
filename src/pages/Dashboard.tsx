@@ -41,8 +41,30 @@ export const Dashboard = () => {
       if (error) throw error;
 
       const total = inspections?.length || 0;
-      const today = new Date().toISOString().split('T')[0];
-      const todayCount = inspections?.filter(i => i.inspection_date === today).length || 0;
+
+      // ✅ Better date handling - account for timezone
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      // Also check for dates that might be stored in local timezone
+      const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      const todayCount = inspections?.filter(i => {
+        if (!i.inspection_date) return false;
+        // Try multiple date comparison methods
+        if (i.inspection_date === todayStr) return true;
+        if (i.inspection_date.startsWith(todayStr)) return true;
+
+        // Parse the stored date and compare
+        try {
+          const inspDate = new Date(i.inspection_date);
+          return inspDate.getFullYear() === today.getFullYear() &&
+                 inspDate.getMonth() === today.getMonth() &&
+                 inspDate.getDate() === today.getDate();
+        } catch {
+          return false;
+        }
+      }).length || 0;
 
       const completed = inspections?.filter(i => {
         return i.overall_status === 'completed' ||

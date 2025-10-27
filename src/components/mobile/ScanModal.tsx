@@ -45,21 +45,17 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
 
     const checkCameraPermission = async () => {
       try {
-        // Step 1: Request camera permission explicitly
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: { ideal: 'environment' }, // Prefer back camera
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
+        // ✅ SIMPLIFIED: Request basic camera permission
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true // Simple request
         });
-        
+
         // Permission granted - stop test stream
         stream.getTracks().forEach(track => track.stop());
         permissionGranted = true;
-        
+
         if (!mounted) return;
-        
+
         // Step 2: Initialize scanner after permission granted
         await initializeScanner();
         
@@ -97,6 +93,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
           throw new Error('Scanner container not found');
         }
 
+        // ✅ SIMPLIFIED CONFIG - More compatible
         scannerRef.current = new Html5QrcodeScanner(
           'qr-scanner-container',
           {
@@ -105,12 +102,8 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
             aspectRatio: 1.0,
             disableFlip: false,
             rememberLastUsedCamera: true,
-            // ✅ Force environment camera (back camera)
-            videoConstraints: {
-              facingMode: { exact: 'environment' }
-            },
-            // ✅ Show permission prompt
             showTorchButtonIfSupported: true,
+            supportedScanTypes: [0], // QR Code only
           },
           false // verbose
         );
