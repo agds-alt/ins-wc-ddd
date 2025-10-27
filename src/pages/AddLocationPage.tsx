@@ -42,10 +42,14 @@ interface Building {
 }
 
 export const AddLocationPage = () => {
+  console.log('🟢 AddLocationPage: Component starting');
+
   const navigate = useNavigate();
-  const { user, authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // FIX: useAuth returns "loading"
   const { isAdmin, loading: adminLoading } = useIsAdmin();
   const queryClient = useQueryClient();
+
+  console.log('🟢 AddLocationPage: Auth state', { hasUser: !!user, authLoading, isAdmin, adminLoading });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -115,11 +119,14 @@ export const AddLocationPage = () => {
   // Create location mutation
   const createLocationMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      console.log('🔵 Mutation starting', { data, userId: user?.id });
+
       if (!user?.id) throw new Error('User not authenticated');
       if (!data.organization_id || !data.building_id) {
         throw new Error('Organization and Building are required');
       }
 
+      console.log('🔵 Fetching building info for QR code generation...');
       // Fetch building to generate QR code
       const { data: building, error: buildingError } = await supabase
         .from('buildings')
@@ -128,8 +135,11 @@ export const AddLocationPage = () => {
         .single();
 
       if (buildingError || !building) {
+        console.error('❌ Building not found:', buildingError);
         throw new Error('Building not found');
       }
+
+      console.log('✅ Building found:', building);
 
       // Generate QR code
       const orgCode = (building.organizations as any).short_code;
@@ -138,6 +148,7 @@ export const AddLocationPage = () => {
       const uniqueId = Date.now().toString(36).slice(-4);
 
       const qrCode = `${orgCode}-${buildingCode}-${locationCode}-${uniqueId}`.toUpperCase();
+      console.log('✅ Generated QR code:', qrCode);
 
       // Create location object
       const newLocation: LocationInsert = {
@@ -154,28 +165,38 @@ export const AddLocationPage = () => {
         created_by: user.id,
       };
 
+      console.log('🔵 Inserting location into database...', newLocation);
+
       const { data: newLocationData, error } = await supabase
         .from('locations')
         .insert(newLocation)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database insert error:', error);
+        throw error;
+      }
+
+      console.log('✅ Location created successfully:', newLocationData);
       return newLocationData;
     },
     onSuccess: () => {
+      console.log('✅ Mutation success - redirecting to /locations');
       queryClient.invalidateQueries({ queryKey: ['locations-list'] });
       queryClient.invalidateQueries({ queryKey: ['locations'] });
       toast.success('Location added successfully!');
       navigate('/locations');
     },
     onError: (error: any) => {
+      console.error('❌ Mutation error:', error);
       toast.error(error.message || 'Failed to add location');
     },
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔵 Form submitted', formData);
 
     // Validation
     if (!formData.organization_id) {
@@ -191,6 +212,7 @@ export const AddLocationPage = () => {
       return;
     }
 
+    console.log('✅ Validation passed, creating location...');
     createLocationMutation.mutate(formData);
   };
 
@@ -204,24 +226,40 @@ export const AddLocationPage = () => {
     });
   };
 
+  console.log('🟢 AddLocationPage: Render checks', {
+    authLoading,
+    adminLoading,
+    hasUser: !!user,
+    isAdmin,
+    willShowLoading: authLoading || adminLoading,
+    willShowAccessDenied: !authLoading && !adminLoading && !isAdmin
+  });
+
   if (authLoading || adminLoading) {
+    console.log('🟡 Showing loading spinner');
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-sm">Loading...</p>
+          <p className="text-gray-600 text-sm">Checking permissions...</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
+    console.log('🔴 No user - redirecting to login');
     navigate('/login', { replace: true });
     return null;
   }
 
   // Admin check - redirect to dashboard if not admin
   if (!isAdmin) {
+    console.log('🔴 ACCESS DENIED - User is not admin', {
+      userId: user.id,
+      email: user.email,
+      isAdmin
+    });
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-6">
         <div className="text-center max-w-md">
@@ -230,8 +268,13 @@ export const AddLocationPage = () => {
             Admin Access Required
           </h2>
           <p className="text-gray-600 mb-6 leading-relaxed">
-            You need administrator privileges to add new locations. Please contact your system administrator if you believe this is an error.
+            You need administrator privileges to add new locations.
           </p>
+          <div className="mb-6 p-4 bg-gray-100 rounded-lg text-left">
+            <p className="text-xs text-gray-600 mb-1">Debug Info:</p>
+            <p className="text-xs text-gray-800">User: {user.email}</p>
+            <p className="text-xs text-gray-800">Admin Status: {isAdmin ? 'Yes' : 'No'}</p>
+          </div>
           <button
             onClick={() => navigate('/')}
             className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
@@ -242,6 +285,8 @@ export const AddLocationPage = () => {
       </div>
     );
   }
+
+  console.log('✅ Admin access granted - rendering form');
 
   return (
     <div className="min-h-screen bg-white pb-24">
