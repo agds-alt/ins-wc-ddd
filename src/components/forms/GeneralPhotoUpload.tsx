@@ -245,11 +245,59 @@ export const GeneralPhotoUpload = ({
       {/* Info Text */}
       {canAddMore && (
         <p className="text-xs text-gray-500 text-center">
-          {genZMode 
+          {genZMode
             ? '✨ Watermark otomatis: Tanggal, Jam, Lokasi GPS & Nama Toilet'
             : '✨ Auto watermark: Date, Time, GPS Location & Toilet Name'
           }
         </p>
+      )}
+
+      {/* Processing Modal - Prominent Loading Indicator */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+            {/* Animated Spinner */}
+            <div className="relative mb-6">
+              <div className="w-20 h-20 mx-auto relative">
+                {/* Outer ring */}
+                <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                {/* Spinning ring */}
+                <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                {/* Center icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Camera className="w-8 h-8 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Text Content */}
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Processing Photo
+            </h3>
+            <p className="text-gray-600 mb-1">
+              Adding watermark with GPS location...
+            </p>
+            <p className="text-sm text-gray-500">
+              Please wait 3-4 seconds
+            </p>
+
+            {/* Progress Steps */}
+            <div className="mt-6 space-y-2 text-left">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                <span>Getting GPS coordinates...</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <span>Applying watermark...</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                <span>Finalizing image...</span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
