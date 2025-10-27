@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { Sidebar } from '../components/mobile/Sidebar';
 import { BottomNav } from '../components/mobile/BottomNav';
 import {
@@ -28,6 +29,7 @@ interface Location {
 export const LocationsListPage = () => {
   const navigate = useNavigate();
   const { user, authLoading } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -122,14 +124,16 @@ export const LocationsListPage = () => {
           />
         </div>
 
-        {/* Add Location Button */}
-        <button
-          onClick={() => navigate('/locations/add')}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add New Location</span>
-        </button>
+        {/* Add Location Button - Admin Only */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/locations/add')}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium shadow-lg hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add New Location</span>
+          </button>
+        )}
       </div>
 
       {/* Content */}

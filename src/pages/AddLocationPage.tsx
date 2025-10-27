@@ -1,7 +1,8 @@
-// src/pages/AddLocationPage.tsx - Add New Location (SCALABLE VERSION)
+// src/pages/AddLocationPage.tsx - Add New Location (ADMIN ONLY)
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Sidebar } from '../components/mobile/Sidebar';
@@ -18,6 +19,7 @@ import {
   Map,
   Grid,
   FileText,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { TablesInsert } from '../types/database.types';
@@ -42,6 +44,7 @@ interface Building {
 export const AddLocationPage = () => {
   const navigate = useNavigate();
   const { user, authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -201,7 +204,7 @@ export const AddLocationPage = () => {
     });
   };
 
-  if (authLoading) {
+  if (authLoading || adminLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -215,6 +218,29 @@ export const AddLocationPage = () => {
   if (!user) {
     navigate('/login', { replace: true });
     return null;
+  }
+
+  // Admin check - redirect to dashboard if not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <ShieldAlert className="w-20 h-20 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            Admin Access Required
+          </h2>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            You need administrator privileges to add new locations. Please contact your system administrator if you believe this is an error.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
