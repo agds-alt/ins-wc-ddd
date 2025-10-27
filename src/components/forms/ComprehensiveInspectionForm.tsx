@@ -1,5 +1,5 @@
 // src/components/forms/ComprehensiveInspectionForm.tsx - FINAL: Both photo types
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { ArrowLeft, Save, CheckCircle2, AlertCircle, Camera } from 'lucide-react';
@@ -26,11 +26,15 @@ interface ComprehensiveInspectionFormProps {
 export const ComprehensiveInspectionForm = ({
   locationId,
 }: ComprehensiveInspectionFormProps) => {
-  // Always use GenZ mode for fun and professional look
-  const genZMode = true;
+  // Use professional mode for enterprise-friendly language
+  const genZMode = false;
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { getLocation, submitInspection } = useInspection();
+
+  // Refs for cleanup
+  const isMountedRef = useRef(true);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form state
   const [ratings, setRatings] = useState<Map<InspectionComponent, ComponentRating>>(new Map());
@@ -62,6 +66,16 @@ export const ComprehensiveInspectionForm = ({
   const { data: location, isLoading: locationLoading } = getLocation(locationId);
 
   
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Calculate score whenever ratings change
   useEffect(() => {
@@ -233,13 +247,15 @@ const handleSubmit = async () => {
       const compressed = await compressImage(allPhotos[i]);
       compressedPhotos.push(compressed);
 
-      // Update compression progress
-      const compressPercent = Math.round(((i + 1) / totalPhotos) * 50); // 0-50%
-      setUploadProgress({
-        current: i + 1,
-        total: totalPhotos,
-        percentage: compressPercent
-      });
+      // Update compression progress (check mounted)
+      if (isMountedRef.current) {
+        const compressPercent = Math.round(((i + 1) / totalPhotos) * 50); // 0-50%
+        setUploadProgress({
+          current: i + 1,
+          total: totalPhotos,
+          percentage: compressPercent
+        });
+      }
     }
 
     console.log(`✅ Compressed ${compressedPhotos.length} photos`);
@@ -255,19 +271,22 @@ const handleSubmit = async () => {
     const uploadedUrls = await batchUploadToCloudinary(
       compressedPhotos,
       (current: number, total: number) => {
-        const uploadPercent = 50 + Math.round((current / total) * 50); // 50-100%
-        setUploadProgress({
-          current: current,
-          total: total,
-          percentage: uploadPercent
-        });
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          const uploadPercent = 50 + Math.round((current / total) * 50); // 50-100%
+          setUploadProgress({
+            current: current,
+            total: total,
+            percentage: uploadPercent
+          });
 
-        toast.loading(
-          genZMode
-            ? `☁️ Upload ${current}/${total} foto...`
-            : `☁️ Uploading ${current}/${total} photos...`,
-          { id: toastId }
-        );
+          toast.loading(
+            genZMode
+              ? `☁️ Upload ${current}/${total} foto...`
+              : `☁️ Uploading ${current}/${total} photos...`,
+            { id: toastId }
+          );
+        }
       }
     );
 
@@ -325,15 +344,17 @@ const handleSubmit = async () => {
 
     // Success
     toast.success(
-      genZMode 
-        ? `🎉 Sukses! Score: ${currentScore}` 
+      genZMode
+        ? `🎉 Sukses! Score: ${currentScore}`
         : `✅ Inspection saved! Score: ${currentScore}`,
       { id: toastId, duration: 2000 }
     );
 
-    // Navigate back to dashboard (safer than /scan)
-    setTimeout(() => {
-      navigate('/', { replace: true });
+    // Navigate back to dashboard (with cleanup-safe timeout)
+    navigationTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        navigate('/', { replace: true });
+      }
     }, 1500);
 
   } catch (error: any) {
