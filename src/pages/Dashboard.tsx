@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { BottomNav } from '../components/mobile/BottomNav';
 import { Sidebar } from '../components/mobile/Sidebar';
+import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 
 export const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
@@ -258,6 +259,9 @@ export const Dashboard = () => {
           </div>
         )}
       </main>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
 
       <BottomNav />
     </div>

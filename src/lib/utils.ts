@@ -24,8 +24,8 @@ export const formatDateTime = (date: string | Date) => {
   return format(dateObject, 'dd MMM yyyy, HH:mm', { locale: id })
 }
 
-// Compress image before upload
-export const compressImage = async (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
+// OPTIMIZED: Compress image with dynamic quality and better algorithm
+export const compressImage = async (file: File, maxWidth = 1920, quality?: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
@@ -37,36 +37,95 @@ export const compressImage = async (file: File, maxWidth = 1200, quality = 0.8):
         let width = img.width
         let height = img.height
 
+        // Calculate optimal dimensions (maintain aspect ratio)
         if (width > maxWidth) {
-          height = (maxWidth / width) * height
+          height = Math.round((maxWidth / width) * height)
           width = maxWidth
         }
 
         canvas.width = width
         canvas.height = height
 
-        const ctx = canvas.getContext('2d')!
+        const ctx = canvas.getContext('2d', {
+          alpha: false, // Disable alpha for better JPEG compression
+          desynchronized: true, // Better performance
+        })!
+
+        // Enable image smoothing for better quality
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+
+        // Fill white background (improves JPEG quality)
+        ctx.fillStyle = '#FFFFFF'
+        ctx.fillRect(0, 0, width, height)
+
+        // Draw image
         ctx.drawImage(img, 0, 0, width, height)
 
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob)
-            } else {
-              reject(new Error('Canvas toBlob failed'))
-            }
-          },
-          'image/jpeg',
-          quality
-        )
+        // Dynamic quality based on file size
+        let compressionQuality = quality
+        if (!compressionQuality) {
+          const fileSizeMB = file.size / (1024 * 1024)
+          if (fileSizeMB > 4) {
+            compressionQuality = 0.7 // Heavy compression for large files
+          } else if (fileSizeMB > 2) {
+            compressionQuality = 0.75
+          } else if (fileSizeMB > 1) {
+            compressionQuality = 0.8
+          } else {
+            compressionQuality = 0.85 // Better quality for smaller files
+          }
+        }
+
+        // Try WebP first (better compression), fallback to JPEG
+        const tryWebP = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                resolve(blob)
+              } else {
+                // WebP didn't improve size, use JPEG
+                useJPEG()
+              }
+            },
+            'image/webp',
+            compressionQuality
+          )
+        }
+
+        const useJPEG = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve(blob)
+              } else {
+                reject(new Error('Canvas toBlob failed'))
+              }
+            },
+            'image/jpeg',
+            compressionQuality
+          )
+        }
+
+        // Check if browser supports WebP
+        const supportsWebP = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0
+        if (supportsWebP) {
+          tryWebP()
+        } else {
+          useJPEG()
+        }
       }
+      img.onerror = () => reject(new Error('Failed to load image'))
     }
     reader.onerror = reject
   })
 }
 
-// Add timestamp overlay to image
-export const addTimestampToImage = async (file: File | Blob): Promise<Blob> => {
+// OPTIMIZED: Add timestamp and GPS watermark to image
+export const addTimestampToImage = async (
+  file: File | Blob,
+  gpsLocation?: { latitude: number; longitude: number; address?: string }
+): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
@@ -77,60 +136,141 @@ export const addTimestampToImage = async (file: File | Blob): Promise<Blob> => {
         const canvas = document.createElement('canvas')
         canvas.width = img.width
         canvas.height = img.height
-        
-        const ctx = canvas.getContext('2d')!
-        
+
+        const ctx = canvas.getContext('2d', {
+          alpha: false,
+          desynchronized: true,
+        })!
+
+        // Enable high-quality rendering
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+
         // Draw original image
         ctx.drawImage(img, 0, 0)
-        
-        // Add semi-transparent background for timestamp
+
+        // Calculate responsive sizes
         const timestamp = formatDateTime(new Date())
-        const padding = 20
-        const fontSize = Math.max(16, img.width * 0.02)
-        
-        ctx.font = `bold ${fontSize}px Arial`
-        const textMetrics = ctx.measureText(timestamp)
-        const textHeight = fontSize * 1.2
-        
-        // Background rectangle
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-        ctx.fillRect(
-          padding,
-          img.height - textHeight - padding * 2,
-          textMetrics.width + padding * 2,
-          textHeight + padding
+        const padding = Math.max(12, img.width * 0.015)
+        const fontSize = Math.max(14, Math.min(24, img.width * 0.018))
+        const smallFontSize = fontSize * 0.75
+
+        // Prepare texts
+        ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
+        const timestampMetrics = ctx.measureText(timestamp)
+
+        let gpsText = ''
+        let gpsMetrics = null
+        if (gpsLocation) {
+          gpsText = gpsLocation.address
+            ? `📍 ${gpsLocation.address.substring(0, 40)}...`
+            : `📍 ${gpsLocation.latitude.toFixed(6)}, ${gpsLocation.longitude.toFixed(6)}`
+          ctx.font = `500 ${smallFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
+          gpsMetrics = ctx.measureText(gpsText)
+        }
+
+        // Calculate dimensions
+        const maxWidth = Math.max(
+          timestampMetrics.width,
+          gpsMetrics?.width || 0
         )
-        
-        // Timestamp text
+        const textHeight = fontSize * 1.3
+        const totalHeight = gpsLocation
+          ? textHeight * 2 + padding * 3
+          : textHeight + padding * 2
+
+        // Draw modern watermark box (bottom-left)
+        const gradient = ctx.createLinearGradient(
+          0, img.height - totalHeight,
+          0, img.height
+        )
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.75)')
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)')
+
+        ctx.fillStyle = gradient
+        ctx.fillRect(
+          0,
+          img.height - totalHeight,
+          maxWidth + padding * 3,
+          totalHeight
+        )
+
+        // Add subtle border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
+        ctx.lineWidth = 1
+        ctx.strokeRect(
+          0.5,
+          img.height - totalHeight + 0.5,
+          maxWidth + padding * 3,
+          totalHeight
+        )
+
+        // Draw timestamp with shadow
+        ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
+        ctx.shadowBlur = 4
+        ctx.shadowOffsetX = 1
+        ctx.shadowOffsetY = 1
         ctx.fillStyle = '#FFFFFF'
         ctx.fillText(
           timestamp,
           padding * 1.5,
-          img.height - padding * 1.5
+          img.height - totalHeight + padding + textHeight * 0.7
         )
-        
-        // Add location watermark if needed
-        const watermark = 'WC-CHECK'
-        ctx.font = `bold ${fontSize * 0.8}px Arial`
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+
+        // Draw GPS location
+        if (gpsLocation && gpsMetrics) {
+          ctx.font = `500 ${smallFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+          ctx.fillText(
+            gpsText,
+            padding * 1.5,
+            img.height - totalHeight + padding * 2 + textHeight * 1.5
+          )
+        }
+
+        // Reset shadow
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+
+        // Top-right app watermark (subtle)
+        const appWatermark = 'WC-CHECK'
+        ctx.font = `700 ${fontSize * 0.9}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
+        const watermarkMetrics = ctx.measureText(appWatermark)
+
+        // Semi-transparent background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
+        ctx.fillRect(
+          img.width - watermarkMetrics.width - padding * 2.5,
+          padding,
+          watermarkMetrics.width + padding * 2,
+          fontSize * 1.4
+        )
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
         ctx.fillText(
-          watermark,
-          img.width - ctx.measureText(watermark).width - padding,
+          appWatermark,
+          img.width - watermarkMetrics.width - padding * 1.5,
           padding + fontSize
         )
-        
+
+        // Determine output format
+        const outputFormat = file.type === 'image/webp' ? 'image/webp' : 'image/jpeg'
+        const outputQuality = outputFormat === 'image/webp' ? 0.88 : 0.92
+
         canvas.toBlob(
           (blob) => {
             if (blob) {
               resolve(blob)
             } else {
-              reject(new Error('Failed to add timestamp'))
+              reject(new Error('Failed to add watermark'))
             }
           },
-          'image/jpeg',
-          0.9
+          outputFormat,
+          outputQuality
         )
       }
+      img.onerror = () => reject(new Error('Failed to load image'))
     }
     reader.onerror = reject
   })
@@ -159,17 +299,28 @@ export const uploadToCloudinary = async (file: File | Blob, folder = 'toilet-ins
   return data.secure_url
 }
 
-// Process and upload image with timestamp
-export const processAndUploadImage = async (file: File): Promise<string> => {
-  // Compress image
+// OPTIMIZED: Process and upload image with compression and watermark
+export const processAndUploadImage = async (
+  file: File,
+  gpsLocation?: { latitude: number; longitude: number; address?: string }
+): Promise<string> => {
+  console.log('🖼️ Processing image:', {
+    originalSize: (file.size / 1024).toFixed(2) + 'KB',
+    hasGPS: !!gpsLocation,
+  })
+
+  // Step 1: Compress image with optimized algorithm
   const compressedImage = await compressImage(file)
-  
-  // Add timestamp overlay
-  const imageWithTimestamp = await addTimestampToImage(compressedImage)
-  
-  // Upload to Cloudinary
-  const url = await uploadToCloudinary(imageWithTimestamp)
-  
+  console.log('✅ Compressed:', (compressedImage.size / 1024).toFixed(2) + 'KB')
+
+  // Step 2: Add timestamp and GPS watermark
+  const imageWithWatermark = await addTimestampToImage(compressedImage, gpsLocation)
+  console.log('✅ Watermarked:', (imageWithWatermark.size / 1024).toFixed(2) + 'KB')
+
+  // Step 3: Upload to Cloudinary
+  const url = await uploadToCloudinary(imageWithWatermark)
+  console.log('✅ Uploaded to:', url)
+
   return url
 }
 
