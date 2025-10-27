@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { X, CameraOff, Camera } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 interface ScanModalProps {
   isOpen: boolean;
@@ -87,10 +87,15 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
         setIsScanning(true);
         setCameraReady(false);
 
-        // Wait a bit for DOM to be ready
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait for DOM to be ready
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         if (!mounted) return;
+
+        const container = document.getElementById('qr-scanner-container');
+        if (!container) {
+          throw new Error('Scanner container not found');
+        }
 
         scannerRef.current = new Html5QrcodeScanner(
           'qr-scanner-container',
@@ -98,24 +103,31 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
             fps: 10,
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
-            disableFlip: false, // Allow camera flip
+            disableFlip: false,
+            rememberLastUsedCamera: true,
+            // ✅ Force environment camera (back camera)
+            videoConstraints: {
+              facingMode: { exact: 'environment' }
+            },
+            // ✅ Show permission prompt
+            showTorchButtonIfSupported: true,
           },
           false // verbose
         );
 
-        await scannerRef.current.render(
+        scannerRef.current.render(
           (decodedText) => {
             console.log('📷 QR Scanned:', decodedText);
-            
+
             const locationId = parseQRData(decodedText);
-            
+
             if (locationId) {
               // Haptic feedback
               if ('vibrate' in navigator) {
                 navigator.vibrate(200);
               }
-              
-              toast.success('✅ Valid QR Code!');
+
+              toast.success('Valid QR Code!');
               onScan(locationId);
               stopScanner();
             } else {
@@ -123,7 +135,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
               if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100]);
               }
-              toast.error('❌ Invalid QR code format');
+              toast.error('Invalid QR code format');
             }
           },
           () => {
@@ -139,7 +151,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
       } catch (error: any) {
         console.error('Scanner initialization error:', error);
         if (mounted) {
-          setCameraError('Failed to initialize QR scanner');
+          setCameraError('Failed to initialize QR scanner. Please check camera permissions.');
           setIsScanning(false);
         }
       }

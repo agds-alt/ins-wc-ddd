@@ -19,7 +19,7 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { BottomNav } from '../components/mobile/BottomNav';
 import { Card } from '../components/ui/Card';
 
