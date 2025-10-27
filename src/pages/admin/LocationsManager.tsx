@@ -1,11 +1,13 @@
-// src/components/admin/LocationManager.tsx - COMPLETE FIXED VERSION
+// src/pages/admin/LocationsManager.tsx - Admin-only CRUD for locations
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { Tables, TablesInsert } from '../../types/database.types';
-import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User, ShieldAlert } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { QRCodeGenerator } from './QRCodeGenerator';
@@ -14,8 +16,19 @@ type Location = Tables<'locations'>;
 type LocationInsert = TablesInsert<'locations'>;
 
 export const LocationsManager = () => {
-  const { user } = useAuth();
+  console.log('🟢 LocationsManager: Component starting');
+
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const queryClient = useQueryClient();
+
+  console.log('🟢 LocationsManager: Auth state', {
+    hasUser: !!user,
+    authLoading,
+    isAdmin,
+    adminLoading
+  });
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -103,6 +116,57 @@ export const LocationsManager = () => {
     toast.success('URL copied!');
     setOpenMenuId(null);
   };
+
+  // Loading states
+  if (authLoading || adminLoading) {
+    console.log('🟡 Showing loading spinner');
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth check
+  if (!user) {
+    console.log('🔴 No user - redirecting to login');
+    navigate('/login', { replace: true });
+    return null;
+  }
+
+  // Admin check
+  if (!isAdmin) {
+    console.log('🔴 ACCESS DENIED - User is not admin');
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <ShieldAlert className="w-20 h-20 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            Admin Access Required
+          </h2>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            This page is only accessible to administrators.
+          </p>
+          <div className="mb-6 p-4 bg-gray-100 rounded-lg text-left">
+            <p className="text-xs text-gray-600 mb-1">Debug Info:</p>
+            <p className="text-xs text-gray-800">User: {user.email}</p>
+            <p className="text-xs text-gray-800">Admin Status: {isAdmin ? 'Yes' : 'No'}</p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('✅ Admin access granted - rendering location manager');
 
   if (isLoading) {
     return (
