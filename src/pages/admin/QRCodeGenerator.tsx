@@ -21,10 +21,10 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
   const getLocationURL = (id: string) => {
     const productionUrl = 'https://wc-checks.vercel.app';
     const envUrl = import.meta.env.VITE_APP_URL;
-    
+
     // Use production URL if not in dev mode
     const baseUrl = import.meta.env.DEV ? (envUrl || window.location.origin) : productionUrl;
-    
+
     return `${baseUrl}/locations/${id}`;
   };
 
@@ -45,6 +45,16 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
         }
       }
     `,
+    onBeforeGetContent: () => {
+      console.log('🖨️ Preparing to print...', { locations: locations.length });
+      return Promise.resolve();
+    },
+    onAfterPrint: () => {
+      console.log('✅ Print completed');
+    },
+    onPrintError: (error) => {
+      console.error('❌ Print error:', error);
+    },
   });
 
   const handleDownloadSingle = (location: Location) => {
@@ -56,11 +66,34 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
     const ctx = canvas.getContext('2d');
     const img = new Image();
 
-    canvas.width = 512;
-    canvas.height = 512;
+    // Set canvas size to match desired output
+    const size = 512;
+    canvas.width = size;
+    canvas.height = size;
 
     img.onload = () => {
-      ctx?.drawImage(img, 0, 0);
+      if (!ctx) return;
+
+      // Fill white background first
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, size, size);
+
+      // Get original SVG dimensions
+      const svgWidth = svg.width.baseVal.value || 120;
+      const svgHeight = svg.height.baseVal.value || 120;
+
+      // Calculate scaling to fill canvas while maintaining aspect ratio
+      const scale = Math.min(size / svgWidth, size / svgHeight);
+      const scaledWidth = svgWidth * scale;
+      const scaledHeight = svgHeight * scale;
+
+      // Center the QR code
+      const x = (size - scaledWidth) / 2;
+      const y = (size - scaledHeight) / 2;
+
+      // Draw scaled and centered QR code
+      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
