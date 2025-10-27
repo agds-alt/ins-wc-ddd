@@ -1,7 +1,8 @@
-// src/components/mobile/ScanModal.tsx - FIXED: Unused error variable
+// src/components/mobile/ScanModal.tsx
 import { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { X, CameraOff } from 'lucide-react';
+import { X, CameraOff, Camera } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ScanModalProps {
   isOpen: boolean;
@@ -13,51 +14,83 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
 
-  // Extract location ID from scanned URL or raw UUID
+  // Parse QR data
   const parseQRData = (qrData: string): string | null => {
     try {
-      // Case 1: Full URL (e.g., "http://localhost:5173/locations/uuid")
+      // URL format: /locations/uuid
       if (qrData.includes('/locations/')) {
-        const urlParts = qrData.split('/locations/');
-        const locationId = urlParts[1]?.split('?')[0]?.split('#')[0]; // Remove query params & hash
-        
-        if (locationId && isValidUUID(locationId)) {
-          return locationId;
-        }
+        const match = qrData.match(/locations\/([0-9a-f-]{36})/i);
+        return match ? match[1] : null;
       }
       
-      // Case 2: Direct UUID (backward compatibility)
-      if (isValidUUID(qrData)) {
+      // Direct UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(qrData)) {
         return qrData;
-      }
-      
-      // Case 3: Try to find UUID anywhere in string
-      const uuidMatch = qrData.match(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
-      if (uuidMatch) {
-        return uuidMatch[0];
       }
       
       return null;
     } catch (error) {
-      console.error('Error parsing QR data:', error);
       return null;
     }
-  };
-
-  // Validate UUID format
-  const isValidUUID = (uuid: string): boolean => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
   };
 
   useEffect(() => {
     if (!isOpen) return;
 
+    let mounted = true;
+    let permissionGranted = false;
+
+    const checkCameraPermission = async () => {
+      try {
+        // Step 1: Request camera permission explicitly
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: { ideal: 'environment' }, // Prefer back camera
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        });
+        
+        // Permission granted - stop test stream
+        stream.getTracks().forEach(track => track.stop());
+        permissionGranted = true;
+        
+        if (!mounted) return;
+        
+        // Step 2: Initialize scanner after permission granted
+        await initializeScanner();
+        
+      } catch (error: any) {
+        console.error('Camera permission error:', error);
+        
+        if (!mounted) return;
+        
+        if (error.name === 'NotAllowedError') {
+          setCameraError('❌ Camera permission denied. Please enable camera in browser settings.');
+        } else if (error.name === 'NotFoundError') {
+          setCameraError('❌ No camera found on this device.');
+        } else if (error.name === 'NotReadableError') {
+          setCameraError('❌ Camera is being used by another app. Please close other apps and try again.');
+        } else {
+          setCameraError('❌ Camera initialization failed. Please try again.');
+        }
+        
+        setIsScanning(false);
+      }
+    };
+
     const initializeScanner = async () => {
       try {
         setIsScanning(true);
-        setCameraError(null);
+        setCameraReady(false);
+
+        // Wait a bit for DOM to be ready
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        if (!mounted) return;
 
         scannerRef.current = new Html5QrcodeScanner(
           'qr-scanner-container',
@@ -65,52 +98,58 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
             fps: 10,
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
-            supportedScanTypes: [],
+            disableFlip: false, // Allow camera flip
           },
-          false
+          false // verbose
         );
 
         await scannerRef.current.render(
           (decodedText) => {
-            console.log('📷 QR Code scanned:', decodedText);
+            console.log('📷 QR Scanned:', decodedText);
             
-            // Parse QR data to extract location ID
             const locationId = parseQRData(decodedText);
             
             if (locationId) {
-              console.log('✅ Valid location ID:', locationId);
-              
-              // Success vibration
+              // Haptic feedback
               if ('vibrate' in navigator) {
                 navigator.vibrate(200);
               }
               
+              toast.success('✅ Valid QR Code!');
               onScan(locationId);
               stopScanner();
             } else {
-              console.warn('⚠️ Invalid QR format:', decodedText);
-              
-              // Error vibration pattern
+              // Invalid QR
               if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100]);
               }
+              toast.error('❌ Invalid QR code format');
             }
           },
-          (_error) => {
-            // Silent - just scanning, error tidak dipakai
+          () => {
+            // Silent error - scanning continues
           }
         );
 
+        if (mounted) {
+          setCameraReady(true);
+          setIsScanning(false);
+        }
+
       } catch (error: any) {
         console.error('Scanner initialization error:', error);
-        setCameraError(error.message || 'Failed to initialize camera');
-        setIsScanning(false);
+        if (mounted) {
+          setCameraError('Failed to initialize QR scanner');
+          setIsScanning(false);
+        }
       }
     };
 
-    initializeScanner();
+    // Start permission check
+    checkCameraPermission();
 
     return () => {
+      mounted = false;
       stopScanner();
     };
   }, [isOpen, onScan]);
@@ -121,6 +160,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
       scannerRef.current = null;
     }
     setIsScanning(false);
+    setCameraReady(false);
   };
 
   const handleClose = () => {
@@ -131,13 +171,13 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black z-50 safe-area-top">
+    <div className="fixed inset-0 bg-black z-50">
       {/* Scanner Container */}
       <div 
         id="qr-scanner-container" 
-        className="w-full h-full relative"
+        className="w-full h-full"
       />
-      
+
       {/* Close Button */}
       <div className="absolute top-4 right-4 z-10">
         <button 
@@ -148,44 +188,35 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
         </button>
       </div>
 
-      {/* Scanner Guide Overlay */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Top Bar */}
-        <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/50 to-transparent" />
-        
-        {/* Center Guide */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="w-64 h-64 border-2 border-white rounded-xl relative">
-            {/* Corner markers */}
-            <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-white rounded-tl" />
-            <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-white rounded-tr" />
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-white rounded-bl" />
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-white rounded-br" />
-            
-            {/* Format Hint */}
-            <div className="absolute -bottom-8 left-0 right-0 text-center">
-              <span className="text-xs text-white/80 bg-black/40 px-3 py-1 rounded-full">
-                URL or UUID Format
-              </span>
+      {/* Scanner Guide */}
+      {cameraReady && (
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Instructions */}
+          <div className="absolute bottom-8 left-0 right-0 text-center px-6">
+            <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-4 max-w-md mx-auto">
+              <Camera className="w-8 h-8 text-white mx-auto mb-2" />
+              <p className="text-white text-lg font-medium mb-1">
+                Scan QR Code
+              </p>
+              <p className="text-gray-300 text-sm">
+                Point camera at location QR code
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Bottom Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/50 to-transparent flex items-end justify-center pb-8">
-          <div className="text-center">
-            <p className="text-white text-lg font-medium mb-1">Scan QR Code</p>
-            <p className="text-gray-300 text-sm">Point camera at location QR</p>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Loading State */}
-      {isScanning && !cameraError && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+      {isScanning && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-white text-lg">Initializing camera...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+            <p className="text-white text-lg font-medium">
+              Initializing camera...
+            </p>
+            <p className="text-gray-400 text-sm mt-2">
+              Please allow camera access
+            </p>
           </div>
         </div>
       )}
@@ -193,15 +224,31 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
       {/* Error State */}
       {cameraError && (
         <div className="absolute inset-0 bg-black flex items-center justify-center p-6">
-          <div className="text-center">
-            <CameraOff className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Camera Error</h3>
-            <p className="text-gray-300 mb-4">{cameraError}</p>
+          <div className="text-center max-w-md">
+            <CameraOff className="w-20 h-20 text-red-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-white mb-3">
+              Camera Error
+            </h3>
+            <p className="text-gray-300 mb-6 leading-relaxed">
+              {cameraError}
+            </p>
+            
+            {/* Troubleshooting Tips */}
+            <div className="bg-white/10 rounded-xl p-4 mb-6 text-left">
+              <p className="text-white font-medium mb-2">💡 Troubleshooting:</p>
+              <ul className="text-gray-300 text-sm space-y-1">
+                <li>• Check browser camera permissions</li>
+                <li>• Close other apps using camera</li>
+                <li>• Try refreshing the page</li>
+                <li>• Make sure you're on HTTPS</li>
+              </ul>
+            </div>
+            
             <button
               onClick={handleClose}
-              className="bg-white text-gray-900 px-6 py-3 rounded-xl font-medium"
+              className="w-full bg-white text-gray-900 px-6 py-3 rounded-xl font-medium hover:bg-gray-100 transition-colors"
             >
-              Close
+              Close & Try Again
             </button>
           </div>
         </div>
