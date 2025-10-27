@@ -181,28 +181,33 @@ export const LocationsManager = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 rounded-b-3xl shadow-lg">
+      {/* Header - Clean White Style */}
+      <div className="bg-white p-6 shadow-md border-b border-gray-100">
         <div className="flex items-center justify-between mb-2">
           {/* Left: Menu + Title */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+              className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
             >
-              <Menu className="w-5 h-5 text-white" />
+              <Menu className="w-5 h-5 text-gray-700" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-white">Location Management</h1>
-              <p className="text-blue-100 text-sm">Manage toilet locations & QR codes</p>
+              <h1
+                className="text-2xl font-bold text-gray-900"
+                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}
+              >
+                Location Management
+              </h1>
+              <p className="text-gray-600 text-sm">Manage toilet locations & QR codes</p>
             </div>
           </div>
 
           {/* Right: User Info */}
           {user && (
-            <div className="hidden sm:flex items-center space-x-2 bg-white/20 px-3 py-2 rounded-lg">
-              <User className="w-4 h-4 text-white" />
-              <span className="text-white text-sm font-medium">
+            <div className="hidden sm:flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-lg">
+              <User className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-700 text-sm font-medium">
                 {user.user_metadata?.name || user.email}
               </span>
             </div>
@@ -213,10 +218,10 @@ export const LocationsManager = () => {
       <div className="p-4 space-y-4">
         {/* User Info for Mobile */}
         {user && (
-          <Card className="sm:hidden p-3 bg-blue-50 border-blue-200">
+          <Card className="sm:hidden p-3 bg-white border-gray-200">
             <div className="flex items-center space-x-2">
-              <User className="w-4 h-4 text-blue-600" />
-              <span className="text-blue-900 text-sm font-medium">
+              <User className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-700 text-sm font-medium">
                 {user.user_metadata?.name || user.email}
               </span>
             </div>

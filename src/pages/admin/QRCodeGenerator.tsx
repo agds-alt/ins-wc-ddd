@@ -198,8 +198,14 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
           })}
         </div>
 
-        {/* Print Content (Hidden) */}
-        <div style={{ display: 'none' }}>
+        {/* Print Content (Hidden Off-Screen) */}
+        <div style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          width: '210mm',  // A4 width
+          background: 'white'
+        }}>
           <div ref={printRef}>
             {isSingleQR ? (
               // SINGLE QR: Full Page, Large Size
