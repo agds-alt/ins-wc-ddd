@@ -27,21 +27,31 @@ interface Location {
 }
 
 export const LocationsListPage = () => {
+  console.log('🟢 LocationsListPage: Component starting to render');
+
   const navigate = useNavigate();
-  const { user, authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // FIX: useAuth returns "loading", not "authLoading"
+
+  console.log('🟢 LocationsListPage: useAuth result', { user: !!user, authLoading });
 
   // Get admin status - if hook fails, page should still render
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
+
+  console.log('🟢 LocationsListPage: useIsAdmin result', { isAdmin, adminLoading });
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const isReady = !authLoading && !!user?.id;
 
+  console.log('🟢 LocationsListPage: Query enabled?', { isReady, authLoading, hasUser: !!user?.id });
+
   // Fetch all active locations
-  const { data: locations, isLoading } = useQuery({
+  const { data: locations, isLoading, error: queryError } = useQuery({
     queryKey: ['locations-list'],
     queryFn: async (): Promise<Location[]> => {
+      console.log('🔵 Fetching locations from database...');
+
       const { data, error } = await supabase
         .from('locations')
         .select('id, name, building, floor, code, is_active')
@@ -50,11 +60,27 @@ export const LocationsListPage = () => {
         .order('floor', { ascending: true })
         .order('name', { ascending: true });
 
-      if (error) throw error;
+      console.log('🔵 Database query result', {
+        success: !error,
+        count: data?.length || 0,
+        error: error?.message
+      });
+
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
       return data || [];
     },
     enabled: isReady,
     staleTime: 2 * 60 * 1000, // Cache 2 minutes
+  });
+
+  console.log('🟢 LocationsListPage: Query result', {
+    isLoading,
+    hasLocations: !!locations,
+    count: locations?.length || 0,
+    hasError: !!queryError
   });
 
   // Filter locations by search query
@@ -77,21 +103,32 @@ export const LocationsListPage = () => {
     navigate(`/inspect/${locationId}`);
   };
 
+  console.log('🟢 LocationsListPage: Render checks', {
+    authLoading,
+    hasUser: !!user,
+    willShowAuthLoader: authLoading,
+    willRedirectToLogin: !authLoading && !user
+  });
+
   if (authLoading) {
+    console.log('🟡 Showing auth loading spinner');
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-sm">Loading...</p>
+          <p className="text-gray-600 text-sm">Loading authentication...</p>
         </div>
       </div>
     );
   }
 
   if (!user) {
+    console.log('🔴 No user - redirecting to login');
     navigate('/login', { replace: true });
     return null;
   }
+
+  console.log('🟢 LocationsListPage: Rendering main content');
 
   return (
     <div className="min-h-screen bg-white pb-24">
