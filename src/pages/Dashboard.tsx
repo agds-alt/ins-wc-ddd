@@ -20,20 +20,22 @@ export const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  console.log('🏠 Dashboard mounted - User:', user?.id, 'Auth loading:', authLoading);
+  console.log('🏠 Dashboard - Auth:', { userId: user?.id, authLoading });
 
-  // Fetch user statistics - OPTIMIZED
+  // ✅ WAIT for auth to complete AND user to exist
+  const isAuthReady = !authLoading && !!user?.id;
+
+  // Fetch user statistics - STABLE
   const { data: stats, isLoading: statsLoading, error } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.warn('⚠️ No user ID available');
+        console.warn('⚠️ No user ID in query function');
         return null;
       }
 
       console.log('📊 Fetching stats for user:', user.id);
 
-      // ✅ Order by submitted_at (most accurate timestamp)
       const { data: inspections, error } = await supabase
         .from('inspection_records')
         .select('id, overall_status, inspection_date, inspection_time, responses, submitted_at')
@@ -52,15 +54,12 @@ export const Dashboard = () => {
       const today = new Date().toISOString().split('T')[0];
       const todayCount = inspections?.filter(i => i.inspection_date === today).length || 0;
 
-      // Calculate completed based on status OR score
       const completed = inspections?.filter(i => {
-        // Check status first
         if (i.overall_status === 'completed' ||
             i.overall_status === 'excellent' ||
             i.overall_status === 'good') {
           return true;
         }
-        // Fallback: check score in responses
         if (i.responses?.score && i.responses.score >= 60) {
           return true;
         }
@@ -69,7 +68,7 @@ export const Dashboard = () => {
 
       const recentData = inspections?.slice(0, 3) || [];
 
-      console.log('📈 Stats calculated:', { total, todayCount, completed });
+      console.log('📈 Stats:', { total, todayCount, completed });
 
       return {
         total,
@@ -78,20 +77,21 @@ export const Dashboard = () => {
         recent: recentData,
       };
     },
-    enabled: !!user?.id, // ✅ Only run when user is ready
-    staleTime: 30 * 1000, // Cache 30 seconds
+    enabled: isAuthReady, // ✅ ONLY run when auth is DONE and user exists
+    staleTime: 60 * 1000, // Cache 1 minute (longer cache)
+    cacheTime: 5 * 60 * 1000, // Keep in memory 5 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    retry: 1,
   });
 
-  // ✅ Combined loading state
-  const isLoading = authLoading || statsLoading;
+  // ✅ Show loading until BOTH auth ready AND stats loaded
+  const isLoading = !isAuthReady || (isAuthReady && statsLoading);
 
-  // Log rendering
-  console.log('🎨 Dashboard render - Auth loading:', authLoading, 'Stats loading:', statsLoading, 'Stats:', stats);
+  console.log('🎨 Render:', { isAuthReady, statsLoading, isLoading, hasStats: !!stats });
 
   if (isLoading) {
-    console.log('⏳ Dashboard loading...');
+    console.log('⏳ Loading...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
