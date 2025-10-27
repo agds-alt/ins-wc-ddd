@@ -17,7 +17,7 @@ import { EnhancedPhotoUpload } from './EnhancedPhotoUpload'; // Per-component ph
 import { GeneralPhotoUpload } from './GeneralPhotoUpload'; // General photos
 import { useAuth } from '../../hooks/useAuth';
 import { useInspection } from '../../hooks/useInspection';
-import { batchUploadToCloudinary } from '../../lib/cloudinary';
+import { batchUploadToCloudinary, compressImage } from '../../lib/cloudinary';
 
 interface ComprehensiveInspectionFormProps {
   locationId: string;
@@ -189,40 +189,83 @@ const handleSubmit = async () => {
     const endTime = new Date();
     const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-    // Collect all photos
-    const allPhotos: File[] = [];
-    const photoComponentMap = new Map<string, number>();
-    
-    let photoIndex = 0;
-    for (const [componentId, componentPhotos] of photos.entries()) {
-      console.log('Processing photos for component:', componentId);
-      for (const photo of componentPhotos) {
-        allPhotos.push(photo.file);
-        photoComponentMap.set(`${photoIndex}`, photoIndex);
-        photoIndex++;
+    // Collect all photos from per-component uploads
+    const componentPhotos: File[] = [];
+    for (const [componentId, componentPhotoList] of photos.entries()) {
+      for (const photo of componentPhotoList) {
+        componentPhotos.push(photo.file);
       }
     }
 
+    // Collect general photos (mandatory)
+    const allGeneralPhotos = generalPhotos.map(p => p.file);
+
+    // Combine all photos
+    const allPhotos = [...componentPhotos, ...allGeneralPhotos];
     const totalPhotos = allPhotos.length;
-    
+
     if (totalPhotos === 0) {
-      toast.error('Please add at least one photo');
+      toast.error(
+        genZMode
+          ? '📸 Wajib upload minimal 1 foto!'
+          : 'Please add at least one photo'
+      );
       return;
     }
 
-    console.log(`📸 Total photos to upload: ${totalPhotos}`);
+    console.log(`📸 Total photos to process: ${totalPhotos}`);
 
-    // Progress toast
+    // Step 1: Compress photos
     const toastId = toast.loading(
-      `📸 Compressing ${totalPhotos} photos...`
+      genZMode
+        ? `🗜️ Kompres ${totalPhotos} foto...`
+        : `🗜️ Compressing ${totalPhotos} photos...`
     );
 
-    // Batch upload with progress tracking
+    setUploadProgress({
+      current: 0,
+      total: totalPhotos,
+      percentage: 0
+    });
+
+    const compressedPhotos: File[] = [];
+    for (let i = 0; i < allPhotos.length; i++) {
+      const compressed = await compressImage(allPhotos[i]);
+      compressedPhotos.push(compressed);
+
+      // Update compression progress
+      const compressPercent = Math.round(((i + 1) / totalPhotos) * 50); // 0-50%
+      setUploadProgress({
+        current: i + 1,
+        total: totalPhotos,
+        percentage: compressPercent
+      });
+    }
+
+    console.log(`✅ Compressed ${compressedPhotos.length} photos`);
+
+    // Step 2: Upload compressed photos
+    toast.loading(
+      genZMode
+        ? `☁️ Upload ${totalPhotos} foto...`
+        : `☁️ Uploading ${totalPhotos} photos...`,
+      { id: toastId }
+    );
+
     const uploadedUrls = await batchUploadToCloudinary(
-      allPhotos,
+      compressedPhotos,
       (current: number, total: number) => {
+        const uploadPercent = 50 + Math.round((current / total) * 50); // 50-100%
+        setUploadProgress({
+          current: current,
+          total: total,
+          percentage: uploadPercent
+        });
+
         toast.loading(
-          `☁️ Uploading... ${current}/${total} photos`,
+          genZMode
+            ? `☁️ Upload ${current}/${total} foto...`
+            : `☁️ Uploading ${current}/${total} photos...`,
           { id: toastId }
         );
       }
@@ -231,19 +274,24 @@ const handleSubmit = async () => {
     console.log(`✅ Uploaded ${uploadedUrls.length} photos`);
 
     // Update toast - saving
-    toast.loading('💾 Saving inspection...', { id: toastId });
+    toast.loading(
+      genZMode ? '💾 Nyimpen inspection...' : '💾 Saving inspection...',
+      { id: toastId }
+    );
+
+    setUploadProgress(null); // Clear upload progress
 
     // Map uploaded URLs back to components
     const updatedRatings = new Map(ratings);
-    photoIndex = 0;
-    
-    for (const [componentId, componentPhotos] of photos.entries()) {
+    let photoIndex = 0;
+
+    for (const [componentId, componentPhotoList] of photos.entries()) {
       const rating = updatedRatings.get(componentId);
-      if (rating && componentPhotos.length > 0) {
+      if (rating && componentPhotoList.length > 0) {
         // Get the first photo URL for this component
         rating.photo = uploadedUrls[photoIndex];
         updatedRatings.set(componentId, rating);
-        photoIndex += componentPhotos.length;
+        photoIndex += componentPhotoList.length;
       }
     }
 
@@ -265,12 +313,12 @@ const handleSubmit = async () => {
       },
     };
 
-    // Submit to database
+    // ✅ Submit to database with photo URLs (not files!)
     await submitInspection.mutateAsync({
       location_id: locationId,
       user_id: user.id,
       responses,
-      photos: allPhotos,
+      photo_urls: uploadedUrls, // ✅ Pass URLs, not files
       notes: generalNotes.trim() || undefined,
       duration_seconds: durationSeconds,
     });
@@ -289,13 +337,15 @@ const handleSubmit = async () => {
 
   } catch (error: any) {
     console.error('❌ Submission error:', error);
+    setUploadProgress(null); // Clear progress on error
     toast.error(
-      genZMode 
-        ? '😢 Gagal submit, coba lagi!' 
+      genZMode
+        ? '😢 Gagal submit, coba lagi!'
         : error.message || 'Failed to submit inspection'
     );
   } finally {
     setIsSubmitting(false);
+    setUploadProgress(null); // Clear progress
   }
 };
 
