@@ -1,7 +1,6 @@
-// src/hooks/useInspection.ts - FIXED: Progress + Logging
+// src/hooks/useInspection.ts - OPTIMIZED: No double upload
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { uploadToCloudinary } from '../lib/cloudinary';
 import { logger } from '../lib/logger';
 import { TablesInsert } from '../../src/types/database.types';
 import type { InspectionComponent } from '../types/inspection.types';
@@ -10,10 +9,9 @@ interface SubmitInspectionData {
   location_id: string;
   user_id: string;
   responses: Record<string, any>;
-  photos: File[];
+  photo_urls: string[]; // ✅ Changed from File[] to string[]
   notes?: string;
   duration_seconds?: number;
-  onProgress?: (current: number, total: number) => void; // NEW
 }
 
 interface LocationWithDetails {
@@ -108,48 +106,27 @@ export const useInspection = (inspectionId?: string) => {
     enabled: !!locationId,
   });
 
-  // FIXED: Sequential upload with progress
   const submitInspection = useMutation({
     mutationFn: async (inspectionData: SubmitInspectionData) => {
       const endTimer = logger.startTimer('Submit inspection');
-      
+
       const {
         location_id,
         user_id,
         responses,
-        photos,
+        photo_urls,
         notes,
         duration_seconds,
-        onProgress,
       } = inspectionData;
 
       if (!location_id || !user_id) {
         throw new Error('Location ID and User ID are required');
       }
 
-      // FIXED: Upload photos sequentially with progress
-      const photoUrls: string[] = [];
-      if (photos && photos.length > 0) {
-        logger.info('Starting photo upload', { total: photos.length });
-        
-        for (let i = 0; i < photos.length; i++) {
-          try {
-            onProgress?.(i + 1, photos.length); // Show progress
-            
-            const photoTimer = logger.startTimer(`Upload photo ${i + 1}/${photos.length}`);
-            const url = await uploadToCloudinary(photos[i]);
-            photoTimer();
-            
-            if (url) {
-              photoUrls.push(url);
-              logger.info(`Photo ${i + 1}/${photos.length} uploaded`, { url });
-            }
-          } catch (error) {
-            logger.error(`Photo ${i + 1} upload failed`, error);
-            // Continue with other photos
-          }
-        }
-      }
+      // ✅ Photos already uploaded by form, just use the URLs
+      logger.info('Submitting inspection with photos', {
+        photo_count: photo_urls.length
+      });
 
       // Get template ID
       let templateId = 'comprehensive-template';
@@ -184,7 +161,7 @@ export const useInspection = (inspectionId?: string) => {
         inspection_time,
         overall_status,
         responses,
-        photo_urls: photoUrls.length > 0 ? photoUrls : null,
+        photo_urls: photo_urls.length > 0 ? photo_urls : null,
         notes: notes?.trim() || null,
         submitted_at,
         duration_seconds: duration_seconds || null,
@@ -193,24 +170,16 @@ export const useInspection = (inspectionId?: string) => {
         verified_by: null,
       };
 
-      logger.info('Submitting inspection', { 
+      logger.info('Saving inspection to database', {
         location_id,
-        photos: photoUrls.length,
-        score 
+        photos: photo_urls.length,
+        score
       });
 
       const { data, error } = await supabase
         .from('inspection_records')
         .insert(inspectionRecord)
-        .select(`
-          *,
-          locations:location_id (
-            name,
-            building,
-            floor,
-            area
-          )
-        `)
+        .select('id, location_id, overall_status, submitted_at')
         .single();
 
       if (error) {

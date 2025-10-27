@@ -1,24 +1,19 @@
-// src/hooks/useAuth.ts
-import { useState, useEffect, useCallback } from 'react';
+// src/hooks/useAuth.ts - EMERGENCY FIX: Remove infinite loop
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { authStorage } from '../lib/authStorage';
 import type { Database } from '../types/database.types';
 
 // Define the profile type based on your database schema
-// Explicitly exclude password_hash for security - never expose it to frontend
 export type UserProfile = Omit<Database['public']['Tables']['users']['Row'], 'password_hash'>;
-
-// Extended user type that combines Supabase User with our profile
 
 export interface AppUser {
   id: string;
   email: string;
-  // From Supabase User
   user_metadata?: Record<string, any>;
   app_metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
-  // From our profile
   profile?: UserProfile | null;
 }
 
@@ -32,179 +27,117 @@ interface UseAuthReturn {
   refreshProfile: () => Promise<void>;
 }
 
+// ✅ CACHE profile in memory
+let cachedProfile: UserProfile | null = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AppUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const initRef = useRef(false); // ✅ Prevent double init
 
-  // Function to fetch user profile with proper error handling
-  const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
+  // ✅ Fast profile fetch with cache
+  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
-      if (!userId) {
-        console.warn('⚠️ No user ID provided for profile fetch');
-        return null;
+      // Check cache first
+      const now = Date.now();
+      if (cachedProfile && (now - cacheTimestamp) < CACHE_DURATION) {
+        console.log('✅ Using cached profile');
+        return cachedProfile;
       }
+
+      console.log('🔄 Fetching fresh profile...');
 
       const { data, error: profileError } = await supabase
         .from('users')
-        .select(`
-          id,
-          email,
-          full_name,
-          phone,
-          profile_photo_url,
-          occupation_id,
-          is_active,
-          last_login_at,
-          created_at,
-          updated_at
-        `)
+        .select('id, email, full_name, is_active, occupation_id')
         .eq('id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle(); // ✅ Use maybeSingle instead of single
 
       if (profileError) {
-        if (profileError.code === 'PGRST116') {
-          // User not found in profiles table
-          console.warn('⚠️ User profile not found in database, creating default profile...');
-          return await createDefaultUserProfile(userId);
-        }
-        
-        console.error('❌ Error fetching user profile:', profileError);
-        setError(`Failed to load user profile: ${profileError.message}`);
+        console.error('❌ Profile fetch error:', profileError);
         return null;
       }
 
-      console.log('✅ User profile loaded successfully');
+      if (!data) {
+        console.warn('⚠️ No profile found');
+        return null;
+      }
+
+      // Update cache
+      cachedProfile = data;
+      cacheTimestamp = now;
+
+      console.log('✅ Profile loaded');
       return data;
     } catch (err) {
-      console.error('❌ Unexpected error in fetchUserProfile:', err);
-      setError('Unexpected error loading user profile');
-      return null;
-    }
-  }, []);
-
-  // Create default user profile if not exists
-  const createDefaultUserProfile = async (userId: string): Promise<UserProfile | null> => {
-    try {
-      // First, get the email from auth user
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
-        console.error('❌ No auth user found for profile creation');
-        return null;
-      }
-
-      const defaultProfile: Database['public']['Tables']['users']['Insert'] = {
-        id: userId,
-        email: authUser.email!,
-        full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'User',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data, error: insertError } = await supabase
-        .from('users')
-        .insert(defaultProfile)
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('❌ Error creating default profile:', insertError);
-        return null;
-      }
-
-      console.log('✅ Default user profile created successfully');
-      return data;
-    } catch (err) {
-      console.error('❌ Error creating default profile:', err);
+      console.error('❌ Profile fetch failed:', err);
       return null;
     }
   };
 
-  // Update last login timestamp
-  const updateLastLogin = useCallback(async (userId: string): Promise<void> => {
+  // ✅ ONLY update last login on actual sign in
+  const updateLastLogin = async (userId: string): Promise<void> => {
     try {
-      const { error: updateError } = await supabase
+      await supabase
         .from('users')
-        .update({ 
-          last_login_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update({ last_login_at: new Date().toISOString() })
         .eq('id', userId);
-
-      if (updateError) {
-        console.error('❌ Error updating last login:', updateError);
-      } else {
-        console.log('✅ Last login timestamp updated');
-      }
+      console.log('✅ Last login updated');
     } catch (err) {
-      console.error('❌ Unexpected error updating last login:', err);
+      console.error('❌ Last login update failed:', err);
     }
-  }, []);
+  };
 
-  // Refresh profile data
+  // Refresh profile
   const refreshProfile = useCallback(async (): Promise<void> => {
-    if (!user?.id) {
-      console.warn('⚠️ No user ID available for profile refresh');
-      return;
-    }
+    if (!user?.id) return;
 
-    setLoading(true);
-    try {
-      const profileData = await fetchUserProfile(user.id);
-      setProfile(profileData);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Error refreshing profile:', err);
-      setError('Failed to refresh user profile');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, fetchUserProfile]);
+    const profileData = await fetchUserProfile(user.id);
+    setProfile(profileData);
+  }, [user?.id]);
 
-  // Initialize auth state
-  const initializeAuth = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
+  // ✅ Initialize ONCE with timeout protection
+  useEffect(() => {
+    if (initRef.current) return; // ✅ Already initialized
+    initRef.current = true;
 
-    try {
-      // Safety timeout
-      const timeout = setTimeout(() => {
-        console.warn('⚠️ Auth initialization timeout');
-        setLoading(false);
-      }, 10000);
+    let mounted = true;
 
-      // Validate storage first
-      if (!authStorage.isValid() && authStorage.hasStoredToken()) {
-        console.warn('⚠️ Invalid auth storage detected - clearing');
-        authStorage.clear();
-        setUser(null);
-        setProfile(null);
-        clearTimeout(timeout);
-        setLoading(false);
-        return;
-      }
+    const initAuth = async () => {
+      console.log('🔐 Initializing auth...');
 
-      // Get initial session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('❌ Session error:', sessionError);
-        authStorage.clear();
-        setError(`Session error: ${sessionError.message}`);
-        clearTimeout(timeout);
-        setLoading(false);
-        return;
-      }
+      // ✅ TIMEOUT protection: Force complete after 3 seconds
+      const timeoutId = setTimeout(() => {
+        console.warn('⚠️ Auth timeout - proceeding anyway');
+        if (mounted) {
+          setLoading(false);
+        }
+      }, 3000);
 
-      if (session?.user) {
-        console.log('✅ Initial session found');
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        clearTimeout(timeoutId);
+
+        if (!mounted) return;
+
+        if (sessionError || !session?.user) {
+          console.log('ℹ️ No session');
+          authStorage.clear();
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        console.log('✅ Session found');
         authStorage.save(session);
 
-        // Create app user object
         const appUser: AppUser = {
           id: session.user.id,
           email: session.user.email!,
@@ -216,47 +149,41 @@ export function useAuth(): UseAuthReturn {
 
         setUser(appUser);
 
-        // Fetch profile and update last login
-        const profileData = await fetchUserProfile(session.user.id);
-        setProfile(profileData);
-        
-        if (profileData) {
-          await updateLastLogin(session.user.id);
+        // Fetch profile WITHOUT blocking
+        fetchUserProfile(session.user.id).then(profileData => {
+          if (mounted) {
+            setProfile(profileData);
+          }
+        });
+
+        setLoading(false);
+      } catch (err) {
+        console.error('❌ Auth init error:', err);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
         }
-      } else {
-        console.log('ℹ️ No active session found');
-        authStorage.clear();
-        setUser(null);
-        setProfile(null);
       }
+    };
 
-      clearTimeout(timeout);
-      setLoading(false);
-    } catch (err) {
-      console.error('❌ Critical auth initialization error:', err);
-      authStorage.clear();
-      setUser(null);
-      setProfile(null);
-      setError('Failed to initialize authentication');
-      setLoading(false);
-    }
-  }, [fetchUserProfile, updateLastLogin]);
+    initAuth();
 
-  // Handle auth state changes
-  const handleAuthStateChange = useCallback(async (
-    event: string, 
-    session: any
-  ): Promise<void> => {
-    console.log(`🔐 Auth state changed: ${event}`);
+    return () => {
+      mounted = false;
+    };
+  }, []); // ✅ Empty deps - run ONCE only
 
-    try {
+  // ✅ Handle auth changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`🔐 Auth event: ${event}`);
+
       switch (event) {
         case 'SIGNED_IN':
-        case 'TOKEN_REFRESHED':
-        case 'USER_UPDATED':
           if (session?.user) {
             authStorage.save(session);
-            
+
             const appUser: AppUser = {
               id: session.user.id,
               email: session.user.email!,
@@ -268,97 +195,69 @@ export function useAuth(): UseAuthReturn {
 
             setUser(appUser);
 
+            // Fetch profile and update last login
             const profileData = await fetchUserProfile(session.user.id);
             setProfile(profileData);
-            
-            if (profileData && event === 'SIGNED_IN') {
-              await updateLastLogin(session.user.id);
-            }
 
-            setError(null);
+            // ✅ ONLY update on sign in
+            await updateLastLogin(session.user.id);
           }
           break;
 
-        case 'SIGNED_OUT':
-        case 'USER_DELETED':
-          authStorage.clear();
-          setUser(null);
-          setProfile(null);
-          setError(null);
-          console.log('🗑️ Auth storage cleared');
+        case 'TOKEN_REFRESHED':
+          // ✅ DO NOTHING - don't refetch or update
+          console.log('✅ Token refreshed silently');
           break;
 
-        default:
-          console.warn(`⚠️ Unhandled auth event: ${event}`);
+        case 'SIGNED_OUT':
+          authStorage.clear();
+          cachedProfile = null; // Clear cache
+          cacheTimestamp = 0;
+          setUser(null);
+          setProfile(null);
+          console.log('🗑️ Signed out');
+          break;
       }
-    } catch (err) {
-      console.error(`❌ Error handling auth event ${event}:`, err);
-      setError(`Auth error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchUserProfile, updateLastLogin]);
-
-  useEffect(() => {
-    initializeAuth();
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [initializeAuth, handleAuthStateChange]);
+  }, []); // ✅ Empty deps - setup ONCE
 
-  // Sign out function with proper cleanup
+  // Sign out
   const signOut = useCallback(async (): Promise<void> => {
-    setLoading(true);
     try {
-      const { error: signOutError } = await supabase.auth.signOut();
-      
-      if (signOutError) {
-        console.error('❌ Sign out error:', signOutError);
-        setError(`Sign out failed: ${signOutError.message}`);
-        return;
-      }
-
-      // Local cleanup (redundant but safe)
+      await supabase.auth.signOut();
       authStorage.clear();
+      cachedProfile = null;
+      cacheTimestamp = 0;
       setUser(null);
       setProfile(null);
-      setError(null);
-      console.log('✅ Signed out successfully');
+      console.log('✅ Signed out');
     } catch (err) {
-      console.error('❌ Unexpected sign out error:', err);
-      setError('Unexpected error during sign out');
-    } finally {
-      setLoading(false);
+      console.error('❌ Sign out error:', err);
     }
   }, []);
 
-  return { 
+  return {
     user,
     profile,
     loading,
     error,
-    isAuthenticated: !!user && !!profile?.is_active,
+    isAuthenticated: !!user,
     signOut,
     refreshProfile,
   };
 }
 
-// Helper hook for user profile access
 export function useUserProfile() {
   const { profile } = useAuth();
-  
+
   return {
     fullName: profile?.full_name || 'User',
     email: profile?.email || '',
-    phone: profile?.phone || '',
-    profilePhoto: profile?.profile_photo_url,
     occupationId: profile?.occupation_id,
     isActive: profile?.is_active ?? false,
-    lastLogin: profile?.last_login_at,
-    createdAt: profile?.created_at,
   };
 }

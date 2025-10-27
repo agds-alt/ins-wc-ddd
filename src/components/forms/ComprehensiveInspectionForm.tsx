@@ -17,19 +17,17 @@ import { EnhancedPhotoUpload } from './EnhancedPhotoUpload'; // Per-component ph
 import { GeneralPhotoUpload } from './GeneralPhotoUpload'; // General photos
 import { useAuth } from '../../hooks/useAuth';
 import { useInspection } from '../../hooks/useInspection';
-import { batchUploadToCloudinary } from '../../lib/cloudinary';
+import { batchUploadToCloudinary, compressImage } from '../../lib/cloudinary';
 
 interface ComprehensiveInspectionFormProps {
   locationId: string;
-  genZMode?: boolean;
-  onToggleMode?: () => void;
 }
 
 export const ComprehensiveInspectionForm = ({
   locationId,
-  genZMode = false,
-  onToggleMode,
 }: ComprehensiveInspectionFormProps) => {
+  // Always use GenZ mode for fun and professional look
+  const genZMode = true;
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { getLocation, submitInspection } = useInspection();
@@ -191,40 +189,83 @@ const handleSubmit = async () => {
     const endTime = new Date();
     const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
 
-    // Collect all photos
-    const allPhotos: File[] = [];
-    const photoComponentMap = new Map<string, number>();
-    
-    let photoIndex = 0;
-    for (const [componentId, componentPhotos] of photos.entries()) {
-      console.log('Processing photos for component:', componentId);
-      for (const photo of componentPhotos) {
-        allPhotos.push(photo.file);
-        photoComponentMap.set(`${photoIndex}`, photoIndex);
-        photoIndex++;
+    // Collect all photos from per-component uploads
+    const componentPhotos: File[] = [];
+    for (const [componentId, componentPhotoList] of photos.entries()) {
+      for (const photo of componentPhotoList) {
+        componentPhotos.push(photo.file);
       }
     }
 
+    // Collect general photos (mandatory)
+    const allGeneralPhotos = generalPhotos.map(p => p.file);
+
+    // Combine all photos
+    const allPhotos = [...componentPhotos, ...allGeneralPhotos];
     const totalPhotos = allPhotos.length;
-    
+
     if (totalPhotos === 0) {
-      toast.error('Please add at least one photo');
+      toast.error(
+        genZMode
+          ? '📸 Wajib upload minimal 1 foto!'
+          : 'Please add at least one photo'
+      );
       return;
     }
 
-    console.log(`📸 Total photos to upload: ${totalPhotos}`);
+    console.log(`📸 Total photos to process: ${totalPhotos}`);
 
-    // Progress toast
+    // Step 1: Compress photos
     const toastId = toast.loading(
-      `📸 Compressing ${totalPhotos} photos...`
+      genZMode
+        ? `🗜️ Kompres ${totalPhotos} foto...`
+        : `🗜️ Compressing ${totalPhotos} photos...`
     );
 
-    // Batch upload with progress tracking
+    setUploadProgress({
+      current: 0,
+      total: totalPhotos,
+      percentage: 0
+    });
+
+    const compressedPhotos: File[] = [];
+    for (let i = 0; i < allPhotos.length; i++) {
+      const compressed = await compressImage(allPhotos[i]);
+      compressedPhotos.push(compressed);
+
+      // Update compression progress
+      const compressPercent = Math.round(((i + 1) / totalPhotos) * 50); // 0-50%
+      setUploadProgress({
+        current: i + 1,
+        total: totalPhotos,
+        percentage: compressPercent
+      });
+    }
+
+    console.log(`✅ Compressed ${compressedPhotos.length} photos`);
+
+    // Step 2: Upload compressed photos
+    toast.loading(
+      genZMode
+        ? `☁️ Upload ${totalPhotos} foto...`
+        : `☁️ Uploading ${totalPhotos} photos...`,
+      { id: toastId }
+    );
+
     const uploadedUrls = await batchUploadToCloudinary(
-      allPhotos,
+      compressedPhotos,
       (current: number, total: number) => {
+        const uploadPercent = 50 + Math.round((current / total) * 50); // 50-100%
+        setUploadProgress({
+          current: current,
+          total: total,
+          percentage: uploadPercent
+        });
+
         toast.loading(
-          `☁️ Uploading... ${current}/${total} photos`,
+          genZMode
+            ? `☁️ Upload ${current}/${total} foto...`
+            : `☁️ Uploading ${current}/${total} photos...`,
           { id: toastId }
         );
       }
@@ -233,19 +274,24 @@ const handleSubmit = async () => {
     console.log(`✅ Uploaded ${uploadedUrls.length} photos`);
 
     // Update toast - saving
-    toast.loading('💾 Saving inspection...', { id: toastId });
+    toast.loading(
+      genZMode ? '💾 Nyimpen inspection...' : '💾 Saving inspection...',
+      { id: toastId }
+    );
+
+    setUploadProgress(null); // Clear upload progress
 
     // Map uploaded URLs back to components
     const updatedRatings = new Map(ratings);
-    photoIndex = 0;
-    
-    for (const [componentId, componentPhotos] of photos.entries()) {
+    let photoIndex = 0;
+
+    for (const [componentId, componentPhotoList] of photos.entries()) {
       const rating = updatedRatings.get(componentId);
-      if (rating && componentPhotos.length > 0) {
+      if (rating && componentPhotoList.length > 0) {
         // Get the first photo URL for this component
         rating.photo = uploadedUrls[photoIndex];
         updatedRatings.set(componentId, rating);
-        photoIndex += componentPhotos.length;
+        photoIndex += componentPhotoList.length;
       }
     }
 
@@ -267,12 +313,12 @@ const handleSubmit = async () => {
       },
     };
 
-    // Submit to database
+    // ✅ Submit to database with photo URLs (not files!)
     await submitInspection.mutateAsync({
       location_id: locationId,
       user_id: user.id,
       responses,
-      photos: allPhotos,
+      photo_urls: uploadedUrls, // ✅ Pass URLs, not files
       notes: generalNotes.trim() || undefined,
       duration_seconds: durationSeconds,
     });
@@ -291,13 +337,15 @@ const handleSubmit = async () => {
 
   } catch (error: any) {
     console.error('❌ Submission error:', error);
+    setUploadProgress(null); // Clear progress on error
     toast.error(
-      genZMode 
-        ? '😢 Gagal submit, coba lagi!' 
+      genZMode
+        ? '😢 Gagal submit, coba lagi!'
         : error.message || 'Failed to submit inspection'
     );
   } finally {
     setIsSubmitting(false);
+    setUploadProgress(null); // Clear progress
   }
 };
 
@@ -330,17 +378,17 @@ const handleSubmit = async () => {
     <div
       className={`min-h-screen pb-32 ${
         genZMode
-          ? 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
+          ? 'bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-50'
           : 'bg-gray-50'
       }`}
     >
       {/* Header */}
       <div
         className={`
-        sticky top-0 z-20 
+        sticky top-0 z-20
         ${
           genZMode
-            ? 'bg-gradient-to-r from-purple-600 to-pink-600'
+            ? 'bg-gradient-to-r from-blue-600 to-cyan-600'
             : 'bg-white border-b border-gray-200'
         }
         shadow-sm
@@ -357,21 +405,6 @@ const handleSubmit = async () => {
               <ArrowLeft className="w-5 h-5" />
             </button>
 
-            {onToggleMode && (
-              <button
-                onClick={onToggleMode}
-                className={`
-                  px-4 py-2 rounded-xl text-sm font-medium transition-all
-                  ${
-                    genZMode
-                      ? 'bg-white/20 text-white hover:bg-white/30'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }
-                `}
-              >
-                {genZMode ? '💼 Pro Mode' : '🎨 Gen Z Mode'}
-              </button>
-            )}
           </div>
 
           <div className="flex items-center space-x-3 mb-3">
@@ -456,7 +489,7 @@ const handleSubmit = async () => {
                           ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-400'
                           : 'bg-green-50 border-green-500'
                         : genZMode
-                          ? 'bg-white/80 border-purple-200 hover:border-purple-400'
+                          ? 'bg-white/80 border-blue-200 hover:border-blue-400'
                           : 'bg-white border-gray-200 hover:border-gray-300'
                     }
                   `}
@@ -497,7 +530,7 @@ const handleSubmit = async () => {
                     w-full mt-2 py-2 rounded-xl text-sm font-medium
                     ${
                       genZMode
-                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }
                   `}
@@ -513,20 +546,20 @@ const handleSubmit = async () => {
         {completedCount >= totalRequired && (
           <div
             className={`${
-              genZMode ? 'bg-gradient-to-br from-purple-100 to-pink-100' : 'bg-blue-50'
+              genZMode ? 'bg-gradient-to-br from-blue-100 to-cyan-100' : 'bg-blue-50'
             } rounded-2xl p-4 shadow-sm border-2 ${
-              genZMode ? 'border-purple-400' : 'border-blue-400'
+              genZMode ? 'border-blue-400' : 'border-blue-400'
             }`}
           >
             <div className="flex items-center space-x-2 mb-2">
-              <Camera className={`w-5 h-5 ${genZMode ? 'text-purple-700' : 'text-blue-700'}`} />
+              <Camera className={`w-5 h-5 ${genZMode ? 'text-blue-700' : 'text-blue-700'}`} />
               <h3 className="font-bold text-gray-900">
                 {genZMode ? '📸 Foto Dokumentasi' : '📸 Documentation Photos'}
                 <span className="text-red-500 ml-1">*</span>
               </h3>
             </div>
-            
-            <p className={`text-sm mb-4 ${genZMode ? 'text-purple-900' : 'text-blue-900'}`}>
+
+            <p className={`text-sm mb-4 ${genZMode ? 'text-blue-900' : 'text-blue-900'}`}>
               {genZMode 
                 ? '⚠️ WAJIB minimal 1 foto! Auto watermark: Tanggal, Jam, GPS, Nama Toilet.'
                 : '⚠️ REQUIRED: Minimum 1 photo! Auto watermark: Date, Time, GPS, Toilet Name.'
@@ -705,38 +738,6 @@ const handleSubmit = async () => {
   </div>
 )}
 
-{/* Submit Button - SETELAH progress indicator */}
-<button
-  type="button"
-  onClick={handleSubmit}
-  disabled={isSubmitting || uploadProgress !== null}
-  className={`w-full py-4 rounded-xl font-semibold text-lg transition-all ${
-    isSubmitting || uploadProgress !== null
-      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-      : genZMode
-      ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg active:scale-[0.98]'
-      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg active:scale-[0.98]'
-  }`}
->
-  {isSubmitting || uploadProgress !== null ? (
-    <div className="flex items-center justify-center gap-2">
-      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      {uploadProgress 
-        ? `Uploading ${uploadProgress.percentage}%...` 
-        : genZMode 
-        ? 'Processing...' 
-        : 'Submitting...'}
-    </div>
-  ) : (
-    <>
-      <Save className="w-5 h-5 inline-block mr-2" />
-      {genZMode ? 'Submit Dong! ✨' : 'Submit Inspection'}
-    </>
-  )}
-</button>
-
-
-
 {/* Upload Progress Indicator */}
 {uploadProgress && (
   <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -756,7 +757,7 @@ const handleSubmit = async () => {
               isSubmitting || completedCount < totalRequired || generalPhotos.length === 0
                 ? 'bg-gray-300 cursor-not-allowed'
                 : genZMode
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
                   : 'bg-blue-600 hover:bg-blue-700'
             }
           `}
