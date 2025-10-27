@@ -1,21 +1,10 @@
 // src/pages/InspectionPage.tsx
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ComprehensiveInspectionForm } from '../components/forms/ComprehensiveInspectionForm';
 import { AlertCircle } from 'lucide-react';
 
 export const InspectionPage = () => {
   const { locationId } = useParams<{ locationId: string }>();
-  const [genZMode, setGenZMode] = useState(() => {
-    const saved = localStorage.getItem('genZMode');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  const toggleMode = () => {
-    const newMode = !genZMode;
-    setGenZMode(newMode);
-    localStorage.setItem('genZMode', JSON.stringify(newMode));
-  };
 
   if (!locationId) {
     return (
@@ -29,11 +18,5 @@ export const InspectionPage = () => {
     );
   }
 
-  return (
-    <ComprehensiveInspectionForm
-      locationId={locationId}
-      genZMode={genZMode}
-      onToggleMode={toggleMode}
-    />
-  );
+  return <ComprehensiveInspectionForm locationId={locationId} />;
 };
