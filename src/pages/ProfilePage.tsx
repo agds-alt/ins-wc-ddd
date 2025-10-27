@@ -34,26 +34,25 @@ interface UserStats {
 }
 
 export const ProfilePage = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  // Fetch user stats
+  // ✅ Wait for auth to complete
+  const isReady = !authLoading && !!user?.id;
+
+  // Fetch user stats - with safety checks
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['user-stats', user?.id],
+    queryKey: ['user-stats-profile', user?.id],
     queryFn: async (): Promise<UserStats> => {
       if (!user?.id) throw new Error('User not authenticated');
-      
+
+      // ✅ Simpler query without relational join (can cause errors)
       const { data: inspections, error } = await supabase
         .from('inspection_records')
-        .select(`
-          id,
-          inspection_date,
-          responses,
-          locations (name)
-        `)
+        .select('id, inspection_date, responses, location_id')
         .eq('user_id', user.id)
         .order('inspection_date', { ascending: false });
 
@@ -120,28 +119,34 @@ export const ProfilePage = () => {
         totalInspections,
         avgScore,
         currentStreak,
-        bestLocation
+        bestLocation: null // Simplified - remove best location for now
       };
     },
-    enabled: !!user?.id
+    enabled: isReady,
+    retry: 1,
+    staleTime: 60 * 1000, // Cache 1 minute
   });
 
-  // Fetch occupation
+  // Fetch occupation - with better safety
   const { data: occupation } = useQuery({
     queryKey: ['user-occupation', profile?.occupation_id],
     queryFn: async () => {
       if (!profile?.occupation_id) return null;
-      
+
       const { data, error } = await supabase
         .from('user_occupations')
         .select('*')
         .eq('id', profile.occupation_id)
-        .single();
+        .maybeSingle(); // ✅ Use maybeSingle instead of single
 
-      if (error) throw error;
+      if (error) {
+        console.error('Occupation fetch error:', error);
+        return null;
+      }
       return data;
     },
-    enabled: !!profile?.occupation_id
+    enabled: !!profile?.occupation_id,
+    retry: 0, // Don't retry on error
   });
 
   // Upload photo mutation
@@ -224,34 +229,38 @@ export const ProfilePage = () => {
     }
   };
 
-  if (!profile) {
+  // Show loading while auth or profile loads
+  if (authLoading || !user || !profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm">Loading profile...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header with Gradient Background */}
-      <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 pt-12 pb-24 px-6">
-        <div className="flex items-center justify-between text-white mb-6">
-          <h1 className="text-2xl font-bold">Profile</h1>
+    <div className="min-h-screen bg-white pb-24">
+      {/* Simple Header - White */}
+      <div className="bg-white pt-12 pb-8 px-6 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold text-gray-900">Profile</h1>
           <button
             onClick={() => navigate('/settings')}
-            className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+            className="p-2 hover:bg-gray-50 rounded-xl transition-colors"
           >
-            <Settings className="w-6 h-6" />
+            <Settings className="w-6 h-6 text-gray-600" />
           </button>
         </div>
       </div>
 
-      {/* Profile Card (overlapping header) */}
-      <div className="px-6 -mt-16">
-        <Card className="relative">
+      {/* Profile Card */}
+      <div className="px-6 -mt-4">
+        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-5">
           {/* Profile Photo */}
-          <div className="flex justify-center -mt-16 mb-4">
+          <div className="flex justify-center -mt-12 mb-4">
             <div className="relative">
               <div className="w-32 h-32 rounded-full bg-white p-2 shadow-xl">
                 {profile.profile_photo_url ? (
@@ -373,35 +382,35 @@ export const ProfilePage = () => {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {/* Total Inspections */}
-              <Card className="p-4">
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
                     <CheckCircle2 className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-gray-900">{stats?.totalInspections || 0}</div>
-                    <div className="text-xs text-gray-500">Inspections</div>
+                    <div className="text-xs text-gray-500">Total</div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* Average Score */}
-              <Card className="p-4">
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
                     <TrendingUp className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-gray-900">{stats?.avgScore || 0}</div>
-                    <div className="text-xs text-gray-500">Avg Score</div>
+                    <div className="text-xs text-gray-500">Avg</div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* Current Streak */}
-              <Card className="p-4">
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4 col-span-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center">
                     <span className="text-2xl">🔥</span>
                   </div>
                   <div>
@@ -409,43 +418,16 @@ export const ProfilePage = () => {
                     <div className="text-xs text-gray-500">Day Streak</div>
                   </div>
                 </div>
-              </Card>
-
-              {/* Best Location */}
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <Award className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {stats?.bestLocation ? (
-                      <>
-                        <div className="text-lg font-bold text-gray-900">{stats.bestLocation.score}</div>
-                        <div className="text-xs text-gray-500 truncate">{stats.bestLocation.name}</div>
-                      </>
-                    ) : (
-                      <div className="text-xs text-gray-500">No data yet</div>
-                    )}
-                  </div>
-                </div>
-              </Card>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Simple */}
         <div className="mt-6 space-y-3">
           <button
-            onClick={() => navigate('/edit-profile')}
-            className="w-full flex items-center justify-center gap-2 p-4 bg-white border-2 border-gray-200 rounded-2xl font-medium text-gray-900 hover:bg-gray-50 transition-colors active:scale-95"
-          >
-            <Edit2 className="w-5 h-5" />
-            <span>Edit Profile</span>
-          </button>
-
-          <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 border-2 border-red-200 rounded-2xl font-medium text-red-600 hover:bg-red-100 transition-colors active:scale-95"
+            className="w-full flex items-center justify-center gap-2 p-4 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 rounded-2xl font-medium text-red-600 active:shadow-[0_4px_20px_rgb(0,0,0,0.06)] active:translate-y-1 transition-all"
           >
             <LogOut className="w-5 h-5" />
             <span>Logout</span>

@@ -20,55 +20,36 @@ export const Dashboard = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  console.log('🏠 Dashboard - Auth:', { userId: user?.id, authLoading });
-
   // ✅ WAIT for auth to complete AND user to exist
   const isAuthReady = !authLoading && !!user?.id;
 
-  // Fetch user statistics - STABLE
+  // Fetch user statistics - OPTIMIZED
   const { data: stats, isLoading: statsLoading, error } = useQuery({
-    queryKey: ['user-stats', user?.id],
+    queryKey: ['dashboard-stats', user?.id],
     queryFn: async () => {
-      if (!user?.id) {
-        console.warn('⚠️ No user ID in query function');
-        return null;
-      }
-
-      console.log('📊 Fetching stats for user:', user.id);
+      if (!user?.id) return null;
 
       const { data: inspections, error } = await supabase
         .from('inspection_records')
-        .select('id, overall_status, inspection_date, inspection_time, responses, submitted_at')
+        .select('id, overall_status, inspection_date, responses')
         .eq('user_id', user.id)
-        .order('submitted_at', { ascending: false, nullsFirst: false })
+        .order('inspection_date', { ascending: false })
         .limit(50);
 
-      if (error) {
-        console.error('❌ Error fetching inspections:', error);
-        throw error;
-      }
-
-      console.log(`✅ Fetched ${inspections?.length || 0} inspections`);
+      if (error) throw error;
 
       const total = inspections?.length || 0;
       const today = new Date().toISOString().split('T')[0];
       const todayCount = inspections?.filter(i => i.inspection_date === today).length || 0;
 
       const completed = inspections?.filter(i => {
-        if (i.overall_status === 'completed' ||
-            i.overall_status === 'excellent' ||
-            i.overall_status === 'good') {
-          return true;
-        }
-        if (i.responses?.score && i.responses.score >= 60) {
-          return true;
-        }
-        return false;
+        return i.overall_status === 'completed' ||
+               i.overall_status === 'excellent' ||
+               i.overall_status === 'good' ||
+               (i.responses?.score && i.responses.score >= 60);
       }).length || 0;
 
       const recentData = inspections?.slice(0, 3) || [];
-
-      console.log('📈 Stats:', { total, todayCount, completed });
 
       return {
         total,
@@ -77,59 +58,39 @@ export const Dashboard = () => {
         recent: recentData,
       };
     },
-    enabled: isAuthReady, // ✅ ONLY run when auth is DONE and user exists
-    staleTime: 60 * 1000, // Cache 1 minute (longer cache)
-    cacheTime: 5 * 60 * 1000, // Keep in memory 5 minutes
-    refetchOnMount: false,
+    enabled: isAuthReady,
+    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+    gcTime: 5 * 60 * 1000, // Keep in memory 5 minutes (React Query v5)
+    refetchOnMount: 'always', // Always check on mount
     refetchOnWindowFocus: false,
     retry: 1,
   });
 
-  // ✅ Show loading until BOTH auth ready AND stats loaded
-  const isLoading = !isAuthReady || (isAuthReady && statsLoading);
-
-  console.log('🎨 Render:', { isAuthReady, statsLoading, isLoading, hasStats: !!stats });
-
-  if (isLoading) {
-    console.log('⏳ Loading...');
+  // ✅ Show loading until auth ready (don't wait for stats)
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600 text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    console.error('❌ Dashboard error:', error);
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Dashboard</h3>
-          <p className="text-gray-600 mb-4">{error.message || 'Failed to load data'}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+  // ✅ Redirect to login if not authenticated
+  if (!user) {
+    navigate('/login', { replace: true });
+    return null;
   }
 
-  // ✅ Use default empty stats if no data (instead of blocking render)
+  // ✅ Use default empty stats if no data
   const dashboardStats = stats || {
     total: 0,
     todayCount: 0,
     completed: 0,
     recent: [],
   };
-
-  console.log('📊 Final stats for render:', dashboardStats);
 
   return (
     <div className="min-h-screen bg-white pb-20">
@@ -172,6 +133,7 @@ export const Dashboard = () => {
         {/* Primary Action - Big Button with 3D Shadow */}
         <button
           onClick={() => navigate('/scan')}
+          type="button"
           className="w-full bg-white rounded-3xl p-6 shadow-[0_12px_40px_rgb(0,0,0,0.12)] active:shadow-[0_8px_30px_rgb(0,0,0,0.1)] active:translate-y-1 transition-all border border-gray-100"
         >
           <div className="flex items-center gap-4">
