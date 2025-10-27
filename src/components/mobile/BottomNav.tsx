@@ -1,7 +1,9 @@
 // src/components/mobile/BottomNavFixed.tsx - Fixed Bottom Navigation
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Calendar, QrCode, BarChart3, User } from 'lucide-react';
 import { clsx } from 'clsx';
+import { ScanModal } from './ScanModal';
 
 interface NavItem {
   id: string;
@@ -48,40 +50,47 @@ const navItems: NavItem[] = [
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+
+  const handleScanSuccess = (locationId: string) => {
+    setScanModalOpen(false);
+    navigate(`/inspect/${locationId}`);
+  };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
-      <div className="flex items-center justify-around relative px-2 pt-2 pb-2">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
-                          (item.path !== '/' && location.pathname.startsWith(item.path));
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
+        <div className="flex items-center justify-around relative px-2 pt-2 pb-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path ||
+                            (item.path !== '/' && location.pathname.startsWith(item.path));
 
-          // Center Floating Action Button (FAB)
-          if (item.isCenter) {
-            return (
-              <div key={item.id} className="flex-1 flex justify-center">
-                <button
-                  onClick={() => navigate(item.path)}
-                  className="
-                    w-14 h-14 
-                    bg-gradient-to-br from-blue-600 to-blue-400
-                    rounded-full 
-                    flex items-center justify-center 
-                    text-white 
-                    shadow-lg shadow-blue-600/30
-                    -mt-6
-                    transition-all duration-200
-                    active:scale-90
-                    hover:shadow-xl hover:shadow-blue-600/40
-                  "
-                  aria-label={item.label}
-                >
-                  <Icon className="w-7 h-7" strokeWidth={2.5} />
-                </button>
-              </div>
-            );
-          }
+            // Center Floating Action Button (FAB) - Direct to Scanner
+            if (item.isCenter) {
+              return (
+                <div key={item.id} className="flex-1 flex justify-center">
+                  <button
+                    onClick={() => setScanModalOpen(true)}
+                    className="
+                      w-14 h-14
+                      bg-gradient-to-br from-blue-600 to-blue-400
+                      rounded-full
+                      flex items-center justify-center
+                      text-white
+                      shadow-lg shadow-blue-600/30
+                      -mt-6
+                      transition-all duration-200
+                      active:scale-90
+                      hover:shadow-xl hover:shadow-blue-600/40
+                    "
+                    aria-label={item.label}
+                  >
+                    <Icon className="w-7 h-7" strokeWidth={2.5} />
+                  </button>
+                </div>
+              );
+            }
 
           // Regular Nav Items
           return (
@@ -119,6 +128,14 @@ export const BottomNav = () => {
         })}
       </div>
     </nav>
+
+      {/* Scanner Modal */}
+      <ScanModal
+        isOpen={scanModalOpen}
+        onClose={() => setScanModalOpen(false)}
+        onScan={handleScanSuccess}
+      />
+    </>
   );
 };
 

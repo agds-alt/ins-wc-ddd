@@ -116,7 +116,7 @@ export const LocationInspectionPage = () => {
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
+                <span style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}>Back</span>
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Toilet Inspection</h1>

@@ -63,7 +63,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     labelGenZ: 'Bau-bauan',
     weight: 0.15,
     icon: 'Nose',
-    iconGenZ: '😷',
+    iconGenZ: '👃',
     required: true,
     allowPhoto: false,
     choices: {
@@ -140,7 +140,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     labelGenZ: 'Kebersihan Cermin',
     weight: 0.06,
     icon: 'Mirror',
-    iconGenZ: '✨',
+    iconGenZ: '🪞',
     required: true,
     allowPhoto: false,
     choices: {

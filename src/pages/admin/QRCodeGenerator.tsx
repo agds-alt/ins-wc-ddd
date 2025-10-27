@@ -21,12 +21,14 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
   const getLocationURL = (id: string) => {
     const productionUrl = 'https://wc-checks.vercel.app';
     const envUrl = import.meta.env.VITE_APP_URL;
-    
+
     // Use production URL if not in dev mode
     const baseUrl = import.meta.env.DEV ? (envUrl || window.location.origin) : productionUrl;
-    
+
     return `${baseUrl}/locations/${id}`;
   };
+
+  const isSingleQR = locations.length === 1;
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -34,7 +36,7 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
     pageStyle: `
       @page {
         size: A4;
-        margin: 15mm;
+        margin: ${isSingleQR ? '10mm' : '15mm'};
       }
       @media print {
         body {
@@ -43,6 +45,16 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
         }
       }
     `,
+    onBeforeGetContent: () => {
+      console.log('🖨️ Preparing to print...', { locations: locations.length });
+      return Promise.resolve();
+    },
+    onAfterPrint: () => {
+      console.log('✅ Print completed');
+    },
+    onPrintError: (error) => {
+      console.error('❌ Print error:', error);
+    },
   });
 
   const handleDownloadSingle = (location: Location) => {
@@ -54,11 +66,34 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
     const ctx = canvas.getContext('2d');
     const img = new Image();
 
-    canvas.width = 512;
-    canvas.height = 512;
+    // Set canvas size to match desired output
+    const size = 512;
+    canvas.width = size;
+    canvas.height = size;
 
     img.onload = () => {
-      ctx?.drawImage(img, 0, 0);
+      if (!ctx) return;
+
+      // Fill white background first
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, size, size);
+
+      // Get original SVG dimensions
+      const svgWidth = svg.width.baseVal.value || 120;
+      const svgHeight = svg.height.baseVal.value || 120;
+
+      // Calculate scaling to fill canvas while maintaining aspect ratio
+      const scale = Math.min(size / svgWidth, size / svgHeight);
+      const scaledWidth = svgWidth * scale;
+      const scaledHeight = svgHeight * scale;
+
+      // Center the QR code
+      const x = (size - scaledWidth) / 2;
+      const y = (size - scaledHeight) / 2;
+
+      // Draw scaled and centered QR code
+      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
@@ -163,89 +198,152 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
           })}
         </div>
 
-        {/* Print Content (Hidden) */}
-        <div style={{ display: 'none' }}>
+        {/* Print Content (Hidden Off-Screen) */}
+        <div style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          width: '210mm',  // A4 width
+          background: 'white'
+        }}>
           <div ref={printRef}>
-            <style>
-              {`
-                @media print {
-                  .qr-print-item {
-                    page-break-inside: avoid;
-                    page-break-after: auto;
-                    margin-bottom: 30mm;
-                  }
-                  .qr-print-item:last-child {
-                    page-break-after: avoid;
-                  }
-                }
-              `}
-            </style>
-            {locations.map((location) => {
-              const locationURL = getLocationURL(location.id);
-              
-              return (
-                <div key={location.id} className="qr-print-item">
-                  <div style={{
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '20mm',
-                    textAlign: 'center',
-                    background: 'white',
-                  }}>
-                    {/* QR Code */}
-                    <div style={{ marginBottom: '10mm' }}>
-                      <QRCodeSVG
-                        value={locationURL}
-                        size={200}
-                        level="H"
-                        includeMargin={true}
-                      />
-                    </div>
+            {isSingleQR ? (
+              // SINGLE QR: Full Page, Large Size
+              <div style={{
+                width: '100%',
+                height: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '20mm',
+              }}>
+                {locations.map((location) => {
+                  const locationURL = getLocationURL(location.id);
+                  return (
+                    <div key={location.id}>
+                      {/* Large QR Code */}
+                      <div style={{ marginBottom: '15mm' }}>
+                        <QRCodeSVG
+                          value={locationURL}
+                          size={400}
+                          level="H"
+                          includeMargin={true}
+                        />
+                      </div>
 
-                    {/* Location Info */}
-                    <div style={{ textAlign: 'center' }}>
-                      <h2 style={{
-                        fontSize: '24px',
+                      {/* Location Info */}
+                      <h1 style={{
+                        fontSize: '32px',
                         fontWeight: 'bold',
-                        marginBottom: '8px',
+                        marginBottom: '12px',
                         color: '#111827',
                       }}>
                         {location.name}
-                      </h2>
-                      
+                      </h1>
+
                       {location.code && (
                         <p style={{
-                          fontSize: '18px',
+                          fontSize: '24px',
                           color: '#2563eb',
                           fontWeight: '600',
-                          marginBottom: '8px',
+                          marginBottom: '12px',
                         }}>
-                          {location.code}
+                          Code: {location.code}
                         </p>
                       )}
 
-                      {location.building && (
-                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
-                          {location.building}
-                        </p>
-                      )}
-                      
-                      {location.floor && (
-                        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
-                          {location.floor}
-                        </p>
-                      )}
-                      
-                      {location.area && (
-                        <p style={{ fontSize: '14px', color: '#6b7280' }}>
-                          {location.area}
-                        </p>
-                      )}
+                      <div style={{ fontSize: '18px', color: '#6b7280', marginTop: '8mm' }}>
+                        {location.building && <p style={{ marginBottom: '6px' }}>🏢 {location.building}</p>}
+                        {location.floor && <p style={{ marginBottom: '6px' }}>📍 {location.floor}</p>}
+                        {location.area && <p>📌 {location.area}</p>}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            ) : (
+              // BULK QR: Grid Layout - 4 per page
+              <div>
+                <style>
+                  {`
+                    @media print {
+                      .qr-grid-container {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 10mm;
+                        page-break-inside: avoid;
+                      }
+                      .qr-grid-item {
+                        border: 2px solid #e5e7eb;
+                        border-radius: 8px;
+                        padding: 8mm;
+                        text-align: center;
+                        background: white;
+                        page-break-inside: avoid;
+                      }
+                      .qr-page-break {
+                        page-break-after: always;
+                      }
+                    }
+                  `}
+                </style>
+                {Array.from({ length: Math.ceil(locations.length / 4) }).map((_, pageIndex) => {
+                  const pageLocations = locations.slice(pageIndex * 4, (pageIndex + 1) * 4);
+                  const isLastPage = pageIndex === Math.ceil(locations.length / 4) - 1;
+
+                  return (
+                    <div key={pageIndex} className={!isLastPage ? 'qr-page-break' : ''}>
+                      <div className="qr-grid-container">
+                        {pageLocations.map((location) => {
+                          const locationURL = getLocationURL(location.id);
+                          return (
+                            <div key={location.id} className="qr-grid-item">
+                              {/* QR Code */}
+                              <div style={{ marginBottom: '4mm' }}>
+                                <QRCodeSVG
+                                  value={locationURL}
+                                  size={150}
+                                  level="H"
+                                  includeMargin={true}
+                                />
+                              </div>
+
+                              {/* Location Info */}
+                              <h3 style={{
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                marginBottom: '4px',
+                                color: '#111827',
+                              }}>
+                                {location.name}
+                              </h3>
+
+                              {location.code && (
+                                <p style={{
+                                  fontSize: '14px',
+                                  color: '#2563eb',
+                                  fontWeight: '600',
+                                  marginBottom: '4px',
+                                }}>
+                                  {location.code}
+                                </p>
+                              )}
+
+                              <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                                {location.building && <div>{location.building}</div>}
+                                {location.floor && <div>{location.floor}</div>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </Card>

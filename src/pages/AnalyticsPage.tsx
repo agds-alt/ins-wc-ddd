@@ -1,4 +1,4 @@
-// src/pages/AnalyticsPage.tsx - Phase 1 Analytics Dashboard
+// src/pages/AnalyticsPage.tsx - WITH SIDEBAR
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -12,13 +12,15 @@ import {
   Download,
   ChevronDown,
   AlertTriangle,
-  Activity
+  Activity,
+  Menu
 } from 'lucide-react';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
 
 // Components
 import { Card, CardHeader } from '../components/ui/Card';
 import { BottomNav } from '../components/mobile/BottomNav';
+import { Sidebar } from '../components/mobile/Sidebar';
 
 type TimePeriod = 'week' | 'month' | 'year';
 
@@ -69,6 +71,7 @@ export const AnalyticsPage = () => {
   const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('week');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch analytics data
   const { data: analytics, isLoading, error } = useQuery({
@@ -363,7 +366,7 @@ export const AnalyticsPage = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-8 h-8 text-red-600" />
@@ -385,32 +388,43 @@ export const AnalyticsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading analytics...</p>
+          <p className="text-gray-600 text-sm">Loading analytics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500 p-6 rounded-b-3xl shadow-lg">
-        <div className="flex items-center justify-between text-white mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Analytics</h1>
-            <p className="text-purple-100 mt-1">Performance insights & trends</p>
+    <div className="min-h-screen bg-white pb-24">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Header - White Theme */}
+      <div className="bg-white p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+            >
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
+              <p className="text-sm text-gray-500">Performance insights & trends</p>
+            </div>
           </div>
-          <BarChart3 className="w-8 h-8 opacity-80" />
+          <BarChart3 className="w-6 h-6 text-gray-400" />
         </div>
 
-        {/* Period Selector */}
+        {/* Period Selector - White Theme */}
         <div className="relative">
           <button
             onClick={() => setShowFilterMenu(!showFilterMenu)}
-            className="w-full bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-3 flex items-center justify-between text-white font-medium"
+            className="w-full bg-white shadow-md border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between text-gray-900 font-medium hover:shadow-lg transition-shadow"
           >
             <span>{periodLabels[selectedPeriod]}</span>
             <ChevronDown className={`w-5 h-5 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />

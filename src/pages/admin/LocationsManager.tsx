@@ -1,21 +1,36 @@
-// src/components/admin/LocationManager.tsx - COMPLETE FIXED VERSION
+// src/pages/admin/LocationsManager.tsx - Admin-only CRUD for locations
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+import { useIsAdmin } from '../../hooks/useIsAdmin';
 import { Tables, TablesInsert } from '../../types/database.types';
-import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, QrCode, Search, MoreVertical, Copy, User, ShieldAlert, Menu } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { QRCodeGenerator } from './QRCodeGenerator';
+import { Sidebar } from '../../components/mobile/Sidebar';
+import { BottomNav } from '../../components/mobile/BottomNav';
 
 type Location = Tables<'locations'>;
 type LocationInsert = TablesInsert<'locations'>;
 
 export const LocationsManager = () => {
-  const { user } = useAuth();
+  console.log('🟢 LocationsManager: Component starting');
+
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const queryClient = useQueryClient();
+
+  console.log('🟢 LocationsManager: Auth state', {
+    hasUser: !!user,
+    authLoading,
+    isAdmin,
+    adminLoading
+  });
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
@@ -23,6 +38,7 @@ export const LocationsManager = () => {
   const [showQRGenerator, setShowQRGenerator] = useState(false);
   const [qrLocations, setQrLocations] = useState<Location[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Fetch locations
   const { data: locations, isLoading } = useQuery({
@@ -104,6 +120,57 @@ export const LocationsManager = () => {
     setOpenMenuId(null);
   };
 
+  // Loading states
+  if (authLoading || adminLoading) {
+    console.log('🟡 Showing loading spinner');
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth check
+  if (!user) {
+    console.log('🔴 No user - redirecting to login');
+    navigate('/login', { replace: true });
+    return null;
+  }
+
+  // Admin check
+  if (!isAdmin) {
+    console.log('🔴 ACCESS DENIED - User is not admin');
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <ShieldAlert className="w-20 h-20 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            Admin Access Required
+          </h2>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            This page is only accessible to administrators.
+          </p>
+          <div className="mb-6 p-4 bg-gray-100 rounded-lg text-left">
+            <p className="text-xs text-gray-600 mb-1">Debug Info:</p>
+            <p className="text-xs text-gray-800">User: {user.email}</p>
+            <p className="text-xs text-gray-800">Admin Status: {isAdmin ? 'Yes' : 'No'}</p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('✅ Admin access granted - rendering location manager');
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -113,19 +180,34 @@ export const LocationsManager = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 rounded-b-3xl shadow-lg">
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header - Clean White Style */}
+      <div className="bg-white p-6 shadow-md border-b border-gray-100">
         <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Location Management</h1>
-            <p className="text-blue-100">Manage toilet locations & QR codes</p>
+          {/* Left: Menu + Title */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+            >
+              <Menu className="w-5 h-5 text-gray-700" />
+            </button>
+            <div>
+              <h1
+                className="text-2xl font-bold text-gray-900"
+                style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}
+              >
+                Location Management
+              </h1>
+              <p className="text-gray-600 text-sm">Manage toilet locations & QR codes</p>
+            </div>
           </div>
-          {/* User Info */}
+
+          {/* Right: User Info */}
           {user && (
-            <div className="hidden sm:flex items-center space-x-2 bg-white/20 px-3 py-2 rounded-lg">
-              <User className="w-4 h-4 text-white" />
-              <span className="text-white text-sm font-medium">
+            <div className="hidden sm:flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-lg">
+              <User className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-700 text-sm font-medium">
                 {user.user_metadata?.name || user.email}
               </span>
             </div>
@@ -136,10 +218,10 @@ export const LocationsManager = () => {
       <div className="p-4 space-y-4">
         {/* User Info for Mobile */}
         {user && (
-          <Card className="sm:hidden p-3 bg-blue-50 border-blue-200">
+          <Card className="sm:hidden p-3 bg-white border-gray-200">
             <div className="flex items-center space-x-2">
-              <User className="w-4 h-4 text-blue-600" />
-              <span className="text-blue-900 text-sm font-medium">
+              <User className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-700 text-sm font-medium">
                 {user.user_metadata?.name || user.email}
               </span>
             </div>
@@ -337,6 +419,12 @@ export const LocationsManager = () => {
           }}
         />
       )}
+
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };

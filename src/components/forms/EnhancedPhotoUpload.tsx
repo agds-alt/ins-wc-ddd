@@ -41,11 +41,17 @@ export const EnhancedPhotoUpload = ({
     try {
       // Get current location
       const location = await getCurrentLocation();
-      
-      // Get reverse geocoding (address from coordinates)
-      const address = location ? await getAddressFromCoords(location.lat, location.lng) : undefined;
 
-      // Create preview with overlay
+      // ✅ NON-BLOCKING reverse geocoding (don't await, just start it)
+      let address: string | undefined = undefined;
+      if (location) {
+        // Fire and forget - we'll use GPS coords if address fails
+        getAddressFromCoords(location.lat, location.lng)
+          .then(addr => { address = addr; })
+          .catch(() => { /* Silent fail - GPS coords still available */ });
+      }
+
+      // Create preview with overlay immediately (don't wait for address)
       const preview = await createPhotoWithOverlay(file, {
         timestamp: new Date().toISOString(),
         location: location ? { ...location, address } : undefined,
@@ -172,6 +178,54 @@ export const EnhancedPhotoUpload = ({
         onChange={handleCapture}
         className="hidden"
       />
+
+      {/* Processing Modal - Prominent Loading Indicator */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+            {/* Animated Spinner */}
+            <div className="relative mb-6">
+              <div className="w-20 h-20 mx-auto relative">
+                {/* Outer ring */}
+                <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                {/* Spinning ring */}
+                <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                {/* Center icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Camera className="w-8 h-8 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Text Content */}
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              Processing Photo
+            </h3>
+            <p className="text-gray-600 mb-1">
+              Adding watermark with GPS location...
+            </p>
+            <p className="text-sm text-gray-500">
+              Please wait 3-4 seconds
+            </p>
+
+            {/* Progress Steps */}
+            <div className="mt-6 space-y-2 text-left">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                <span>Getting GPS coordinates...</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <span>Applying watermark...</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                <span>Finalizing image...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -198,12 +252,34 @@ const getCurrentLocation = (): Promise<{ lat: number; lng: number } | null> => {
 
 const getAddressFromCoords = async (lat: number, lng: number): Promise<string | undefined> => {
   try {
+    // ✅ Add timeout protection - fail fast after 3 seconds
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      {
+        headers: { 'User-Agent': 'ToiletCheck/1.0' },
+        signal: controller.signal,
+      }
     );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn('⚠️ Geocoding failed:', response.status);
+      return undefined;
+    }
+
     const data = await response.json();
     return data.display_name;
-  } catch {
+  } catch (error: any) {
+    // ✅ Silent fail - GPS coordinates are enough
+    if (error.name === 'AbortError') {
+      console.warn('⚠️ Geocoding timeout - using GPS coords only');
+    } else {
+      console.warn('⚠️ Geocoding error - using GPS coords only');
+    }
     return undefined;
   }
 };

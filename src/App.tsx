@@ -33,7 +33,13 @@ const AnalyticsPage = lazy(() =>
 const ProfilePage = lazy(() => 
   import('./pages/ProfilePage').then(module => ({ default: module.ProfilePage }))
 );
-const LocationsManager = lazy(() => 
+const LocationsListPage = lazy(() =>
+  import('./pages/LocationsListPage').then(module => ({ default: module.LocationsListPage }))
+);
+const AddLocationPage = lazy(() =>
+  import('./pages/AddLocationPage').then(module => ({ default: module.AddLocationPage }))
+);
+const LocationsManager = lazy(() =>
   import('./pages/admin/LocationsManager').then(module => ({ default: module.LocationsManager }))
 );
 const AdminDashboard = lazy(() => 
@@ -146,9 +152,17 @@ function AppContent() {
           path="/analytics" 
           element={user ? <AnalyticsPage /> : <Navigate to="/login" replace />} 
         />
-        <Route 
-          path="/locations" 
-          element={user ? <LocationsManager /> : <Navigate to="/login" replace />} 
+        <Route
+          path="/locations"
+          element={user ? <LocationsListPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/locations/add"
+          element={user ? <AddLocationPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/locations"
+          element={user ? <LocationsManager /> : <Navigate to="/login" replace />}
         />
         <Route 
           path="/profile" 

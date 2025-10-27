@@ -1,17 +1,20 @@
-// src/pages/ReportsPage.tsx
+// src/pages/ReportsPage.tsx - WITH SIDEBAR
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useMonthlyInspections, useDateInspections, InspectionReport } from '../hooks/useReports';
 import { CalendarView } from '../components/reports/CalendarView';
 import { InspectionDrawer } from '../components/reports/InspectionDrawer';
 import { InspectionDetailModal } from '../components/reports/InspectionDetailModal';
-import { Calendar, TrendingUp, FileText } from 'lucide-react';
+import { Sidebar } from '../components/mobile/Sidebar';
+import { BottomNav } from '../components/mobile/BottomNav';
+import { Calendar, TrendingUp, FileText, Menu } from 'lucide-react';
 
 export const ReportsPage = () => {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionReport | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Fetch monthly data
   const { data: monthlyData, isLoading: monthlyLoading } = useMonthlyInspections(
@@ -51,46 +54,60 @@ export const ReportsPage = () => {
 
   if (monthlyLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm">Loading reports...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-blue-400 p-6 rounded-b-3xl shadow-lg">
-        <div className="flex items-center justify-between text-white mb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Reports</h1>
-            <p className="text-blue-100 mt-1">Inspection history & analytics</p>
+    <div className="min-h-screen bg-white pb-24">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Header - White Theme */}
+      <div className="bg-white p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+            >
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Reports</h1>
+              <p className="text-sm text-gray-500">Inspection history & analytics</p>
+            </div>
           </div>
-          <Calendar className="w-8 h-8 opacity-80" />
+          <Calendar className="w-6 h-6 text-gray-400" />
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - White Theme */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
+          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4">
             <div className="flex items-center space-x-2 mb-1">
-              <FileText className="w-4 h-4 text-white" />
-              <span className="text-xs text-blue-100">This Month</span>
+              <FileText className="w-4 h-4 text-blue-600" />
+              <span className="text-xs text-gray-500">This Month</span>
             </div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-gray-900">
               {totalInspections}
             </div>
-            <div className="text-xs text-blue-100 mt-1">Inspections</div>
+            <div className="text-xs text-gray-500 mt-1">Inspections</div>
           </div>
 
-          <div className="bg-white/20 backdrop-blur rounded-xl p-4">
+          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-4">
             <div className="flex items-center space-x-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-white" />
-              <span className="text-xs text-blue-100">Average</span>
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              <span className="text-xs text-gray-500">Average</span>
             </div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-gray-900">
               {averageScore}
             </div>
-            <div className="text-xs text-blue-100 mt-1">Score</div>
+            <div className="text-xs text-gray-500 mt-1">Score</div>
           </div>
         </div>
       </div>
@@ -150,6 +167,9 @@ export const ReportsPage = () => {
         onClose={handleCloseDetail}
         inspection={selectedInspection}
       />
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 };
