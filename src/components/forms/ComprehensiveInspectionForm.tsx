@@ -518,7 +518,7 @@ const handleSubmit = async () => {
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-2xl">
-                      {genZMode ? component.iconGenZ : component.icon}
+                      {component.iconGenZ}
                     </span>
                     <span className="font-medium text-gray-900">
                       {genZMode ? component.labelGenZ : component.label}

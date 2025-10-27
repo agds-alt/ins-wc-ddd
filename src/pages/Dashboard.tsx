@@ -25,7 +25,7 @@ export const Dashboard = () => {
   // ✅ WAIT for auth to complete AND user to exist
   const isAuthReady = !authLoading && !!user?.id;
 
-  // Fetch user statistics - OPTIMIZED
+  // Fetch user statistics - OPTIMIZED FOR PERFORMANCE
   const { data: stats, isLoading: statsLoading, error } = useQuery({
     queryKey: ['dashboard-stats', user?.id],
     queryFn: async () => {
@@ -83,11 +83,11 @@ export const Dashboard = () => {
       };
     },
     enabled: isAuthReady,
-    staleTime: 2 * 60 * 1000, // Cache 2 minutes
-    gcTime: 5 * 60 * 1000, // Keep in memory 5 minutes (React Query v5)
-    refetchOnMount: 'always', // Always check on mount
+    staleTime: 5 * 60 * 1000, // Cache 5 minutes (was 2 mins)
+    gcTime: 10 * 60 * 1000, // Keep in memory 10 minutes (was 5)
+    refetchOnMount: false, // ⚡ Don't refetch on mount if data is fresh
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: false, // ⚡ Fail fast, don't retry
   });
 
   // ✅ Show loading until auth ready (don't wait for stats)

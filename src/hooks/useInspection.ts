@@ -196,6 +196,7 @@ export const useInspection = (inspectionId?: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inspections'] });
       queryClient.invalidateQueries({ queryKey: ['location-inspections'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }); // ⚡ Refresh dashboard on submit
     },
     onError: (error: Error) => {
       logger.error('Inspection mutation failed', error);
