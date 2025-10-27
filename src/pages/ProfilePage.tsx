@@ -1,5 +1,4 @@
-// src/pages/ProfilePage.tsx - SIMPLIFIED
-import { useState } from 'react';
+// src/pages/ProfilePage.tsx - ULTRA SIMPLE (NO ERRORS!)
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -9,7 +8,6 @@ import {
   Clock,
   User as UserIcon
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { BottomNav } from '../components/mobile/BottomNav';
 
 export const ProfilePage = () => {
@@ -36,6 +34,39 @@ export const ProfilePage = () => {
     );
   }
 
+  // Safe date formatting
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const formatDateTime = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleDateString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white pb-24">
       {/* Simple Header - White */}
@@ -58,7 +89,7 @@ export const ProfilePage = () => {
           {/* User Info */}
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {profile.full_name}
+              {profile.full_name || 'User'}
             </h2>
 
             {/* Role Badge */}
@@ -74,7 +105,7 @@ export const ProfilePage = () => {
               <Mail className="w-5 h-5 text-gray-500" />
               <div className="flex-1">
                 <div className="text-xs text-gray-500">Email</div>
-                <div className="font-medium text-gray-900">{profile.email}</div>
+                <div className="font-medium text-gray-900">{profile.email || 'N/A'}</div>
               </div>
             </div>
 
@@ -83,7 +114,7 @@ export const ProfilePage = () => {
               <div className="flex-1">
                 <div className="text-xs text-gray-500">Member Since</div>
                 <div className="font-medium text-gray-900">
-                  {format(new Date(profile.created_at!), 'dd MMM yyyy')}
+                  {formatDate(profile.created_at)}
                 </div>
               </div>
             </div>
@@ -94,7 +125,7 @@ export const ProfilePage = () => {
                 <div className="flex-1">
                   <div className="text-xs text-gray-500">Last Login</div>
                   <div className="font-medium text-gray-900">
-                    {format(new Date(profile.last_login_at), 'dd MMM yyyy, HH:mm')}
+                    {formatDateTime(profile.last_login_at)}
                   </div>
                 </div>
               </div>
