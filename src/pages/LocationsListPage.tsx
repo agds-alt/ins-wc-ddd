@@ -29,7 +29,10 @@ interface Location {
 export const LocationsListPage = () => {
   const navigate = useNavigate();
   const { user, authLoading } = useAuth();
+
+  // Get admin status - if hook fails, page should still render
   const { isAdmin } = useIsAdmin();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
