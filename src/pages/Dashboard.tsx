@@ -17,13 +17,13 @@ import {
 import { BottomNav } from '../components/mobile/BottomNav';
 
 export const Dashboard = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  console.log('🏠 Dashboard mounted - User:', user?.id);
+  console.log('🏠 Dashboard mounted - User:', user?.id, 'Auth loading:', authLoading);
 
   // Fetch user statistics - OPTIMIZED
-  const { data: stats, isLoading, error } = useQuery({
+  const { data: stats, isLoading: statsLoading, error } = useQuery({
     queryKey: ['user-stats', user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -51,12 +51,12 @@ export const Dashboard = () => {
       const total = inspections?.length || 0;
       const today = new Date().toISOString().split('T')[0];
       const todayCount = inspections?.filter(i => i.inspection_date === today).length || 0;
-      
+
       // Calculate completed based on status OR score
       const completed = inspections?.filter(i => {
         // Check status first
-        if (i.overall_status === 'completed' || 
-            i.overall_status === 'excellent' || 
+        if (i.overall_status === 'completed' ||
+            i.overall_status === 'excellent' ||
             i.overall_status === 'good') {
           return true;
         }
@@ -68,7 +68,7 @@ export const Dashboard = () => {
       }).length || 0;
 
       const recentData = inspections?.slice(0, 3) || [];
-      
+
       console.log('📈 Stats calculated:', { total, todayCount, completed });
 
       return {
@@ -78,14 +78,17 @@ export const Dashboard = () => {
         recent: recentData,
       };
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id, // ✅ Only run when user is ready
     staleTime: 30 * 1000, // Cache 30 seconds
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
+  // ✅ Combined loading state
+  const isLoading = authLoading || statsLoading;
+
   // Log rendering
-  console.log('🎨 Dashboard render - Loading:', isLoading, 'Stats:', stats);
+  console.log('🎨 Dashboard render - Auth loading:', authLoading, 'Stats loading:', statsLoading, 'Stats:', stats);
 
   if (isLoading) {
     console.log('⏳ Dashboard loading...');
@@ -118,23 +121,15 @@ export const Dashboard = () => {
     );
   }
 
-  if (!stats) {
-    console.warn('⚠️ No stats data available');
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 mb-4">No data available yet</p>
-          <button
-            onClick={() => navigate('/scan')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium"
-          >
-            Start First Inspection
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ✅ Use default empty stats if no data (instead of blocking render)
+  const dashboardStats = stats || {
+    total: 0,
+    todayCount: 0,
+    completed: 0,
+    recent: [],
+  };
+
+  console.log('📊 Final stats for render:', dashboardStats);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -159,15 +154,15 @@ export const Dashboard = () => {
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
             <p className="text-blue-100 text-xs mb-1">Total</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-2xl font-bold">{dashboardStats.total}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
             <p className="text-blue-100 text-xs mb-1">Today</p>
-            <p className="text-2xl font-bold">{stats.todayCount}</p>
+            <p className="text-2xl font-bold">{dashboardStats.todayCount}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
             <p className="text-blue-100 text-xs mb-1">Done</p>
-            <p className="text-2xl font-bold">{stats.completed}</p>
+            <p className="text-2xl font-bold">{dashboardStats.completed}</p>
           </div>
         </div>
       </div>
@@ -218,7 +213,7 @@ export const Dashboard = () => {
         </div>
 
         {/* Recent Activity */}
-        {stats.recent && stats.recent.length > 0 && (
+        {dashboardStats.recent && dashboardStats.recent.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-gray-900">Recent Activity</h2>
@@ -230,7 +225,7 @@ export const Dashboard = () => {
               </button>
             </div>
             <div className="space-y-2">
-              {stats.recent.map((inspection: any) => (
+              {dashboardStats.recent.map((inspection: any) => (
                 <div
                   key={inspection.id}
                   className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
@@ -260,7 +255,7 @@ export const Dashboard = () => {
         )}
 
         {/* Empty State */}
-        {stats.total === 0 && (
+        {dashboardStats.total === 0 && (
           <div className="text-center py-12">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <QrCode className="w-10 h-10 text-gray-400" />
