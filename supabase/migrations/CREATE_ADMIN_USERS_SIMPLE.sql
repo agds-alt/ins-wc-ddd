@@ -16,7 +16,7 @@
 Go to your WC-Checks application and register 2 new users:
 
 User 1 - Super Admin:
-- Email: superadmin@wchecks.com  (🚨 CHANGE to your email!)
+- Email: agdscid@gmail.com  (🚨 CHANGE to your email!)
 - Password: YourStrongPassword123!
 - Full Name: Super Administrator
 
@@ -41,7 +41,7 @@ SELECT
   is_active,
   created_at
 FROM users
-WHERE email IN ('superadmin@wchecks.com', 'admin@wchecks.com')  -- 🚨 Match your emails!
+WHERE email IN ('agdscid@gmail.com.com', 'admin@wchecks.com')  -- 🚨 Match your emails!
 ORDER BY created_at DESC;
 
 -- Expected: 2 rows showing both users
@@ -60,7 +60,7 @@ BEGIN
   -- Get Super Admin user ID
   SELECT id INTO superadmin_user_id
   FROM users
-  WHERE email = 'superadmin@wchecks.com'  -- 🚨 Match your email!
+  WHERE email = 'agdscid@gmail.com.com'  -- 🚨 Match your email!
   LIMIT 1;
 
   -- Get Admin user ID
@@ -87,7 +87,7 @@ BEGIN
 
   -- Validate users exist
   IF superadmin_user_id IS NULL THEN
-    RAISE EXCEPTION '❌ Super Admin user not found! Register superadmin@wchecks.com first!';
+    RAISE EXCEPTION '❌ Super Admin user not found! Register agdscid@gmail.com first!';
   END IF;
 
   IF admin_user_id IS NULL THEN
@@ -145,7 +145,7 @@ SELECT
 FROM users u
 JOIN user_roles ur ON ur.user_id = u.id
 JOIN roles r ON r.id = ur.role_id
-WHERE u.email IN ('superadmin@wchecks.com', 'admin@wchecks.com')  -- 🚨 Match your emails!
+WHERE u.email IN ('agdscid@gmail.com', 'admin@wchecks.com')  -- 🚨 Match your emails!
 ORDER BY r.level DESC;
 
 -- Show ALL active users with roles
@@ -170,7 +170,7 @@ ORDER BY r.level DESC NULLS LAST;
 After running this script, you should see:
 
 ✅ ADMIN USERS WITH ROLES:
-- superadmin@wchecks.com | Super Administrator | level: 100 | 👑 Super Admin
+- agdscid@gmail.com | Super Administrator | level: 100 | 👑 Super Admin
 - admin@wchecks.com | System Administrator | level: 80 | ⭐ Admin
 
 Now you can login with these accounts and they will have full admin access!
