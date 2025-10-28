@@ -21,26 +21,51 @@ export const registerServiceWorker = async (): Promise<void> => {
         registration.update();
       }, 60 * 60 * 1000); // Check every hour
 
-      // Handle service worker updates
+      // Handle service worker updates - FIXED: Prevent infinite reload
+      let refreshing = false;
+
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('🔄 New service worker available');
-              // Notify user about update (optional)
-              if (confirm('New version available! Reload to update?')) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
+
+              // Check if we already showed update prompt
+              const hasShownPrompt = sessionStorage.getItem('sw-update-prompted');
+              if (hasShownPrompt) {
+                console.log('⚠️ Update prompt already shown, skipping');
+                return;
               }
+
+              // Mark that we showed the prompt
+              sessionStorage.setItem('sw-update-prompted', 'true');
+
+              // Notify user about update (non-blocking)
+              setTimeout(() => {
+                if (confirm('New version available! Reload to update?')) {
+                  sessionStorage.setItem('sw-reload-pending', 'true');
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              }, 1000);
             }
           });
         }
       });
 
-      // Reload page when new service worker takes control
+      // Reload page when new service worker takes control - FIXED
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
+        // Prevent infinite reload loop
+        if (refreshing) return;
+
+        // Check if reload is pending (user accepted update)
+        const reloadPending = sessionStorage.getItem('sw-reload-pending');
+        if (reloadPending) {
+          refreshing = true;
+          sessionStorage.removeItem('sw-reload-pending');
+          sessionStorage.removeItem('sw-update-prompted');
+          window.location.reload();
+        }
       });
 
     } catch (error) {

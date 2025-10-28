@@ -1,8 +1,8 @@
 // WC Check - Service Worker for PWA
-// Version 1.0.0
+// Version 1.0.1 - FIXED: Prevent infinite reload
 
 const CACHE_NAME = 'wc-check-v1';
-const CACHE_VERSION = '1.0.0';
+const CACHE_VERSION = '1.0.1';
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -53,11 +53,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API calls (always use network for fresh data)
+  // Skip API calls and auth pages (always use network for fresh data)
   if (
     url.pathname.includes('/api/') ||
+    url.pathname.includes('/login') ||
+    url.pathname.includes('/register') ||
+    url.pathname.includes('/auth/') ||
     url.pathname.includes('supabase.co') ||
-    url.hostname.includes('cloudinary.com')
+    url.hostname.includes('cloudinary.com') ||
+    url.hostname !== location.hostname
   ) {
     return;
   }
