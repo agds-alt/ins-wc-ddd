@@ -78,6 +78,7 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 
 /**
  * Batch upload with concurrency limit and progress tracking
+ * Uses Promise.allSettled to continue uploading even if some files fail
  */
 export const batchUploadToCloudinary = async (
   files: File[],
@@ -85,21 +86,50 @@ export const batchUploadToCloudinary = async (
 ): Promise<string[]> => {
   const CONCURRENT_UPLOADS = 3; // Upload 3 at a time
   const results: string[] = [];
+  const failedFiles: Array<{ fileName: string; error: string }> = [];
   let completed = 0;
 
   for (let i = 0; i < files.length; i += CONCURRENT_UPLOADS) {
     const batch = files.slice(i, i + CONCURRENT_UPLOADS);
-    
-    const batchResults = await Promise.all(
-      batch.map(file => uploadToCloudinary(file))
+
+    // Use Promise.allSettled instead of Promise.all
+    // This allows remaining uploads to continue even if some fail
+    const batchResults = await Promise.allSettled(
+      batch.map((file, index) =>
+        uploadToCloudinary(file).catch(error => {
+          failedFiles.push({
+            fileName: file.name,
+            error: error.message || 'Unknown error'
+          });
+          throw error;
+        })
+      )
     );
-    
-    results.push(...batchResults);
+
+    // Extract successful uploads
+    batchResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        console.error(`Failed to upload ${batch[index].name}:`, result.reason);
+      }
+    });
+
     completed += batch.length;
-    
+
     if (onProgress) {
       onProgress(completed, files.length);
     }
+  }
+
+  // Log summary if there were failures
+  if (failedFiles.length > 0) {
+    console.warn(
+      `⚠️ Upload completed with ${failedFiles.length} failure(s) out of ${files.length} file(s):`,
+      failedFiles
+    );
+  } else {
+    console.log(`✅ All ${files.length} file(s) uploaded successfully`);
   }
 
   return results;
