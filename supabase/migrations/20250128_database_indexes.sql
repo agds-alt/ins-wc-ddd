@@ -131,8 +131,8 @@ WHERE is_deleted = false AND location_id IS NOT NULL;
 
 -- Index for photos by uploader
 CREATE INDEX IF NOT EXISTS idx_photos_uploader
-ON photos(uploaded_by, created_at DESC)
-WHERE uploaded_by IS NOT NULL;
+ON photos(created_by, created_at DESC)
+WHERE created_by IS NOT NULL;
 
 -- =============================================================================
 -- USER_ROLES Indexes
