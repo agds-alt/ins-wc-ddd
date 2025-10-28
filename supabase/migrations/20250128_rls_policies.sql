@@ -191,7 +191,7 @@ CREATE POLICY "Users can view photos from their inspections"
 ON photos FOR SELECT
 TO authenticated
 USING (
-  uploaded_by = auth.uid()
+  created_by = auth.uid()
   OR is_admin()
   OR EXISTS (
     SELECT 1 FROM inspection_records ir
@@ -205,7 +205,7 @@ CREATE POLICY "Users can upload photos to their inspections"
 ON photos FOR INSERT
 TO authenticated
 WITH CHECK (
-  uploaded_by = auth.uid()
+  created_by = auth.uid()
   AND EXISTS (
     SELECT 1 FROM inspection_records ir
     WHERE ir.id = inspection_id
@@ -217,8 +217,8 @@ WITH CHECK (
 CREATE POLICY "Users can update their own photos"
 ON photos FOR UPDATE
 TO authenticated
-USING (uploaded_by = auth.uid() OR is_admin())
-WITH CHECK (uploaded_by = auth.uid() OR is_admin());
+USING (created_by = auth.uid() OR is_admin())
+WITH CHECK (created_by = auth.uid() OR is_admin());
 
 -- Only admins can delete photos (hard delete)
 CREATE POLICY "Only admins can hard delete photos"
