@@ -71,6 +71,8 @@ export const RegisterPage = () => {
 
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
+    let userId: string | null = null;
+
     try {
       // 1. Auth signup
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -83,38 +85,59 @@ export const RegisterPage = () => {
 
       if (authError) throw authError;
 
-      // 2. Create profile (occupation_id langsung di users table)
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: data.email,
-            full_name: data.full_name,
-            password_hash: 'supabase_auth',
-            occupation_id: data.occupation_id || null, // ← Simpan di sini!
-            is_active: true,
-            phone: null,
-            profile_photo_url: null,
-            last_login_at: null,
-          });
-
-        if (profileError) {
-          throw new Error(`Failed to create profile: ${profileError.message}`);
-        }
+      if (!authData.user) {
+        throw new Error('Failed to create user account');
       }
 
-      toast.success('Registration successful!');
+      userId = authData.user.id;
+
+      // 2. Create profile (occupation_id langsung di users table)
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email: data.email,
+          full_name: data.full_name,
+          password_hash: 'supabase_auth',
+          occupation_id: data.occupation_id || null,
+          is_active: true,
+          phone: null,
+          profile_photo_url: null,
+          last_login_at: null,
+        });
+
+      if (profileError) {
+        // CRITICAL: Profile creation failed but auth user exists
+        // Attempt cleanup by signing out the newly created user
+        await supabase.auth.signOut();
+
+        throw new Error(
+          `Failed to create profile: ${profileError.message}\n` +
+          'Your authentication account was created but profile setup failed. ' +
+          'Please try registering again with the same email.'
+        );
+      }
+
+      toast.success('Registration successful! Please check your email to verify your account.');
       navigate('/login');
 
     } catch (error: any) {
+      console.error('Registration error:', error);
+
       let userMessage = error.message;
+
+      // Handle specific error cases
       if (error.message.includes('password_hash')) {
         userMessage = 'Database configuration error. Please contact administrator.';
       } else if (error.message.includes('users_pkey')) {
         userMessage = 'User already exists with this email.';
+      } else if (error.message.includes('User already registered')) {
+        userMessage = 'This email is already registered. Please try logging in.';
+      } else if (error.message.includes('Failed to create profile')) {
+        // Use the detailed error message from above
+        userMessage = error.message;
       }
-      
+
       toast.error(userMessage);
     } finally {
       setIsLoading(false);

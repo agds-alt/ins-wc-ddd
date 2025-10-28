@@ -1,6 +1,29 @@
 // src/lib/cloudinary.ts
 import imageCompression from 'browser-image-compression';
 
+// Environment variables for Cloudinary
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_FOLDER = import.meta.env.VITE_CLOUDINARY_FOLDER || 'toilet-inspections';
+
+// Validate environment variables
+const validateCloudinaryConfig = (): void => {
+  const missingVars: string[] = [];
+
+  if (!CLOUDINARY_CLOUD_NAME) missingVars.push('VITE_CLOUDINARY_CLOUD_NAME');
+  if (!CLOUDINARY_UPLOAD_PRESET) missingVars.push('VITE_CLOUDINARY_UPLOAD_PRESET');
+
+  if (missingVars.length > 0) {
+    throw new Error(
+      `Missing required Cloudinary environment variables: ${missingVars.join(', ')}\n` +
+      'Please check your .env file and ensure all variables are set.'
+    );
+  }
+};
+
+// Validate on module load
+validateCloudinaryConfig();
+
 /**
  * Compress image before upload
  */
@@ -31,13 +54,12 @@ export const compressImage = async (file: File): Promise<File> => {
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'toilet-checks');
-  formData.append('cloud_name', 'dcg56qkae');
-  formData.append('folder', 'toilet-inspections');
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', CLOUDINARY_FOLDER);
 
   try {
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/dcg56qkae/image/upload`,
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
       {
         method: 'POST',
         body: formData,
@@ -46,7 +68,7 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error?.message || 'Upload failed');
-    
+
     return data.secure_url;
   } catch (error) {
     console.error('Cloudinary upload error:', error);
