@@ -470,45 +470,6 @@ export type Database = {
         }
         Relationships: []
       }
-      roles_backup: {
-        Row: {
-          color: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          display_name: string | null
-          id: string | null
-          is_active: boolean | null
-          level: string | null
-          name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          display_name?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          level?: string | null
-          name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          color?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          display_name?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          level?: string | null
-          name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       user_occupations: {
         Row: {
           color: string | null
@@ -579,30 +540,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      user_roles_backup: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          id: string | null
-          role_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          id?: string | null
-          role_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          id?: string | null
-          role_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
       }
       users: {
         Row: {
