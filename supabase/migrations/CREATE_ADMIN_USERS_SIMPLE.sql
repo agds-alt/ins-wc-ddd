@@ -41,7 +41,7 @@ SELECT
   is_active,
   created_at
 FROM users
-WHERE email IN ('agdscid@gmail.com.com', 'admin@wchecks.com')  -- 🚨 Match your emails!
+WHERE email IN ('agdscid@gmail.com', 'admin@wchecks.com')  -- 🚨 Match your emails!
 ORDER BY created_at DESC;
 
 -- Expected: 2 rows showing both users
@@ -60,7 +60,7 @@ BEGIN
   -- Get Super Admin user ID
   SELECT id INTO superadmin_user_id
   FROM users
-  WHERE email = 'agdscid@gmail.com.com'  -- 🚨 Match your email!
+  WHERE email = 'agdscid@gmail.com'  -- 🚨 Match your email!
   LIMIT 1;
 
   -- Get Admin user ID
