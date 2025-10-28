@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       buildings: {
@@ -467,50 +442,33 @@ export type Database = {
       }
       roles: {
         Row: {
-          color: string | null
           created_at: string | null
-          created_by: string | null
           description: string | null
-          display_name: string
           id: string
           is_active: boolean | null
-          level: string
+          level: number
           name: string
           updated_at: string | null
         }
         Insert: {
-          color?: string | null
           created_at?: string | null
-          created_by?: string | null
           description?: string | null
-          display_name: string
           id?: string
           is_active?: boolean | null
-          level: string
+          level: number
           name: string
           updated_at?: string | null
         }
         Update: {
-          color?: string | null
           created_at?: string | null
-          created_by?: string | null
           description?: string | null
-          display_name?: string
           id?: string
           is_active?: boolean | null
-          level?: string
+          level?: number
           name?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "roles_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_occupations: {
         Row: {
@@ -550,46 +508,35 @@ export type Database = {
       }
       user_roles: {
         Row: {
-          assigned_at: string | null
           assigned_by: string | null
+          created_at: string | null
           id: string
           role_id: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          assigned_at?: string | null
           assigned_by?: string | null
+          created_at?: string | null
           id?: string
           role_id: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          assigned_at?: string | null
           assigned_by?: string | null
+          created_at?: string | null
           id?: string
           role_id?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_roles_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "user_roles_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -697,6 +644,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_user_role_level: { Args: never; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       user_has_any_role_level: {
@@ -835,9 +783,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
