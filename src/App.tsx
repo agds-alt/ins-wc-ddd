@@ -42,7 +42,13 @@ const AddLocationPage = lazy(() =>
 const LocationsManager = lazy(() =>
   import('./pages/admin/LocationsManager').then(module => ({ default: module.LocationsManager }))
 );
-const AdminDashboard = lazy(() => 
+const OrganizationsManager = lazy(() =>
+  import('./pages/admin/OrganizationsManager').then(module => ({ default: module.OrganizationsManager }))
+);
+const BuildingsManager = lazy(() =>
+  import('./pages/admin/BuildingsManager').then(module => ({ default: module.BuildingsManager }))
+);
+const AdminDashboard = lazy(() =>
   import('./pages/admin/AdminDashboard').then(module => ({ default: module.AdminDashboard }))
 );
 const QRCodeGenerator = lazy(() => 
@@ -163,6 +169,14 @@ function AppContent() {
         <Route
           path="/admin/locations"
           element={user ? <LocationsManager /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/organizations"
+          element={user ? <OrganizationsManager /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/buildings"
+          element={user ? <BuildingsManager /> : <Navigate to="/login" replace />}
         />
         <Route 
           path="/profile" 
