@@ -760,13 +760,6 @@ const handleSubmit = async () => {
   </div>
 )}
 
-{/* Upload Progress Indicator */}
-{uploadProgress && (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    {/* ... full progress UI dari artifact ... */}
-  </div>
-)}
-
       {/* Submit Button (Sticky Bottom) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg">
         <button

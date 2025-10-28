@@ -12,9 +12,35 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Sidebar } from '../../components/mobile/Sidebar';
 import { BottomNav } from '../../components/mobile/BottomNav';
+import { z } from 'zod';
 
 type Organization = Tables<'organizations'>;
 type OrganizationInsert = TablesInsert<'organizations'>;
+
+// Zod validation schema for organization
+const organizationSchema = z.object({
+  name: z.string()
+    .min(2, 'Organization name must be at least 2 characters')
+    .max(255, 'Organization name is too long'),
+  short_code: z.string()
+    .min(1, 'Short code is required')
+    .max(10, 'Short code must be 10 characters or less')
+    .regex(/^[A-Z0-9\-_]+$/, 'Short code must contain only uppercase letters, numbers, hyphens, and underscores')
+    .transform(val => val.toUpperCase()),
+  email: z.string()
+    .email('Invalid email format')
+    .optional()
+    .or(z.literal('')),
+  phone: z.string()
+    .regex(/^[\d\s\-\+\(\)]*$/, 'Invalid phone number format')
+    .optional()
+    .or(z.literal('')),
+  address: z.string()
+    .max(500, 'Address is too long')
+    .optional()
+    .or(z.literal('')),
+  is_active: z.boolean().default(true),
+});
 
 export const OrganizationsManager = () => {
   const navigate = useNavigate();
@@ -141,11 +167,21 @@ export const OrganizationsManager = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.short_code) {
-      toast.error('Name and code are required');
-      return;
+
+    // Validate form data with Zod schema
+    try {
+      const validatedData = organizationSchema.parse(formData);
+      saveMutation.mutate(validatedData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        // Show first validation error
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+        console.error('Validation errors:', error.errors);
+      } else {
+        toast.error('Validation failed');
+      }
     }
-    saveMutation.mutate(formData);
   };
 
   // Auth checks

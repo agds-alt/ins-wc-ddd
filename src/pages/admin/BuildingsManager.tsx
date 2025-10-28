@@ -12,10 +12,41 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Sidebar } from '../../components/mobile/Sidebar';
 import { BottomNav } from '../../components/mobile/BottomNav';
+import { z } from 'zod';
 
 type Building = Tables<'buildings'>;
 type BuildingInsert = TablesInsert<'buildings'>;
 type Organization = Tables<'organizations'>;
+
+// Zod validation schema for building
+const buildingSchema = z.object({
+  name: z.string()
+    .min(2, 'Building name must be at least 2 characters')
+    .max(255, 'Building name is too long'),
+  short_code: z.string()
+    .min(1, 'Short code is required')
+    .max(10, 'Short code must be 10 characters or less')
+    .regex(/^[A-Z0-9\-_]+$/, 'Short code must contain only uppercase letters, numbers, hyphens, and underscores')
+    .transform(val => val.toUpperCase()),
+  organization_id: z.string()
+    .uuid('Invalid organization selected')
+    .min(1, 'Organization is required'),
+  type: z.string()
+    .max(50, 'Type is too long')
+    .optional()
+    .or(z.literal('')),
+  address: z.string()
+    .max(500, 'Address is too long')
+    .optional()
+    .or(z.literal('')),
+  total_floors: z.number()
+    .int('Total floors must be a whole number')
+    .min(1, 'Total floors must be at least 1')
+    .max(200, 'Total floors cannot exceed 200')
+    .optional()
+    .or(z.literal(undefined)),
+  is_active: z.boolean().default(true),
+});
 
 export const BuildingsManager = () => {
   const navigate = useNavigate();
@@ -160,11 +191,21 @@ export const BuildingsManager = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.short_code || !formData.organization_id) {
-      toast.error('Name, code, and organization are required');
-      return;
+
+    // Validate form data with Zod schema
+    try {
+      const validatedData = buildingSchema.parse(formData);
+      saveMutation.mutate(validatedData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        // Show first validation error
+        const firstError = error.errors[0];
+        toast.error(firstError.message);
+        console.error('Validation errors:', error.errors);
+      } else {
+        toast.error('Validation failed');
+      }
     }
-    saveMutation.mutate(formData);
   };
 
   const getOrganizationName = (orgId: string) => {
