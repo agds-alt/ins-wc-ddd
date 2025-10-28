@@ -6,7 +6,49 @@
 -- Sprint: 2
 -- =============================================================================
 
+-- =============================================================================
+-- Drop Existing Policies (if any)
+-- =============================================================================
+
+-- Drop ORGANIZATIONS policies
+DROP POLICY IF EXISTS "Anyone can view active organizations" ON organizations;
+DROP POLICY IF EXISTS "Only admins can create organizations" ON organizations;
+DROP POLICY IF EXISTS "Only admins can update organizations" ON organizations;
+DROP POLICY IF EXISTS "Only super admins can delete organizations" ON organizations;
+
+-- Drop BUILDINGS policies
+DROP POLICY IF EXISTS "Anyone can view active buildings" ON buildings;
+DROP POLICY IF EXISTS "Only admins can create buildings" ON buildings;
+DROP POLICY IF EXISTS "Only admins can update buildings" ON buildings;
+DROP POLICY IF EXISTS "Only super admins can delete buildings" ON buildings;
+
+-- Drop LOCATIONS policies
+DROP POLICY IF EXISTS "Anyone can view active locations" ON locations;
+DROP POLICY IF EXISTS "Only admins can create locations" ON locations;
+DROP POLICY IF EXISTS "Only admins can update locations" ON locations;
+DROP POLICY IF EXISTS "Only admins can delete locations" ON locations;
+
+-- Drop INSPECTION_RECORDS policies
+DROP POLICY IF EXISTS "Users can view their own inspections" ON inspection_records;
+DROP POLICY IF EXISTS "Anyone can create inspections" ON inspection_records;
+DROP POLICY IF EXISTS "Users can update own unverified inspections" ON inspection_records;
+DROP POLICY IF EXISTS "Only admins can delete inspections" ON inspection_records;
+
+-- Drop PHOTOS policies
+DROP POLICY IF EXISTS "Users can view photos from their inspections" ON photos;
+DROP POLICY IF EXISTS "Users can upload photos to their inspections" ON photos;
+DROP POLICY IF EXISTS "Users can update their own photos" ON photos;
+DROP POLICY IF EXISTS "Only admins can hard delete photos" ON photos;
+
+-- Drop USER_ROLES policies
+DROP POLICY IF EXISTS "Users can view their own roles" ON user_roles;
+DROP POLICY IF EXISTS "Only super admins can create user roles" ON user_roles;
+DROP POLICY IF EXISTS "Only super admins can update user roles" ON user_roles;
+DROP POLICY IF EXISTS "Only super admins can delete user roles" ON user_roles;
+
+-- =============================================================================
 -- Enable RLS on all tables
+-- =============================================================================
 ALTER TABLE IF EXISTS organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS buildings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS locations ENABLE ROW LEVEL SECURITY;
