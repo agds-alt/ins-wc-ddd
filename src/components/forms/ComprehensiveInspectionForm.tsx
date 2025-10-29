@@ -731,21 +731,21 @@ const handleSubmit = async () => {
           {genZMode ? 'Upload Foto...' : 'Uploading Photos...'}
         </h3>
         <p className="text-sm text-gray-600">
-          {uploadProgress.current} of {uploadProgress.total} photos
+          {uploadProgress?.current || 0} of {uploadProgress?.total || 0} photos
         </p>
       </div>
 
       {/* Progress Bar */}
       <div className="relative">
         <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300 ease-out"
-            style={{ width: `${uploadProgress.percentage}%` }}
+            style={{ width: `${uploadProgress?.percentage || 0}%` }}
           />
         </div>
         <div className="mt-2 text-center">
           <span className="text-2xl font-bold text-blue-600">
-            {uploadProgress.percentage}%
+            {uploadProgress?.percentage || 0}%
           </span>
         </div>
       </div>
@@ -778,10 +778,10 @@ const handleSubmit = async () => {
           `}
         >
           {isSubmitting
-            ? uploadProgress.total > 0
+            ? (uploadProgress?.total || 0) > 0
               ? genZMode
-                ? `📸 Upload ${uploadProgress.current}/${uploadProgress.total}...`
-                : `Uploading ${uploadProgress.current}/${uploadProgress.total} photos...`
+                ? `📸 Upload ${uploadProgress?.current || 0}/${uploadProgress?.total || 0}...`
+                : `Uploading ${uploadProgress?.current || 0}/${uploadProgress?.total || 0} photos...`
               : genZMode
                 ? '⏳ Submitting...'
                 : 'Submitting...'
