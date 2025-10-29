@@ -111,10 +111,12 @@ const NotFoundPage = () => (
 );
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  // ✅ DON'T block - show pages immediately
-  // Auth check happens in background
+  // ✅ WAIT for auth to load before routing
+  if (loading) {
+    return <AuthLoader />;
+  }
 
   return (
     <Suspense fallback={<PageLoader />}>
