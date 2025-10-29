@@ -120,11 +120,16 @@ export function useAuth(): UseAuthReturn {
       }, 3000);
 
       try {
+        console.log('🔍 Calling supabase.auth.getSession()...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('🔍 getSession() returned:', { hasSession: !!session, hasError: !!sessionError });
 
         clearTimeout(timeoutId);
 
-        if (!mounted) return;
+        if (!mounted) {
+          console.log('🔍 Component unmounted, aborting');
+          return;
+        }
 
         if (sessionError || !session?.user) {
           console.log('ℹ️ No session');
