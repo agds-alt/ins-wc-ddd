@@ -14,36 +14,36 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { 
-    id: 'home', 
-    icon: Home, 
-    label: 'Home', 
-    path: '/' 
+  {
+    id: 'home',
+    icon: Home,
+    label: 'Beranda',
+    path: '/'
   },
-  { 
-    id: 'history', 
-    icon: Calendar, 
-    label: 'History', 
-    path: '/history' 
+  {
+    id: 'history',
+    icon: Calendar,
+    label: 'Riwayat',
+    path: '/history'
   },
-  { 
-    id: 'scan', 
-    icon: QrCode, 
-    label: 'Scan', 
-    path: '/scan', 
-    isCenter: true 
+  {
+    id: 'scan',
+    icon: QrCode,
+    label: 'Pindai',
+    path: '/scan',
+    isCenter: true
   },
-  { 
-    id: 'analytics', 
-    icon: BarChart3, 
-    label: 'Analytics', 
-    path: '/analytics' 
+  {
+    id: 'analytics',
+    icon: BarChart3,
+    label: 'Analitik',
+    path: '/analytics'
   },
-  { 
-    id: 'profile', 
-    icon: User, 
-    label: 'Profile', 
-    path: '/profile' 
+  {
+    id: 'profile',
+    icon: User,
+    label: 'Profil',
+    path: '/profile'
   },
 ];
 
@@ -145,11 +145,11 @@ export const BottomNavMinimal = () => {
   const location = useLocation();
 
   const minimalItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Calendar, label: 'History', path: '/history' },
-    { icon: QrCode, label: 'Scan', path: '/scan' },
-    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: Home, label: 'Beranda', path: '/' },
+    { icon: Calendar, label: 'Riwayat', path: '/history' },
+    { icon: QrCode, label: 'Pindai', path: '/scan' },
+    { icon: BarChart3, label: 'Analitik', path: '/analytics' },
+    { icon: User, label: 'Profil', path: '/profile' },
   ];
 
   return (

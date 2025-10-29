@@ -87,10 +87,10 @@ export const PWAInstallPrompt = () => {
               className="font-bold text-gray-900 text-lg"
               style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.1)' }}
             >
-              Install WC Check
+              Pasang WC Check
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              Install our app for faster access and offline support
+              Pasang aplikasi untuk akses lebih cepat dan dukungan offline
             </p>
           </div>
         </div>
@@ -99,15 +99,15 @@ export const PWAInstallPrompt = () => {
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-            <span>Works offline</span>
+            <span>Bekerja secara offline</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-            <span>Quick access from home screen</span>
+            <span>Akses cepat dari layar utama</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-            <span>Faster performance</span>
+            <span>Performa lebih cepat</span>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export const PWAInstallPrompt = () => {
         {isIOS() && (
           <div className="mb-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
             <p className="text-xs text-blue-900 font-medium mb-1">
-              📱 How to install:
+              📱 Cara memasang:
             </p>
             <p className="text-xs text-blue-700">
               {getInstallInstructions()}
@@ -131,14 +131,14 @@ export const PWAInstallPrompt = () => {
               className="flex-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30"
             >
               <Download className="w-4 h-4" />
-              Install Now
+              Pasang Sekarang
             </button>
           )}
           <button
             onClick={handleDismiss}
             className={`${isIOS() ? 'flex-1' : ''} bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-xl font-medium transition-colors`}
           >
-            {isIOS() ? 'Got it' : 'Later'}
+            {isIOS() ? 'Mengerti' : 'Nanti'}
           </button>
         </div>
       </div>
