@@ -100,26 +100,13 @@ export const GeneralPhotoUpload = ({
     setPermissionError(null);
 
     try {
-      // ✅ Try to get location, but DON'T require it for gallery photos
-      let location: { lat: number; lng: number } | null = null;
-      try {
-        location = await getCurrentLocation();
-      } catch (e) {
-        console.log('Location not available for gallery photo (optional)');
-      }
+      // ✅ Gallery photos: Skip GPS (old photos, GPS not accurate anyway)
+      // This makes gallery upload MUCH faster (no GPS wait)
 
-      // Get address if location available
-      let address: string | undefined = undefined;
-      if (location) {
-        getAddressFromCoords(location.lat, location.lng)
-          .then(addr => { address = addr; })
-          .catch(() => { /* Silent fail */ });
-      }
-
-      // ✅ Add watermark with available data (timestamp + location if available)
+      // ✅ Add watermark with timestamp only (no location for gallery)
       const watermarkedBlob = await addWatermarkToPhoto(file, {
         timestamp: new Date().toISOString(),
-        location: location ? { ...location, address } : undefined,
+        location: undefined, // No GPS for gallery photos
         locationName,
       });
 
@@ -130,7 +117,7 @@ export const GeneralPhotoUpload = ({
         file: watermarkedFile,
         preview,
         timestamp: new Date().toISOString(),
-        geolocation: location,
+        geolocation: undefined, // No GPS for gallery photos
       };
 
       onPhotosChange([...photos, photoMetadata]);
