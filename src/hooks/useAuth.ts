@@ -103,7 +103,10 @@ export function useAuth(): UseAuthReturn {
 
   // ✅ Initialize ONCE with timeout protection
   useEffect(() => {
-    if (initRef.current) return; // ✅ Already initialized
+    if (initRef.current) {
+      console.log('🔍 Init already ran, skipping');
+      return;
+    }
     initRef.current = true;
 
     let mounted = true;
@@ -114,9 +117,7 @@ export function useAuth(): UseAuthReturn {
       // ✅ TIMEOUT protection: Force complete after 3 seconds
       const timeoutId = setTimeout(() => {
         console.warn('⚠️ Auth timeout - proceeding anyway');
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false); // ✅ Always set loading false on timeout
       }, 3000);
 
       try {
@@ -127,7 +128,9 @@ export function useAuth(): UseAuthReturn {
         clearTimeout(timeoutId);
 
         if (!mounted) {
-          console.log('🔍 Component unmounted, aborting');
+          console.log('🔍 Component unmounted during auth - completing anyway');
+          // ✅ FIX: Still set loading to false even if unmounted (React Strict Mode)
+          setLoading(false);
           return;
         }
 
@@ -164,18 +167,19 @@ export function useAuth(): UseAuthReturn {
         setLoading(false);
       } catch (err) {
         console.error('❌ Auth init error:', err);
-        if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
+        setUser(null);
+        setProfile(null);
+        setLoading(false); // ✅ Always set loading false on error
       }
     };
 
     initAuth();
 
     return () => {
+      console.log('🔍 Auth cleanup - resetting for React Strict Mode');
       mounted = false;
+      // ✅ FIX: Reset initRef so remount can run (React 18 Strict Mode)
+      initRef.current = false;
     };
   }, []); // ✅ Empty deps - run ONCE only
 
