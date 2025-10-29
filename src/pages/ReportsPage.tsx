@@ -71,9 +71,12 @@ export const ReportsPage = () => {
         .from('inspection_records')
         .select(`
           *,
-          users (full_name, email, phone, occupation_id),
+          users!inspection_records_user_id_fkey (full_name, email, phone, occupation_id),
           locations!inner (
             name,
+            floor,
+            area,
+            section,
             building_id,
             buildings!inner (name, organization_id, organizations!inner (name))
           )
