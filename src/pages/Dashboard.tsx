@@ -46,6 +46,7 @@ export const Dashboard = () => {
           total: 0,
           todayCount: 0,
           completed: 0,
+          avgScore: 0,
           recent: [],
         };
       }
@@ -83,12 +84,27 @@ export const Dashboard = () => {
                (i.responses?.score && i.responses.score >= 60);
       }).length || 0;
 
+      // Calculate average score
+      const avgScore = inspections && inspections.length > 0
+        ? Math.round(
+            inspections.reduce((sum, inspection) => {
+              // Try to get score from responses
+              const score = inspection.responses?.score ||
+                           (inspection.overall_status === 'excellent' ? 95 :
+                            inspection.overall_status === 'good' ? 80 :
+                            inspection.overall_status === 'fair' ? 65 : 50);
+              return sum + score;
+            }, 0) / inspections.length
+          )
+        : 0;
+
       const recentData = inspections?.slice(0, 3) || [];
 
       return {
         total,
         todayCount,
         completed,
+        avgScore,
         recent: recentData,
       };
     },
@@ -105,6 +121,7 @@ export const Dashboard = () => {
     total: 0,
     todayCount: 0,
     completed: 0,
+    avgScore: 0,
     recent: [],
   };
 
@@ -158,8 +175,8 @@ export const Dashboard = () => {
 
       {/* Main Content */}
       <main className="p-5 space-y-5">
-        {/* Stats Cards - Simple 3D Shadow */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Stats Cards - 2x2 Grid */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50">
             <p className="text-3xl font-bold text-gray-900">{dashboardStats.total}</p>
             <p className="text-xs text-gray-500 mt-1">Total</p>
@@ -171,6 +188,10 @@ export const Dashboard = () => {
           <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50">
             <p className="text-3xl font-bold text-green-600">{dashboardStats.completed}</p>
             <p className="text-xs text-gray-500 mt-1">Selesai</p>
+          </div>
+          <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50">
+            <p className="text-3xl font-bold text-purple-600">{dashboardStats.avgScore}</p>
+            <p className="text-xs text-gray-500 mt-1">Rata-rata</p>
           </div>
         </div>
 

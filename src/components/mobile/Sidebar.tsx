@@ -4,12 +4,12 @@ import {
   X,
   MapPin,
   FileText,
-  User,
-  Home,
-  QrCode,
   LogOut,
   Building2,
   Shield,
+  Settings,
+  HelpCircle,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useIsAdmin } from '../../hooks/useIsAdmin';
@@ -40,11 +40,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   };
 
   const menuItems = [
-    { icon: Home, label: 'Dasbor', path: '/' },
-    { icon: QrCode, label: 'Pindai QR', path: '/scan' },
-    { icon: MapPin, label: 'Lokasi', path: '/locations', description: 'Inspeksi manual' },
-    { icon: FileText, label: 'Laporan', path: '/reports' },
-    { icon: User, label: 'Profil', path: '/profile' },
+    { icon: MapPin, label: 'Lokasi', path: '/locations', description: 'Daftar semua lokasi' },
+    { icon: FileText, label: 'Laporan', path: '/reports', description: 'Riwayat inspeksi' },
+    { icon: Settings, label: 'Pengaturan', path: '/settings', description: 'Preferensi aplikasi' },
+    { icon: HelpCircle, label: 'Bantuan & FAQ', path: '/help', description: 'Panduan penggunaan' },
+    { icon: Info, label: 'Tentang Aplikasi', path: '/about', description: 'Versi & informasi' },
   ];
 
   const adminMenuItems = [
@@ -66,7 +66,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       />
 
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-80 bg-white z-50 shadow-2xl transform transition-transform">
+      <div className="fixed inset-y-0 left-0 w-[85vw] max-w-sm bg-white z-50 shadow-2xl transform transition-transform">
         {/* Header */}
         <div className="bg-white border-b border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
