@@ -240,9 +240,9 @@ export const OrganizationsManager = () => {
                 className="text-2xl font-bold text-gray-900"
                 style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}
               >
-                Organizations
+                Organisasi
               </h1>
-              <p className="text-gray-600 text-sm">Manage organizations & generate QR codes</p>
+              <p className="text-gray-600 text-sm">Kelola organisasi & buat kode QR</p>
             </div>
           </div>
 
@@ -266,7 +266,7 @@ export const OrganizationsManager = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search organizations..."
+                placeholder="Cari organisasi..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -282,7 +282,7 @@ export const OrganizationsManager = () => {
               className="w-full flex items-center justify-center space-x-2"
             >
               <Plus className="w-5 h-5" />
-              <span>Add Organization</span>
+              <span>Tambah Organisasi</span>
             </Button>
           </div>
         </Card>
@@ -293,7 +293,7 @@ export const OrganizationsManager = () => {
             <Card>
               <div className="text-center py-8 text-gray-500">
                 <Building2 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>No organizations found</p>
+                <p>Tidak ada organisasi ditemukan</p>
               </div>
             </Card>
           ) : (
@@ -329,7 +329,7 @@ export const OrganizationsManager = () => {
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {org.is_active ? '✓ Active' : '✗ Inactive'}
+                      {org.is_active ? '✓ Aktif' : '✗ Tidak Aktif'}
                     </span>
                   </div>
                 </div>
@@ -356,14 +356,14 @@ export const OrganizationsManager = () => {
                           className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-gray-700"
                         >
                           <Edit2 className="w-4 h-4" />
-                          Edit
+                          Ubah
                         </button>
                         <button
                           onClick={() => handleDelete(org.id, org.name)}
                           className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />
-                          Delete
+                          Hapus
                         </button>
                       </div>
                     </>
@@ -380,7 +380,7 @@ export const OrganizationsManager = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {selectedOrg ? 'Edit Organization' : 'Add Organization'}
+              {selectedOrg ? 'Ubah Organisasi' : 'Tambah Organisasi'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -456,7 +456,7 @@ export const OrganizationsManager = () => {
                   className="w-4 h-4"
                 />
                 <label htmlFor="is_active" className="text-sm text-gray-700">
-                  Active
+                  Aktif
                 </label>
               </div>
 
@@ -466,7 +466,7 @@ export const OrganizationsManager = () => {
                   className="flex-1"
                   disabled={saveMutation.isPending}
                 >
-                  {saveMutation.isPending ? 'Saving...' : 'Save'}
+                  {saveMutation.isPending ? 'Menyimpan...' : 'Simpan'}
                 </Button>
                 <Button
                   type="button"
@@ -477,7 +477,7 @@ export const OrganizationsManager = () => {
                   }}
                   className="flex-1"
                 >
-                  Cancel
+                  Batal
                 </Button>
               </div>
             </form>

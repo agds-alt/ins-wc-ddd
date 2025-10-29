@@ -268,9 +268,9 @@ export const BuildingsManager = () => {
                 className="text-2xl font-bold text-gray-900"
                 style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}
               >
-                Buildings
+                Gedung
               </h1>
-              <p className="text-gray-600 text-sm">Manage buildings & generate QR codes</p>
+              <p className="text-gray-600 text-sm">Kelola gedung & buat kode QR</p>
             </div>
           </div>
 
@@ -294,7 +294,7 @@ export const BuildingsManager = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search buildings..."
+                placeholder="Cari gedung..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -310,7 +310,7 @@ export const BuildingsManager = () => {
               className="w-full flex items-center justify-center space-x-2"
             >
               <Plus className="w-5 h-5" />
-              <span>Add Building</span>
+              <span>Tambah Gedung</span>
             </Button>
           </div>
         </Card>
@@ -321,7 +321,7 @@ export const BuildingsManager = () => {
             <Card>
               <div className="text-center py-8 text-gray-500">
                 <Building2 className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>No buildings found</p>
+                <p>Tidak ada gedung ditemukan</p>
               </div>
             </Card>
           ) : (
@@ -351,7 +351,7 @@ export const BuildingsManager = () => {
                   {/* Details */}
                   <div className="text-sm text-gray-600 space-y-1 mb-2">
                     {building.type && <p>🏗️ {building.type}</p>}
-                    {building.total_floors && <p>📊 {building.total_floors} floors</p>}
+                    {building.total_floors && <p>📊 {building.total_floors} lantai</p>}
                     {building.address && <p className="truncate">📍 {building.address}</p>}
                   </div>
 
@@ -364,7 +364,7 @@ export const BuildingsManager = () => {
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {building.is_active ? '✓ Active' : '✗ Inactive'}
+                      {building.is_active ? '✓ Aktif' : '✗ Tidak Aktif'}
                     </span>
                   </div>
                 </div>
@@ -391,14 +391,14 @@ export const BuildingsManager = () => {
                           className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-gray-700"
                         >
                           <Edit2 className="w-4 h-4" />
-                          Edit
+                          Ubah
                         </button>
                         <button
                           onClick={() => handleDelete(building.id, building.name)}
                           className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />
-                          Delete
+                          Hapus
                         </button>
                       </div>
                     </>
@@ -415,7 +415,7 @@ export const BuildingsManager = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {selectedBuilding ? 'Edit Building' : 'Add Building'}
+              {selectedBuilding ? 'Ubah Gedung' : 'Tambah Gedung'}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -527,7 +527,7 @@ export const BuildingsManager = () => {
                   className="flex-1"
                   disabled={saveMutation.isPending}
                 >
-                  {saveMutation.isPending ? 'Saving...' : 'Save'}
+                  {saveMutation.isPending ? 'Menyimpan...' : 'Simpan'}
                 </Button>
                 <Button
                   type="button"
@@ -538,7 +538,7 @@ export const BuildingsManager = () => {
                   }}
                   className="flex-1"
                 >
-                  Cancel
+                  Batal
                 </Button>
               </div>
             </form>
