@@ -1,6 +1,6 @@
 // src/components/forms/GeneralPhotoUpload.tsx - FIXED: Separate Camera & Gallery buttons
 import { useState, useRef } from 'react';
-import { Camera, X, MapPin, Clock, Loader2, AlertCircle, Image } from 'lucide-react';
+import { Camera, X, MapPin, Clock, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { PhotoWithMetadata } from '../../types/inspection.types';
 
@@ -262,7 +262,7 @@ export const GeneralPhotoUpload = ({
               }
             `}
           >
-            <Image className="w-7 h-7" />
+            <ImageIcon className="w-7 h-7" />
             <div className="text-center">
               <p className="text-sm font-semibold">
                 {genZMode ? '🖼️ Galeri' : '🖼️ Gallery'}
