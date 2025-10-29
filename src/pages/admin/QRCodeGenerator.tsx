@@ -30,8 +30,9 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
 
   const isSingleQR = locations.length === 1;
 
+  // ✅ FIXED: react-to-print v3 API - use contentRef instead of content
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,  // v3: Pass ref directly, not a function
     documentTitle: `QR-Codes-${new Date().toISOString().split('T')[0]}`,
     pageStyle: `
       @page {
