@@ -265,7 +265,7 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
                 })}
               </div>
             ) : (
-              // BULK QR: Grid Layout - 4 per page
+              // BULK QR: Grid Layout - 6 per page (2 columns x 3 rows)
               <div>
                 <style>
                   {`
@@ -273,16 +273,26 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
                       .qr-grid-container {
                         display: grid;
                         grid-template-columns: 1fr 1fr;
-                        gap: 10mm;
+                        gap: 8mm;
                         page-break-inside: avoid;
                       }
                       .qr-grid-item {
                         border: 2px solid #e5e7eb;
                         border-radius: 8px;
-                        padding: 8mm;
+                        padding: 6mm;
                         text-align: center;
                         background: white;
                         page-break-inside: avoid;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                      }
+                      .qr-code-wrapper {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        margin-bottom: 3mm;
                       }
                       .qr-page-break {
                         page-break-after: always;
@@ -290,9 +300,9 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
                     }
                   `}
                 </style>
-                {Array.from({ length: Math.ceil(locations.length / 4) }).map((_, pageIndex) => {
-                  const pageLocations = locations.slice(pageIndex * 4, (pageIndex + 1) * 4);
-                  const isLastPage = pageIndex === Math.ceil(locations.length / 4) - 1;
+                {Array.from({ length: Math.ceil(locations.length / 6) }).map((_, pageIndex) => {
+                  const pageLocations = locations.slice(pageIndex * 6, (pageIndex + 1) * 6);
+                  const isLastPage = pageIndex === Math.ceil(locations.length / 6) - 1;
 
                   return (
                     <div key={pageIndex} className={!isLastPage ? 'qr-page-break' : ''}>
@@ -301,11 +311,11 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
                           const locationURL = getLocationURL(location.id);
                           return (
                             <div key={location.id} className="qr-grid-item">
-                              {/* QR Code */}
-                              <div style={{ marginBottom: '4mm' }}>
+                              {/* QR Code - Centered */}
+                              <div className="qr-code-wrapper">
                                 <QRCodeSVG
                                   value={locationURL}
-                                  size={150}
+                                  size={140}
                                   level="H"
                                   includeMargin={true}
                                 />
@@ -313,9 +323,9 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
 
                               {/* Location Info */}
                               <h3 style={{
-                                fontSize: '16px',
+                                fontSize: '15px',
                                 fontWeight: 'bold',
-                                marginBottom: '4px',
+                                marginBottom: '3px',
                                 color: '#111827',
                               }}>
                                 {location.name}
@@ -323,16 +333,16 @@ export const QRCodeGenerator = ({ locations, onClose }: QRCodeGeneratorProps) =>
 
                               {location.code && (
                                 <p style={{
-                                  fontSize: '14px',
+                                  fontSize: '13px',
                                   color: '#2563eb',
                                   fontWeight: '600',
-                                  marginBottom: '4px',
+                                  marginBottom: '3px',
                                 }}>
                                   {location.code}
                                 </p>
                               )}
 
-                              <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                              <div style={{ fontSize: '10px', color: '#6b7280' }}>
                                 {location.building && <div>{location.building}</div>}
                                 {location.floor && <div>{location.floor}</div>}
                               </div>
