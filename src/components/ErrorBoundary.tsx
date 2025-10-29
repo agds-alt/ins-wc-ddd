@@ -25,6 +25,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // ⚠️ FIRST THING CALLED when error occurs
+    console.error('🔴 getDerivedStateFromError CALLED with error:', error);
+    console.error('🔴 Error message:', error.message);
+    console.error('🔴 Error stack:', error.stack);
+
     return {
       hasError: true,
       error,
@@ -33,6 +38,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
+    // ✅ ALWAYS log to console (even in production)
+    console.error('🚨 ErrorBoundary caught error:', error);
+    console.error('📍 Component stack:', errorInfo.componentStack);
+    console.error('📝 Error stack:', error.stack);
+
+    // Also log via logger
     logger.error('React component error', {
       error: error.message,
       stack: error.stack,
@@ -55,6 +66,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      console.error('🟡 ErrorBoundary RENDERING error UI');
+      console.error('🟡 Error state:', this.state.error);
+
       if (this.props.fallback) {
         return this.props.fallback;
       }
