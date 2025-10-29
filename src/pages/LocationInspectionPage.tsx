@@ -23,9 +23,9 @@ export const LocationInspectionPage = () => {
   // Check authentication - redirect if not logged in
   useEffect(() => {
     if (!user) {
-      toast.error('Please login to continue');
-      navigate('/login', { 
-        state: { from: `/location-inspection/${locationId}` } 
+      toast.error('Harap login untuk melanjutkan');
+      navigate('/login', {
+        state: { from: `/location-inspection/${locationId}` }
       });
     }
   }, [user, navigate, locationId]);
@@ -34,7 +34,7 @@ export const LocationInspectionPage = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       if (!locationId) {
-        toast.error('Location ID not found');
+        toast.error('ID lokasi tidak ditemukan');
         navigate('/scan');
         return;
       }
@@ -50,11 +50,11 @@ export const LocationInspectionPage = () => {
           console.error('Error fetching location:', error);
           throw error;
         }
-        
+
         setLocation(data);
       } catch (error: any) {
         console.error('Error fetching location:', error);
-        toast.error(error.message || 'Location not found');
+        toast.error(error.message || 'Lokasi tidak ditemukan');
         navigate('/scan');
       } finally {
         setLoading(false);
@@ -66,7 +66,7 @@ export const LocationInspectionPage = () => {
 
   const handleStartInspection = () => {
     if (!user) {
-      toast.error('Please login to start inspection');
+      toast.error('Harap login untuk memulai inspeksi');
       navigate('/login');
       return;
     }
@@ -93,10 +93,10 @@ export const LocationInspectionPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Location Not Found</h2>
-          <p className="text-gray-600 mb-4">The requested location does not exist or you don't have access.</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Lokasi Tidak Ditemukan</h2>
+          <p className="text-gray-600 mb-4">Lokasi yang diminta tidak ada atau Anda tidak memiliki akses.</p>
           <Button onClick={() => navigate('/scan')}>
-            Back to Scanner
+            Kembali ke Pemindai
           </Button>
         </Card>
       </div>
@@ -116,11 +116,11 @@ export const LocationInspectionPage = () => {
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}>Back</span>
+                <span style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.15)' }}>Kembali</span>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Toilet Inspection</h1>
-                <p className="text-gray-600">Complete inspection for this location</p>
+                <h1 className="text-2xl font-bold text-gray-900">Inspeksi Toilet</h1>
+                <p className="text-gray-600">Lengkapi inspeksi untuk lokasi ini</p>
               </div>
             </div>
             
@@ -156,13 +156,13 @@ export const LocationInspectionPage = () => {
                   <div className="flex items-center space-x-2">
                     <Building className="w-4 h-4" />
                     <span>
-                      <strong>Building:</strong> {location.building_name || 'N/A'}
+                      <strong>Gedung:</strong> {location.building_name || 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4" />
                     <span>
-                      <strong>Organization:</strong> {location.organization_name || 'N/A'}
+                      <strong>Organisasi:</strong> {location.organization_name || 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -170,17 +170,17 @@ export const LocationInspectionPage = () => {
                 <div className="space-y-2">
                   {location.floor && (
                     <div>
-                      <strong>Floor:</strong> {location.floor}
+                      <strong>Lantai:</strong> {location.floor}
                     </div>
                   )}
                   {location.section && (
                     <div>
-                      <strong>Section:</strong> {location.section}
+                      <strong>Seksi:</strong> {location.section}
                     </div>
                   )}
                   {location.area && (
                     <div>
-                      <strong>Area Type:</strong> {location.area}
+                      <strong>Jenis Area:</strong> {location.area}
                     </div>
                   )}
                 </div>
@@ -195,7 +195,7 @@ export const LocationInspectionPage = () => {
               {location.code && (
                 <div className="mt-3">
                   <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                    Code: {location.code}
+                    Kode: {location.code}
                   </span>
                 </div>
               )}
@@ -212,11 +212,11 @@ export const LocationInspectionPage = () => {
               </div>
               
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Ready to Inspect?
+                Siap Melakukan Inspeksi?
               </h3>
               <p className="text-gray-600 mb-6">
-                Start the inspection process for <strong>{location.name}</strong>. 
-                You'll be rating various components and can add photos if needed.
+                Mulai proses inspeksi untuk <strong>{location.name}</strong>.
+                Anda akan menilai berbagai komponen dan dapat menambahkan foto jika diperlukan.
               </p>
 
               <div className="space-y-3">
@@ -226,15 +226,15 @@ export const LocationInspectionPage = () => {
                   size="lg"
                   disabled={!user}
                 >
-                  Start Inspection
+                  Mulai Inspeksi
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={() => navigate('/scan')}
                   className="w-full"
                 >
-                  Scan Different QR Code
+                  Pindai Kode QR Lain
                 </Button>
               </div>
             </div>
@@ -276,17 +276,17 @@ const RecentInspections = ({ locationId }: { locationId: string }) => {
     fetchInspections();
   }, [locationId]);
 
-  if (loading) return <div className="text-center py-4">Loading inspection history...</div>;
+  if (loading) return <div className="text-center py-4">Memuat riwayat inspeksi...</div>;
 
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Recent Inspections
+        Inspeksi Terbaru
       </h3>
-      
+
       {inspections.length === 0 ? (
         <p className="text-gray-500 text-center py-4">
-          No inspections yet. Be the first to inspect this location!
+          Belum ada inspeksi. Jadilah yang pertama memeriksa lokasi ini!
         </p>
       ) : (
         <div className="space-y-3">
@@ -297,7 +297,7 @@ const RecentInspections = ({ locationId }: { locationId: string }) => {
                   {new Date(inspection.inspection_date).toLocaleDateString('id-ID')}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {inspection.inspection_time} â€¢ 
+                  {inspection.inspection_time} •
                   Status: <span className={`font-medium ${
                     inspection.overall_status === 'excellent' ? 'text-green-600' :
                     inspection.overall_status === 'good' ? 'text-blue-600' :
@@ -308,12 +308,12 @@ const RecentInspections = ({ locationId }: { locationId: string }) => {
                   </span>
                 </p>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => console.log('View inspection details:', inspection.id)}
               >
-                View Details
+                Lihat Detail
               </Button>
             </div>
           ))}
