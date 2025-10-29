@@ -123,11 +123,28 @@ export const Dashboard = () => {
             >
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">WC Check</h1>
-              <p className="text-sm text-gray-500">
-                Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}
-              </p>
+            <div className="flex items-center gap-2">
+              <img
+                src="/logo.svg"
+                alt="WC Check"
+                className="h-8 w-auto"
+                onError={(e) => {
+                  // Fallback to PNG if SVG fails
+                  const img = e.target as HTMLImageElement;
+                  if (img.src.endsWith('.svg')) {
+                    img.src = '/logo.png';
+                  } else {
+                    // If both fail, just hide the image (text will remain)
+                    img.style.display = 'none';
+                  }
+                }}
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">WC Check</h1>
+                <p className="text-sm text-gray-500">
+                  Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                </p>
+              </div>
             </div>
           </div>
           <button
