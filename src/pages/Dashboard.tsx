@@ -100,25 +100,7 @@ export const Dashboard = () => {
     retry: false, // ⚡ Fail fast, don't retry
   });
 
-  // ✅ Show loading until auth ready (don't wait for stats)
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-sm">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ Redirect to login if not authenticated
-  if (!user) {
-    navigate('/login', { replace: true });
-    return null;
-  }
-
-  // ✅ Use default empty stats if no data
+  // ✅ Use default empty stats if no data (removed redundant auth check - handled by App.tsx routing)
   const dashboardStats = stats || {
     total: 0,
     todayCount: 0,
