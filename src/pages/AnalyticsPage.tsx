@@ -358,9 +358,9 @@ export const AnalyticsPage = () => {
   });
 
   const periodLabels = {
-    week: 'This Week',
-    month: 'This Month',
-    year: 'This Year'
+    week: 'Minggu Ini',
+    month: 'Bulan Ini',
+    year: 'Tahun Ini'
   };
 
   // Error state
@@ -371,15 +371,15 @@ export const AnalyticsPage = () => {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-8 h-8 text-red-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to Load Analytics</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Memuat Analitik</h2>
           <p className="text-gray-600 mb-4">
-            {error instanceof Error ? error.message : 'An unexpected error occurred'}
+            {error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak terduga'}
           </p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
           >
-            Retry
+            Coba Lagi
           </button>
         </div>
       </div>
@@ -391,7 +391,7 @@ export const AnalyticsPage = () => {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-sm">Loading analytics...</p>
+          <p className="text-gray-600 text-sm">Memuat analitik...</p>
         </div>
       </div>
     );
@@ -413,8 +413,8 @@ export const AnalyticsPage = () => {
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
-              <p className="text-sm text-gray-500">Performance insights & trends</p>
+              <h1 className="text-xl font-bold text-gray-900">Analitik</h1>
+              <p className="text-sm text-gray-500">Wawasan kinerja & tren</p>
             </div>
           </div>
           <BarChart3 className="w-6 h-6 text-gray-400" />
@@ -460,7 +460,7 @@ export const AnalyticsPage = () => {
         {/* Key Metrics */}
         <div className="grid grid-cols-2 gap-3 mt-4">
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-            <div className="text-white/80 text-xs mb-1">Total Inspections</div>
+            <div className="text-white/80 text-xs mb-1">Total Inspeksi</div>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-white">{analytics?.totalInspections || 0}</span>
               {analytics && analytics.countChange !== 0 && (
@@ -473,7 +473,7 @@ export const AnalyticsPage = () => {
           </div>
 
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-            <div className="text-white/80 text-xs mb-1">Average Score</div>
+            <div className="text-white/80 text-xs mb-1">Skor Rata-rata</div>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-bold text-white">{analytics?.avgScore || 0}</span>
               {analytics && analytics.scoreChange !== 0 && (
@@ -491,16 +491,16 @@ export const AnalyticsPage = () => {
       <div className="p-4 space-y-4">
         {/* Score Distribution */}
         <Card>
-          <CardHeader 
-            title="Score Distribution"
-            subtitle="Quality breakdown"
+          <CardHeader
+            title="Distribusi Skor"
+            subtitle="Rincian kualitas"
             icon={<Activity className="w-5 h-5 text-purple-600" />}
           />
           <div className="space-y-3">
             {/* Excellent */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Excellent (85-100)</span>
+                <span className="text-sm font-medium text-gray-700">Sangat Baik (85-100)</span>
                 <span className="text-sm font-bold text-green-600">{analytics?.scoreRanges.excellent || 0}</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -518,7 +518,7 @@ export const AnalyticsPage = () => {
             {/* Good */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Good (70-84)</span>
+                <span className="text-sm font-medium text-gray-700">Baik (70-84)</span>
                 <span className="text-sm font-bold text-yellow-600">{analytics?.scoreRanges.good || 0}</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -536,7 +536,7 @@ export const AnalyticsPage = () => {
             {/* Fair */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Fair (50-69)</span>
+                <span className="text-sm font-medium text-gray-700">Cukup (50-69)</span>
                 <span className="text-sm font-bold text-orange-600">{analytics?.scoreRanges.fair || 0}</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -554,7 +554,7 @@ export const AnalyticsPage = () => {
             {/* Poor */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Needs Work (0-49)</span>
+                <span className="text-sm font-medium text-gray-700">Perlu Perbaikan (0-49)</span>
                 <span className="text-sm font-bold text-red-600">{analytics?.scoreRanges.poor || 0}</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -574,20 +574,20 @@ export const AnalyticsPage = () => {
         {/* Peak Hours */}
         {analytics?.peakHour && (
           <Card>
-            <CardHeader 
-              title="Peak Inspection Hour"
-              subtitle="Most active time"
+            <CardHeader
+              title="Jam Puncak Inspeksi"
+              subtitle="Waktu paling aktif"
               icon={<Clock className="w-5 h-5 text-blue-600" />}
             />
             <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
               <div>
-                <div className="text-sm text-gray-600 mb-1">Busiest at</div>
+                <div className="text-sm text-gray-600 mb-1">Tersibuk pada</div>
                 <div className="text-3xl font-bold text-blue-600">
                   {analytics.peakHour.hour.toString().padStart(2, '0')}:00
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-gray-600 mb-1">Total checks</div>
+                <div className="text-sm text-gray-600 mb-1">Total pemeriksaan</div>
                 <div className="text-2xl font-bold text-gray-900">{analytics.peakHour.count}</div>
               </div>
             </div>
@@ -596,9 +596,9 @@ export const AnalyticsPage = () => {
 
         {/* Location Performance */}
         <Card>
-          <CardHeader 
-            title="Location Rankings"
-            subtitle="Performance by location"
+          <CardHeader
+            title="Peringkat Lokasi"
+            subtitle="Kinerja per lokasi"
             icon={<MapPin className="w-5 h-5 text-purple-600" />}
           />
           <div className="space-y-2">
@@ -618,7 +618,7 @@ export const AnalyticsPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 truncate">{loc.name}</div>
-                  <div className="text-xs text-gray-500">{loc.count} inspections</div>
+                  <div className="text-xs text-gray-500">{loc.count} inspeksi</div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-gray-900">{loc.avgScore}</div>
@@ -631,7 +631,7 @@ export const AnalyticsPage = () => {
               </div>
             ))}
             {!analytics?.locationPerformance.length && (
-              <p className="text-center text-gray-500 py-8">No location data available</p>
+              <p className="text-center text-gray-500 py-8">Tidak ada data lokasi tersedia</p>
             )}
           </div>
         </Card>
@@ -639,9 +639,9 @@ export const AnalyticsPage = () => {
         {/* Needs Attention */}
         {analytics?.needsAttention && analytics.needsAttention.length > 0 && (
           <Card>
-            <CardHeader 
-              title="Needs Attention"
-              subtitle="Locations below 70 score"
+            <CardHeader
+              title="Perlu Perhatian"
+              subtitle="Lokasi dengan skor di bawah 70"
               icon={<AlertTriangle className="w-5 h-5 text-red-600" />}
             />
             <div className="space-y-2">
@@ -672,7 +672,7 @@ export const AnalyticsPage = () => {
           className="w-full flex items-center justify-center gap-2 p-4 bg-white border-2 border-gray-200 rounded-2xl font-medium text-gray-900 hover:bg-gray-50 transition-colors active:scale-95"
         >
           <Download className="w-5 h-5" />
-          <span>Export Analytics Report</span>
+          <span>Ekspor Laporan Analitik</span>
         </button>
       </div>
 
