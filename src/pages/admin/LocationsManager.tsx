@@ -149,7 +149,7 @@ export const LocationsManager = () => {
           </p>
           <div className="mb-6 p-4 bg-gray-100 rounded-lg text-left">
             <p className="text-xs text-gray-600 mb-1">Debug Info:</p>
-            <p className="text-xs text-gray-800">User: {user.email}</p>
+            <p className="text-xs text-gray-800">User: {user?.email || 'Not logged in'}</p>
             <p className="text-xs text-gray-800">Admin Status: {isAdmin ? 'Yes' : 'No'}</p>
           </div>
           <button
