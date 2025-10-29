@@ -1,6 +1,6 @@
-// src/components/forms/GeneralPhotoUpload.tsx - Enhanced watermark & permissions
+// src/components/forms/GeneralPhotoUpload.tsx - FIXED: Separate Camera & Gallery buttons
 import { useState, useRef } from 'react';
-import { Camera, X, MapPin, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { Camera, X, MapPin, Clock, Loader2, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { PhotoWithMetadata } from '../../types/inspection.types';
 
@@ -9,7 +9,7 @@ interface GeneralPhotoUploadProps {
   onPhotosChange: (photos: PhotoWithMetadata[]) => void;
   maxPhotos?: number;
   genZMode?: boolean;
-  locationName: string; // Location name from form
+  locationName: string;
 }
 
 export const GeneralPhotoUpload = ({
@@ -19,40 +19,13 @@ export const GeneralPhotoUpload = ({
   genZMode = false,
   locationName,
 }: GeneralPhotoUploadProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
-  const requestPermissions = async (): Promise<boolean> => {
-    try {
-      // Request camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      stream.getTracks().forEach(track => track.stop());
-      
-      // Request location permission (will prompt if not granted)
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        });
-      });
-
-      console.log('✅ Permissions granted');
-      return true;
-    } catch (error: any) {
-      console.error('❌ Permission error:', error);
-      setPermissionError(
-        genZMode
-          ? 'Butuh akses kamera & lokasi untuk watermark otomatis. Cek pengaturan browser kamu.'
-          : 'Camera & location access required for auto-watermark. Check your browser settings.'
-      );
-      return false;
-    }
-  };
-
-  const handleCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ Handle CAMERA capture (with permissions)
+  const handleCameraCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -60,41 +33,26 @@ export const GeneralPhotoUpload = ({
     setPermissionError(null);
 
     try {
-      // Request permissions first
-      const hasPermission = await requestPermissions();
-      if (!hasPermission) {
-        setIsProcessing(false);
-        return;
-      }
-
-      // Get current location
+      // ✅ Get location (optional, don't block if fails)
       const location = await getCurrentLocation();
 
-      // ✅ NON-BLOCKING reverse geocoding (don't await, just start it)
+      // Get address (non-blocking)
       let address: string | undefined = undefined;
       if (location) {
-        // Fire and forget - we'll use GPS coords if address fails
         getAddressFromCoords(location.lat, location.lng)
           .then(addr => { address = addr; })
-          .catch(() => { /* Silent fail - GPS coords still available */ });
+          .catch(() => { /* Silent fail */ });
       }
 
-      // Create watermarked photo immediately (don't wait for address)
+      // Create watermarked photo
       const watermarkedBlob = await addWatermarkToPhoto(file, {
         timestamp: new Date().toISOString(),
         location: location ? { ...location, address } : undefined,
         locationName,
       });
 
-      // Create preview URL
       const preview = URL.createObjectURL(watermarkedBlob);
-      
-      // Create new file from watermarked blob
-      const watermarkedFile = new File(
-        [watermarkedBlob], 
-        file.name, 
-        { type: 'image/jpeg' }
-      );
+      const watermarkedFile = new File([watermarkedBlob], file.name, { type: 'image/jpeg' });
 
       const photoMetadata: PhotoWithMetadata = {
         file: watermarkedFile,
@@ -105,34 +63,98 @@ export const GeneralPhotoUpload = ({
 
       onPhotosChange([...photos, photoMetadata]);
 
-      // Success feedback
       if ('vibrate' in navigator) {
         navigator.vibrate(100);
       }
 
     } catch (error: any) {
-      console.error('Error processing photo:', error);
-      
-      // Fallback: add photo without watermark
+      console.error('Error processing camera photo:', error);
+
+      // Fallback: add without watermark
       const preview = URL.createObjectURL(file);
-      onPhotosChange([
-        ...photos,
-        {
-          file,
-          preview,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-      
+      onPhotosChange([...photos, {
+        file,
+        preview,
+        timestamp: new Date().toISOString(),
+      }]);
+
       setPermissionError(
         genZMode
-          ? 'Foto berhasil ditambah tapi tanpa watermark (permission ditolak)'
-          : 'Photo added without watermark (permission denied)'
+          ? 'Foto ditambah tanpa watermark'
+          : 'Photo added without watermark'
       );
     } finally {
       setIsProcessing(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
+    }
+  };
+
+  // ✅ Handle GALLERY selection (NO permissions needed!)
+  const handleGallerySelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    setPermissionError(null);
+
+    try {
+      // ✅ Try to get location, but DON'T require it for gallery photos
+      let location: { lat: number; lng: number } | null = null;
+      try {
+        location = await getCurrentLocation();
+      } catch (e) {
+        console.log('Location not available for gallery photo (optional)');
+      }
+
+      // Get address if location available
+      let address: string | undefined = undefined;
+      if (location) {
+        getAddressFromCoords(location.lat, location.lng)
+          .then(addr => { address = addr; })
+          .catch(() => { /* Silent fail */ });
+      }
+
+      // ✅ Add watermark with available data (timestamp + location if available)
+      const watermarkedBlob = await addWatermarkToPhoto(file, {
+        timestamp: new Date().toISOString(),
+        location: location ? { ...location, address } : undefined,
+        locationName,
+      });
+
+      const preview = URL.createObjectURL(watermarkedBlob);
+      const watermarkedFile = new File([watermarkedBlob], file.name, { type: 'image/jpeg' });
+
+      const photoMetadata: PhotoWithMetadata = {
+        file: watermarkedFile,
+        preview,
+        timestamp: new Date().toISOString(),
+        geolocation: location,
+      };
+
+      onPhotosChange([...photos, photoMetadata]);
+
+    } catch (error: any) {
+      console.error('Error processing gallery photo:', error);
+
+      // Fallback: add without watermark
+      const preview = URL.createObjectURL(file);
+      onPhotosChange([...photos, {
+        file,
+        preview,
+        timestamp: new Date().toISOString(),
+      }]);
+
+      setPermissionError(
+        genZMode
+          ? 'Foto ditambah tanpa watermark'
+          : 'Photo added without watermark'
+      );
+    } finally {
+      setIsProcessing(false);
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = '';
       }
     }
   };
@@ -156,7 +178,7 @@ export const GeneralPhotoUpload = ({
                 alt={`Photo ${index + 1}`}
                 className="w-full aspect-[4/3] object-cover rounded-xl border-2 border-gray-200"
               />
-              
+
               {/* Metadata badges */}
               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
                 {photo.geolocation && (
@@ -192,110 +214,124 @@ export const GeneralPhotoUpload = ({
         </div>
       )}
 
-      {/* Capture Button */}
+      {/* ✅ TWO SEPARATE BUTTONS */}
       {canAddMore && (
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isProcessing}
-          className={`
-            w-full py-6 border-2 border-dashed rounded-xl 
-            flex flex-col items-center justify-center space-y-2
-            transition-all
-            ${isProcessing
-              ? 'bg-gray-50 border-gray-300 cursor-wait'
-              : genZMode
-                ? 'border-purple-300 bg-purple-50 hover:border-purple-400 hover:bg-purple-100 text-purple-700'
-                : 'border-blue-300 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 text-blue-700'
-            }
-          `}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="w-8 h-8 animate-spin" />
-              <span className="text-sm font-medium">
-                {genZMode ? 'Processing foto...' : 'Processing photo...'}
-              </span>
-            </>
-          ) : (
-            <>
-              <Camera className="w-8 h-8" />
-              <div className="text-center">
-                <p className="font-medium">
-                  {genZMode ? '📸 Ambil Foto' : '📸 Take Photo'}
-                </p>
-                <p className="text-xs opacity-75 mt-1">
-                  {photos.length}/{maxPhotos} photos • Auto watermark
-                </p>
-              </div>
-            </>
-          )}
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Camera Button */}
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={isProcessing}
+            className={`
+              py-5 border-2 border-dashed rounded-xl
+              flex flex-col items-center justify-center space-y-2
+              transition-all
+              ${isProcessing
+                ? 'bg-gray-50 border-gray-300 cursor-wait'
+                : genZMode
+                  ? 'border-purple-300 bg-purple-50 hover:border-purple-400 hover:bg-purple-100 text-purple-700'
+                  : 'border-blue-300 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 text-blue-700'
+              }
+            `}
+          >
+            <Camera className="w-7 h-7" />
+            <div className="text-center">
+              <p className="text-sm font-semibold">
+                {genZMode ? '📸 Kamera' : '📸 Camera'}
+              </p>
+              <p className="text-xs opacity-75">
+                {genZMode ? 'Ambil foto' : 'Take photo'}
+              </p>
+            </div>
+          </button>
+
+          {/* Gallery Button */}
+          <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
+            disabled={isProcessing}
+            className={`
+              py-5 border-2 border-dashed rounded-xl
+              flex flex-col items-center justify-center space-y-2
+              transition-all
+              ${isProcessing
+                ? 'bg-gray-50 border-gray-300 cursor-wait'
+                : genZMode
+                  ? 'border-purple-300 bg-purple-50 hover:border-purple-400 hover:bg-purple-100 text-purple-700'
+                  : 'border-green-300 bg-green-50 hover:border-green-400 hover:bg-green-100 text-green-700'
+              }
+            `}
+          >
+            <ImageIcon className="w-7 h-7" />
+            <div className="text-center">
+              <p className="text-sm font-semibold">
+                {genZMode ? '🖼️ Galeri' : '🖼️ Gallery'}
+              </p>
+              <p className="text-xs opacity-75">
+                {genZMode ? 'Pilih file' : 'Choose file'}
+              </p>
+            </div>
+          </button>
+        </div>
       )}
 
+      {/* Camera Input (with capture) */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={handleCapture}
+        onChange={handleCameraCapture}
+        className="hidden"
+      />
+
+      {/* Gallery Input (NO capture) */}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleGallerySelect}
         className="hidden"
       />
 
       {/* Info Text */}
       {canAddMore && (
-        <p className="text-xs text-gray-500 text-center">
-          {genZMode
-            ? '✨ Watermark otomatis: Tanggal, Jam, Lokasi GPS & Nama Toilet'
-            : '✨ Auto watermark: Date, Time, GPS Location & Toilet Name'
-          }
-        </p>
+        <div className="text-center space-y-1">
+          <p className="text-xs text-gray-600 font-medium">
+            {photos.length}/{maxPhotos} photos
+          </p>
+          <p className="text-xs text-gray-500">
+            {genZMode
+              ? '✨ Watermark otomatis: Tanggal, Jam & Lokasi'
+              : '✨ Auto watermark: Date, Time & Location'
+            }
+          </p>
+        </div>
       )}
 
-      {/* Processing Modal - Prominent Loading Indicator */}
+      {/* Processing Modal */}
       {isProcessing && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
-            {/* Animated Spinner */}
             <div className="relative mb-6">
               <div className="w-20 h-20 mx-auto relative">
-                {/* Outer ring */}
                 <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
-                {/* Spinning ring */}
                 <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
-                {/* Center icon */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Camera className="w-8 h-8 text-blue-600" />
                 </div>
               </div>
             </div>
 
-            {/* Text Content */}
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Processing Photo
+              {genZMode ? 'Memproses Foto' : 'Processing Photo'}
             </h3>
             <p className="text-gray-600 mb-1">
-              Adding watermark with GPS location...
+              {genZMode ? 'Menambahkan watermark...' : 'Adding watermark...'}
             </p>
             <p className="text-sm text-gray-500">
-              Please wait 3-4 seconds
+              {genZMode ? 'Tunggu sebentar' : 'Please wait'}
             </p>
-
-            {/* Progress Steps */}
-            <div className="mt-6 space-y-2 text-left">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                <span>Getting GPS coordinates...</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <span>Applying watermark...</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                <span>Finalizing image...</span>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -303,14 +339,10 @@ export const GeneralPhotoUpload = ({
   );
 };
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
+// Helper functions
 const getCurrentLocation = (): Promise<{ lat: number; lng: number } | null> => {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
-      console.warn('Geolocation not supported');
       resolve(null);
       return;
     }
@@ -323,8 +355,8 @@ const getCurrentLocation = (): Promise<{ lat: number; lng: number } | null> => {
         });
       },
       (error) => {
-        console.warn('Geolocation error:', error);
-        resolve(null);
+        console.log('Location permission denied or unavailable:', error.message);
+        resolve(null); // ✅ Don't block, just resolve null
       },
       {
         enableHighAccuracy: true,
@@ -337,9 +369,8 @@ const getCurrentLocation = (): Promise<{ lat: number; lng: number } | null> => {
 
 const getAddressFromCoords = async (lat: number, lng: number): Promise<string | undefined> => {
   try {
-    // ✅ Add timeout protection - fail fast after 3 seconds
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`,
@@ -349,30 +380,19 @@ const getAddressFromCoords = async (lat: number, lng: number): Promise<string | 
       }
     );
 
-    clearTimeout(timeoutId);
+    clearTimeout(timeout);
 
-    if (!response.ok) {
-      console.warn('⚠️ Geocoding failed:', response.status);
-      return undefined;
-    }
+    if (!response.ok) return undefined;
 
     const data = await response.json();
-
-    // Get short address (road + suburb)
-    const address = data.address;
-    const parts = [
-      address.road,
-      address.suburb || address.neighbourhood,
-      address.city || address.county
-    ].filter(Boolean);
-
-    return parts.slice(0, 2).join(', ');
+    const addr = data.address;
+    return [addr.road, addr.suburb || addr.neighbourhood, addr.city || addr.county]
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(', ');
   } catch (error: any) {
-    // ✅ Silent fail - GPS coordinates are enough
-    if (error.name === 'AbortError') {
-      console.warn('⚠️ Geocoding timeout - using GPS coords only');
-    } else {
-      console.warn('⚠️ Geocoding error - using GPS coords only');
+    if (error.name !== 'AbortError') {
+      console.log('Address fetch failed:', error.message);
     }
     return undefined;
   }
@@ -388,92 +408,69 @@ const addWatermarkToPhoto = async (
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       const img = new Image();
       img.src = e.target?.result as string;
-      
+
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
-        
-        const ctx = canvas.getContext('2d')!;
-        
-        // Draw original image
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        // Draw image
         ctx.drawImage(img, 0, 0);
-        
-        // Calculate responsive dimensions
+
+        // Watermark config
+        const fontSize = Math.max(20, img.width * 0.03);
         const padding = Math.max(20, img.width * 0.025);
-        const fontSize = Math.max(20, img.width * 0.03); // Larger font
-        
-        // Format data
+
         const date = format(new Date(metadata.timestamp), 'dd/MM/yyyy');
         const time = format(new Date(metadata.timestamp), 'HH:mm:ss');
-        
-        // Prepare text lines
-        const lines: string[] = [
+
+        const lines = [
           `📍 ${metadata.locationName}`,
           `📅 ${date} ⏰ ${time}`,
         ];
-        
+
         if (metadata.location?.address) {
           lines.push(`🗺️ ${metadata.location.address}`);
         } else if (metadata.location) {
           lines.push(`🧭 ${metadata.location.lat.toFixed(6)}, ${metadata.location.lng.toFixed(6)}`);
         }
-        
-        // Calculate dimensions
+
         ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        const maxWidth = Math.max(...lines.map(l => ctx.measureText(l).width));
+        const maxWidth = Math.max(...lines.map(line => ctx.measureText(line).width));
         const lineHeight = fontSize * 1.4;
-        const bgHeight = (lines.length * lineHeight) + (padding * 2);
-        
-        // Draw semi-transparent background (bottom-left)
+        const boxHeight = lines.length * lineHeight + padding * 2;
+
+        // Draw watermark box
         ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.fillRect(
-          padding,
-          img.height - bgHeight - padding,
-          maxWidth + (padding * 3),
-          bgHeight
-        );
-        
-        // Draw text lines
+        ctx.fillRect(padding, img.height - boxHeight - padding, maxWidth + padding * 3, boxHeight);
+
+        // Draw text
         ctx.fillStyle = '#FFFFFF';
         ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        
-        lines.forEach((line, index) => {
-          ctx.fillText(
-            line,
-            padding * 2,
-            img.height - bgHeight - padding + (lineHeight * (index + 1))
-          );
+        lines.forEach((line, i) => {
+          ctx.fillText(line, padding * 2, img.height - boxHeight - padding + lineHeight * (i + 1));
         });
-        
-        // Add branding watermark (top-right)
+
+        // Draw branding
         ctx.font = `bold ${fontSize * 0.9}px Arial, sans-serif`;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         const brandText = 'TOILET CHECK ✓';
         const brandWidth = ctx.measureText(brandText).width;
-        
-        // Brand background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(
-          img.width - brandWidth - (padding * 3),
-          padding,
-          brandWidth + (padding * 2),
-          fontSize * 1.8
-        );
-        
-        // Brand text
+        ctx.fillRect(img.width - brandWidth - padding * 3, padding, brandWidth + padding * 2, lineHeight * 1.8);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.fillText(
-          brandText,
-          img.width - brandWidth - (padding * 2),
-          padding + (fontSize * 1.2)
-        );
-        
-        // Convert to blob
+        ctx.fillText(brandText, img.width - brandWidth - padding * 2, padding + lineHeight * 1.2);
+
         canvas.toBlob(
           (blob) => {
             if (blob) {
@@ -483,13 +480,13 @@ const addWatermarkToPhoto = async (
             }
           },
           'image/jpeg',
-          0.92 // High quality
+          0.92
         );
       };
-      
+
       img.onerror = () => reject(new Error('Failed to load image'));
     };
-    
+
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
