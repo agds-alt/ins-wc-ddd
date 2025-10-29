@@ -27,7 +27,7 @@ export function LoginPage() {
   setSuccessMessage(null);
   
   if (!email || !password) {
-    setError('Email and password are required');
+    setError('Email dan kata sandi wajib diisi');
     return;
   }
 
@@ -36,7 +36,7 @@ export function LoginPage() {
   try {
     // ✅ CLEAR old storage before new login
     authStorage.clear();
-    
+
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password: password,
@@ -47,20 +47,20 @@ export function LoginPage() {
     }
 
     if (data?.user) {
-      setSuccessMessage('Login successful! Redirecting...');
+      setSuccessMessage('Berhasil masuk! Mengalihkan...');
       setTimeout(() => {
         navigate('/dashboard');
       }, 500);
     }
   } catch (err: any) {
     console.error('Login error:', err);
-    
+
     if (err.message.includes('Invalid login credentials')) {
-      setError('Invalid email or password. Please try again.');
+      setError('Email atau kata sandi tidak valid. Silakan coba lagi.');
     } else if (err.message.includes('Email not confirmed')) {
-      setError('Please verify your email address before logging in.');
+      setError('Harap verifikasi alamat email Anda sebelum masuk.');
     } else {
-      setError(err.message || 'Failed to login. Please try again.');
+      setError(err.message || 'Gagal masuk. Silakan coba lagi.');
     }
   } finally {
     setIsLoading(false);
@@ -70,7 +70,7 @@ export function LoginPage() {
   // Handle forgot password
   const handleForgotPassword = async () => {
     if (!email) {
-      setError('Please enter your email address first');
+      setError('Harap masukkan alamat email Anda terlebih dahulu');
       return;
     }
 
@@ -84,9 +84,9 @@ export function LoginPage() {
 
       if (resetError) throw resetError;
 
-      setSuccessMessage('Password reset link sent! Check your email.');
+      setSuccessMessage('Tautan reset kata sandi telah dikirim! Periksa email Anda.');
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset email');
+      setError(err.message || 'Gagal mengirim email reset');
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +124,7 @@ export function LoginPage() {
             WC Check
           </h1>
           <p className="text-gray-600">
-            Sign in to manage your facilities
+            Masuk untuk mengelola fasilitas Anda
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export function LoginPage() {
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-red-800">Error</p>
+                <p className="text-sm font-medium text-red-800">Kesalahan</p>
                 <p className="text-sm text-red-700 mt-1">{error}</p>
               </div>
             </div>
@@ -148,7 +148,7 @@ export function LoginPage() {
                 <span className="text-white text-xs">✓</span>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-800">Success</p>
+                <p className="text-sm font-medium text-green-800">Berhasil</p>
                 <p className="text-sm text-green-700 mt-1">{successMessage}</p>
               </div>
             </div>
@@ -159,7 +159,7 @@ export function LoginPage() {
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Alamat Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -181,7 +181,7 @@ export function LoginPage() {
             {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Kata Sandi
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -192,7 +192,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Enter your password"
+                  placeholder="Masukkan kata sandi Anda"
                   disabled={isLoading}
                   autoComplete="current-password"
                   required
@@ -222,7 +222,7 @@ export function LoginPage() {
                 className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                 disabled={isLoading}
               >
-                Forgot Password?
+                Lupa Kata Sandi?
               </button>
             </div>
 
@@ -238,12 +238,12 @@ export function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Signing in...</span>
+                  <span>Masuk...</span>
                 </>
               ) : (
                 <>
                   <Lock className="w-5 h-5" />
-                  <span>Sign In</span>
+                  <span>Masuk</span>
                 </>
               )}
             </button>
@@ -256,7 +256,7 @@ export function LoginPage() {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4 bg-white text-gray-500">
-                Don't have an account?
+                Belum punya akun?
               </span>
             </div>
           </div>
@@ -266,22 +266,22 @@ export function LoginPage() {
             to="/register"
             className="w-full bg-white hover:bg-gray-50 text-blue-600 font-semibold py-3 px-4 rounded-lg border-2 border-blue-600 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-150 flex items-center justify-center gap-2"
           >
-            <span>Create New Account</span>
+            <span>Buat Akun Baru</span>
           </Link>
         </div>
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-600">
           <p>
-            © 2025 Smart Toilet Monitor. All rights reserved.
+            © 2025 WC Check. Hak cipta dilindungi.
           </p>
           <p className="mt-2">
             <a href="#" className="text-blue-600 hover:text-blue-700">
-              Privacy Policy
+              Kebijakan Privasi
             </a>
             {' · '}
             <a href="#" className="text-blue-600 hover:text-blue-700">
-              Terms of Service
+              Ketentuan Layanan
             </a>
           </p>
         </div>

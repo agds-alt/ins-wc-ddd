@@ -31,7 +31,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   };
 
   const handleLogout = async () => {
-    const confirm = window.confirm('Are you sure you want to logout?');
+    const confirm = window.confirm('Apakah Anda yakin ingin keluar?');
     if (confirm) {
       await signOut();
       navigate('/login');
@@ -40,17 +40,17 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   };
 
   const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/' },
-    { icon: QrCode, label: 'Scan QR', path: '/scan' },
-    { icon: MapPin, label: 'Locations', path: '/locations', description: 'Manual inspection' },
-    { icon: FileText, label: 'Reports', path: '/reports' },
-    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: Home, label: 'Dasbor', path: '/' },
+    { icon: QrCode, label: 'Pindai QR', path: '/scan' },
+    { icon: MapPin, label: 'Lokasi', path: '/locations', description: 'Inspeksi manual' },
+    { icon: FileText, label: 'Laporan', path: '/reports' },
+    { icon: User, label: 'Profil', path: '/profile' },
   ];
 
   const adminMenuItems = [
-    { icon: Shield, label: 'Organizations', path: '/admin/organizations', description: 'Manage organizations' },
-    { icon: Building2, label: 'Buildings', path: '/admin/buildings', description: 'Manage buildings' },
-    { icon: MapPin, label: 'Manage Locations', path: '/admin/locations', description: 'Admin location CRUD' },
+    { icon: Shield, label: 'Organisasi', path: '/admin/organizations', description: 'Kelola organisasi' },
+    { icon: Building2, label: 'Gedung', path: '/admin/buildings', description: 'Kelola gedung' },
+    { icon: MapPin, label: 'Kelola Lokasi', path: '/admin/locations', description: 'CRUD lokasi admin' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -135,7 +135,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             <>
               <div className="pt-4 pb-2">
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4">
-                  Admin
+                  Administrator
                 </div>
               </div>
               {adminMenuItems.map((item) => {
@@ -177,7 +177,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             className="w-full flex items-center justify-center gap-2 p-4 bg-white shadow-md border border-gray-100 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors"
           >
             <LogOut className="w-5 h-5" />
-            <span>Logout</span>
+            <span>Keluar</span>
           </button>
         </div>
       </div>
