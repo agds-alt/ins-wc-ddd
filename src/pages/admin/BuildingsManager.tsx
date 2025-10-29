@@ -224,12 +224,9 @@ export const BuildingsManager = () => {
     );
   }
 
-  if (!user) {
-    navigate('/login', { replace: true });
-    return null;
-  }
-
-  if (!isAdmin) {
+  // Auth check - REMOVED redundant navigate() to fix redirect loop
+  // Route protection is already handled by App.tsx
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-6">
         <div className="text-center max-w-md">

@@ -133,16 +133,10 @@ export const LocationsManager = () => {
     );
   }
 
-  // Auth check
-  if (!user) {
-    console.log('🔴 No user - redirecting to login');
-    navigate('/login', { replace: true });
-    return null;
-  }
-
-  // Admin check
-  if (!isAdmin) {
-    console.log('🔴 ACCESS DENIED - User is not admin');
+  // Auth check - REMOVED redundant navigate() to fix redirect loop
+  // Route protection is already handled by App.tsx
+  if (!user || !isAdmin) {
+    console.log('🔴 ACCESS DENIED - No user or not admin');
     return (
       <div className="min-h-screen bg-white flex items-center justify-center p-6">
         <div className="text-center max-w-md">
