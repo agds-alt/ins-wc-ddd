@@ -32,14 +32,23 @@ export const Dashboard = () => {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      const { data: inspections, error } = await supabase
+      const { data: inspections, error: fetchError } = await supabase
         .from('inspection_records')
         .select('id, overall_status, inspection_date, responses')
         .eq('user_id', user.id)
         .order('inspection_date', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Dashboard query error:', fetchError);
+        // Return empty stats instead of throwing (prevents ErrorBoundary)
+        return {
+          total: 0,
+          todayCount: 0,
+          completed: 0,
+          recent: [],
+        };
+      }
 
       const total = inspections?.length || 0;
 
