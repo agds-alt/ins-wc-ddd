@@ -142,7 +142,7 @@ export const Dashboard = () => {
               <div>
                 <h1 className="text-xl font-bold text-gray-900">WC Check</h1>
                 <p className="text-sm text-gray-500">
-                  Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                  Hai, {profile?.full_name || user?.email?.split('@')[0] || 'Pengguna'}
                 </p>
               </div>
             </div>
@@ -166,11 +166,11 @@ export const Dashboard = () => {
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50">
             <p className="text-3xl font-bold text-blue-600">{dashboardStats.todayCount}</p>
-            <p className="text-xs text-gray-500 mt-1">Today</p>
+            <p className="text-xs text-gray-500 mt-1">Hari Ini</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50">
             <p className="text-3xl font-bold text-green-600">{dashboardStats.completed}</p>
-            <p className="text-xs text-gray-500 mt-1">Done</p>
+            <p className="text-xs text-gray-500 mt-1">Selesai</p>
           </div>
         </div>
 
@@ -185,8 +185,8 @@ export const Dashboard = () => {
               <QrCode className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-bold text-lg text-gray-900">Scan QR Code</p>
-              <p className="text-gray-500 text-sm">Start new inspection</p>
+              <p className="font-bold text-lg text-gray-900">Pindai Kode QR</p>
+              <p className="text-gray-500 text-sm">Mulai inspeksi baru</p>
             </div>
             <ChevronRight className="w-6 h-6 text-gray-400" />
           </div>
@@ -199,7 +199,7 @@ export const Dashboard = () => {
             className="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] active:shadow-[0_4px_20px_rgb(0,0,0,0.06)] active:translate-y-1 transition-all border border-gray-50"
           >
             <MapPin className="w-7 h-7 text-blue-600 mb-3" />
-            <p className="font-semibold text-gray-900 text-sm">Locations</p>
+            <p className="font-semibold text-gray-900 text-sm">Lokasi</p>
           </button>
 
           <button
@@ -207,7 +207,7 @@ export const Dashboard = () => {
             className="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] active:shadow-[0_4px_20px_rgb(0,0,0,0.06)] active:translate-y-1 transition-all border border-gray-50"
           >
             <Calendar className="w-7 h-7 text-blue-600 mb-3" />
-            <p className="font-semibold text-gray-900 text-sm">Reports</p>
+            <p className="font-semibold text-gray-900 text-sm">Laporan</p>
           </button>
         </div>
 
@@ -215,12 +215,12 @@ export const Dashboard = () => {
         {dashboardStats.recent && dashboardStats.recent.length > 0 && (
           <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-50 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Recent</h2>
+              <h2 className="font-bold text-gray-900">Terbaru</h2>
               <button
                 onClick={() => navigate('/reports')}
                 className="text-blue-600 text-sm font-medium"
               >
-                View All
+                Lihat Semua
               </button>
             </div>
             <div className="space-y-3">
@@ -242,7 +242,7 @@ export const Dashboard = () => {
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Inspection</p>
+                      <p className="text-sm font-medium text-gray-900">Inspeksi</p>
                       <p className="text-xs text-gray-500">{inspection.inspection_date}</p>
                     </div>
                   </div>
@@ -259,10 +259,10 @@ export const Dashboard = () => {
               <QrCode className="w-10 h-10 text-gray-300" />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-2">
-              No Inspections Yet
+              Belum Ada Inspeksi
             </h3>
             <p className="text-gray-500 text-sm">
-              Scan a QR code to start
+              Pindai kode QR untuk memulai
             </p>
           </div>
         )}

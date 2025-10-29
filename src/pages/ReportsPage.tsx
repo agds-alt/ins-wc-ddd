@@ -135,22 +135,22 @@ export const ReportsPage = () => {
 
       toast.dismiss();
       exportToCSV(exportData, `inspections_${format(currentDate, 'yyyy-MM')}.csv`);
-      toast.success(`Exported ${exportData.length} inspections`);
+      toast.success(`✅ Berhasil mengekspor ${exportData.length} inspeksi`);
     } catch (error: any) {
       toast.dismiss();
       console.error('Export error:', error);
-      toast.error('Failed to export: ' + error.message);
+      toast.error('Gagal mengekspor: ' + error.message);
     }
   };
 
   // 👑 ADMIN ONLY: Export ALL users' inspections for current month
   const handleExportAllUsers = async () => {
     if (!user?.id || !isAdmin) {
-      toast.error('Admin access required');
+      toast.error('Akses administrator diperlukan');
       return;
     }
 
-    toast.loading('Preparing export for all users...');
+    toast.loading('Menyiapkan ekspor untuk semua pengguna...');
 
     try {
       const startDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1), 'yyyy-MM-dd');
@@ -221,12 +221,12 @@ export const ReportsPage = () => {
       );
 
       toast.dismiss();
-      exportToCSV(exportData, `ALL_INSPECTIONS_${format(currentDate, 'yyyy-MM')}.csv`);
-      toast.success(`✅ Exported ${exportData.length} inspections from all users`);
+      exportToCSV(exportData, `SEMUA_INSPEKSI_${format(currentDate, 'yyyy-MM')}.csv`);
+      toast.success(`✅ Berhasil mengekspor ${exportData.length} inspeksi dari semua pengguna`);
     } catch (error: any) {
       toast.dismiss();
       console.error('Export error:', error);
-      toast.error('Failed to export: ' + error.message);
+      toast.error('Gagal mengekspor: ' + error.message);
     }
   };
 
@@ -268,7 +268,7 @@ export const ReportsPage = () => {
               disabled={totalInspections === 0}
             >
               <Download className="w-4 h-4" />
-              <span className="font-medium">My Data</span>
+              <span className="font-medium">Data Saya</span>
             </button>
             {isAdmin && (
               <button
@@ -276,7 +276,7 @@ export const ReportsPage = () => {
                 className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md text-xs"
               >
                 <Users className="w-4 h-4" />
-                <span className="font-medium">All Users</span>
+                <span className="font-medium">Semua Pengguna</span>
               </button>
             )}
           </div>
