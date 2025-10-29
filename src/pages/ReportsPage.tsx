@@ -1,16 +1,22 @@
 // src/pages/ReportsPage.tsx - WITH SIDEBAR
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { useMonthlyInspections, useDateInspections, InspectionReport } from '../hooks/useReports';
 import { CalendarView } from '../components/reports/CalendarView';
 import { InspectionDrawer } from '../components/reports/InspectionDrawer';
 import { InspectionDetailModal } from '../components/reports/InspectionDetailModal';
 import { Sidebar } from '../components/mobile/Sidebar';
 import { BottomNav } from '../components/mobile/BottomNav';
-import { Calendar, TrendingUp, FileText, Menu } from 'lucide-react';
+import { Calendar, TrendingUp, FileText, Menu, Download, Users } from 'lucide-react';
+import { exportToCSV, type ExportInspectionData } from '../lib/exportUtils';
+import { supabase } from '../lib/supabase';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export const ReportsPage = () => {
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<InspectionReport | null>(null);
@@ -52,6 +58,178 @@ export const ReportsPage = () => {
       )
     : 0;
 
+  // Export current month's inspections
+  const handleExportMonth = async () => {
+    if (!user?.id) return;
+
+    toast.loading('Preparing export...');
+
+    try {
+      const startDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1), 'yyyy-MM-dd');
+      const endDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0), 'yyyy-MM-dd');
+
+      // Fetch all inspections for current month with related data
+      const { data, error } = await supabase
+        .from('inspection_records')
+        .select(`
+          *,
+          users!inspection_records_user_id_fkey (full_name, email, phone, occupation_id),
+          locations!inner (
+            name,
+            floor,
+            area,
+            section,
+            building_id,
+            buildings!inner (name, organization_id, organizations!inner (name))
+          )
+        `)
+        .eq('user_id', user.id)
+        .gte('inspection_date', startDate)
+        .lte('inspection_date', endDate)
+        .order('inspection_date', { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.dismiss();
+        toast.error('No inspections to export for this month');
+        return;
+      }
+
+      // Format data for export
+      const exportData: ExportInspectionData[] = await Promise.all(
+        data.map(async (inspection: any) => {
+          // Get occupation name
+          let occupationName = 'N/A';
+          if (inspection.users?.occupation_id) {
+            const { data: occupation } = await supabase
+              .from('user_occupations')
+              .select('display_name')
+              .eq('id', inspection.users.occupation_id)
+              .single();
+            if (occupation) occupationName = occupation.display_name;
+          }
+
+          return {
+            inspection_id: inspection.id,
+            inspection_date: inspection.inspection_date || '',
+            inspection_time: inspection.inspection_time || '',
+            submitted_at: inspection.submitted_at ? format(new Date(inspection.submitted_at), 'yyyy-MM-dd HH:mm:ss') : '',
+            overall_status: inspection.overall_status || '',
+            notes: inspection.notes || '',
+            user_full_name: inspection.users?.full_name || '',
+            user_email: inspection.users?.email || '',
+            user_phone: inspection.users?.phone || '',
+            user_occupation: occupationName,
+            location_name: inspection.locations?.name || '',
+            building_name: inspection.locations?.buildings?.name || '',
+            organization_name: inspection.locations?.buildings?.organizations?.name || '',
+            floor: inspection.locations?.floor || '',
+            area: inspection.locations?.area || '',
+            section: inspection.locations?.section || '',
+            photo_urls: (inspection.photo_urls || []).join('; '),
+            responses: JSON.stringify(inspection.responses || {}),
+          };
+        })
+      );
+
+      toast.dismiss();
+      exportToCSV(exportData, `inspections_${format(currentDate, 'yyyy-MM')}.csv`);
+      toast.success(`Exported ${exportData.length} inspections`);
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Export error:', error);
+      toast.error('Failed to export: ' + error.message);
+    }
+  };
+
+  // 👑 ADMIN ONLY: Export ALL users' inspections for current month
+  const handleExportAllUsers = async () => {
+    if (!user?.id || !isAdmin) {
+      toast.error('Admin access required');
+      return;
+    }
+
+    toast.loading('Preparing export for all users...');
+
+    try {
+      const startDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1), 'yyyy-MM-dd');
+      const endDate = format(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0), 'yyyy-MM-dd');
+
+      // Fetch ALL inspections for current month (no user_id filter)
+      const { data, error } = await supabase
+        .from('inspection_records')
+        .select(`
+          *,
+          users!inspection_records_user_id_fkey (full_name, email, phone, occupation_id),
+          locations!inner (
+            name,
+            floor,
+            area,
+            section,
+            building_id,
+            buildings!inner (name, organization_id, organizations!inner (name))
+          )
+        `)
+        .gte('inspection_date', startDate)
+        .lte('inspection_date', endDate)
+        .order('inspection_date', { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.dismiss();
+        toast.error('No inspections to export for this month');
+        return;
+      }
+
+      // Format data for export
+      const exportData: ExportInspectionData[] = await Promise.all(
+        data.map(async (inspection: any) => {
+          // Get occupation name
+          let occupationName = 'N/A';
+          if (inspection.users?.occupation_id) {
+            const { data: occupation } = await supabase
+              .from('user_occupations')
+              .select('display_name')
+              .eq('id', inspection.users.occupation_id)
+              .single();
+            if (occupation) occupationName = occupation.display_name;
+          }
+
+          return {
+            inspection_id: inspection.id,
+            inspection_date: inspection.inspection_date || '',
+            inspection_time: inspection.inspection_time || '',
+            submitted_at: inspection.submitted_at ? format(new Date(inspection.submitted_at), 'yyyy-MM-dd HH:mm:ss') : '',
+            overall_status: inspection.overall_status || '',
+            notes: inspection.notes || '',
+            user_full_name: inspection.users?.full_name || '',
+            user_email: inspection.users?.email || '',
+            user_phone: inspection.users?.phone || '',
+            user_occupation: occupationName,
+            location_name: inspection.locations?.name || '',
+            building_name: inspection.locations?.buildings?.name || '',
+            organization_name: inspection.locations?.buildings?.organizations?.name || '',
+            floor: inspection.locations?.floor || '',
+            area: inspection.locations?.area || '',
+            section: inspection.locations?.section || '',
+            photo_urls: (inspection.photo_urls || []).join('; '),
+            responses: JSON.stringify(inspection.responses || {}),
+          };
+        })
+      );
+
+      toast.dismiss();
+      exportToCSV(exportData, `ALL_INSPECTIONS_${format(currentDate, 'yyyy-MM')}.csv`);
+      toast.success(`✅ Exported ${exportData.length} inspections from all users`);
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Export error:', error);
+      toast.error('Failed to export: ' + error.message);
+    }
+  };
+
   if (monthlyLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -83,7 +261,25 @@ export const ReportsPage = () => {
               <p className="text-sm text-gray-500">Inspection history & analytics</p>
             </div>
           </div>
-          <Calendar className="w-6 h-6 text-gray-400" />
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleExportMonth}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-md text-xs"
+              disabled={totalInspections === 0}
+            >
+              <Download className="w-4 h-4" />
+              <span className="font-medium">My Data</span>
+            </button>
+            {isAdmin && (
+              <button
+                onClick={handleExportAllUsers}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md text-xs"
+              >
+                <Users className="w-4 h-4" />
+                <span className="font-medium">All Users</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards - White Theme */}

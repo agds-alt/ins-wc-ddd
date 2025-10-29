@@ -98,11 +98,30 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
-            <span className="text-3xl">🚽</span>
+          <div className="inline-flex items-center justify-center mb-4">
+            <img
+              src="/logo.svg"
+              alt="WC Check Logo"
+              className="h-20 w-auto"
+              onError={(e) => {
+                // Fallback to PNG if SVG fails
+                const img = e.target as HTMLImageElement;
+                if (img.src.endsWith('.svg')) {
+                  img.src = '/logo.png';
+                } else {
+                  // If both fail, hide and show text fallback
+                  img.style.display = 'none';
+                  const fallback = img.nextElementSibling;
+                  if (fallback) fallback.className = '';
+                }
+              }}
+            />
+            <div className="hidden w-16 h-16 bg-blue-600 rounded-2xl shadow-lg flex items-center justify-center">
+              <span className="text-3xl">🚽</span>
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Smart Toilet Monitor
+            WC Check
           </h1>
           <p className="text-gray-600">
             Sign in to manage your facilities
