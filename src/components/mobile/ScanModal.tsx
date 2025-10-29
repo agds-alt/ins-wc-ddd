@@ -82,7 +82,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
           navigator.vibrate(200);
         }
 
-        toast.success('Valid QR Code!');
+        toast.success('Kode QR Valid!');
         onScan(locationId);
         stopCamera();
         return; // Stop scanning
@@ -91,7 +91,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
         if ('vibrate' in navigator) {
           navigator.vibrate([100, 50, 100]);
         }
-        toast.error('Invalid QR code format');
+        toast.error('Format kode QR tidak valid');
       }
     }
 
@@ -140,11 +140,11 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
       console.error('Camera error:', error);
 
       if (error.name === 'NotAllowedError') {
-        setCameraError('❌ Camera permission denied. Please enable camera in browser settings.');
+        setCameraError('❌ Izin kamera ditolak. Harap aktifkan kamera di pengaturan browser.');
       } else if (error.name === 'NotFoundError') {
-        setCameraError('❌ No camera found on this device.');
+        setCameraError('❌ Tidak ditemukan kamera di perangkat ini.');
       } else if (error.name === 'NotReadableError') {
-        setCameraError('❌ Camera is being used by another app. Please close other apps and try again.');
+        setCameraError('❌ Kamera sedang digunakan aplikasi lain. Harap tutup aplikasi lain dan coba lagi.');
       } else if (error.name === 'OverconstrainedError') {
         // Retry with simpler constraints
         try {
@@ -161,10 +161,10 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
             scanQRCode();
           }
         } catch {
-          setCameraError('❌ Camera initialization failed. Please try again.');
+          setCameraError('❌ Gagal menginisialisasi kamera. Harap coba lagi.');
         }
       } else {
-        setCameraError('❌ Camera initialization failed. Please try again.');
+        setCameraError('❌ Gagal menginisialisasi kamera. Harap coba lagi.');
       }
 
       setIsScanning(false);
@@ -209,10 +209,10 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
       });
 
       setTorchEnabled(newTorchState);
-      toast.success(newTorchState ? 'Flashlight ON' : 'Flashlight OFF');
+      toast.success(newTorchState ? 'Senter Hidup' : 'Senter Mati');
     } catch (error) {
       console.error('Torch error:', error);
-      toast.error('Flashlight not available');
+      toast.error('Senter tidak tersedia');
     }
   };
 
@@ -303,10 +303,10 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
           <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-4 max-w-md mx-auto">
             <Camera className="w-8 h-8 text-white mx-auto mb-2" />
             <p className="text-white text-lg font-medium mb-1">
-              Scan QR Code
+              Pindai Kode QR
             </p>
             <p className="text-gray-300 text-sm">
-              Point camera at location QR code
+              Arahkan kamera ke kode QR lokasi
             </p>
           </div>
         </div>
@@ -318,10 +318,10 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4"></div>
             <p className="text-white text-lg font-medium">
-              Initializing camera...
+              Menginisialisasi kamera...
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              Please allow camera access
+              Harap izinkan akses kamera
             </p>
           </div>
         </div>
@@ -333,7 +333,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
           <div className="text-center max-w-md">
             <CameraOff className="w-20 h-20 text-red-500 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-white mb-3">
-              Camera Error
+              Kesalahan Kamera
             </h3>
             <p className="text-gray-300 mb-6 leading-relaxed">
               {cameraError}
@@ -341,12 +341,12 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
 
             {/* Troubleshooting Tips */}
             <div className="bg-white/10 rounded-xl p-4 mb-6 text-left">
-              <p className="text-white font-medium mb-2">💡 Troubleshooting:</p>
+              <p className="text-white font-medium mb-2">💡 Pemecahan Masalah:</p>
               <ul className="text-gray-300 text-sm space-y-1">
-                <li>• Check browser camera permissions</li>
-                <li>• Close other apps using camera</li>
-                <li>• Try refreshing the page</li>
-                <li>• Make sure you're on HTTPS</li>
+                <li>• Periksa izin kamera browser</li>
+                <li>• Tutup aplikasi lain yang menggunakan kamera</li>
+                <li>• Coba muat ulang halaman</li>
+                <li>• Pastikan Anda menggunakan HTTPS</li>
               </ul>
             </div>
 
@@ -354,7 +354,7 @@ export const ScanModal = ({ isOpen, onClose, onScan }: ScanModalProps) => {
               onClick={handleClose}
               className="w-full bg-white text-gray-900 px-6 py-3 rounded-xl font-medium hover:bg-gray-100 transition-colors"
             >
-              Close & Try Again
+              Tutup & Coba Lagi
             </button>
           </div>
         </div>
