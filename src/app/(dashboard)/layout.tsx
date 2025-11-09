@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { trpc } from '@/lib/trpc/client';
 import toast from 'react-hot-toast';
+import { BottomNav } from '@/components/BottomNav';
 
 export default function DashboardLayout({
   children,
@@ -127,6 +128,11 @@ export default function DashboardLayout({
       <main className="lg:ml-64 pt-16 lg:pt-0 min-h-screen">
         <div className="p-6">{children}</div>
       </main>
+
+      {/* Bottom Navigation - Mobile only */}
+      <div className="lg:hidden">
+        <BottomNav />
+      </div>
     </div>
   );
 }

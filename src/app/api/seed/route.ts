@@ -168,7 +168,6 @@ export async function GET() {
               {
                 user_id: userId,
                 role_id: roleId,
-                assigned_by: userId,
                 created_at: new Date().toISOString(),
               },
               {
