@@ -9,9 +9,10 @@
 import { useState, useMemo } from 'react';
 import { trpc } from '@/lib/trpc/client';
 import { CalendarView } from '@/components/CalendarView';
-import { Calendar, Download, TrendingUp, FileText } from 'lucide-react';
+import { Calendar, FileText, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
+import { exportToExcel, exportMonthlyReportToPDF, type MonthlyReportData } from '@/lib/export/exportUtils';
 
 interface DateInspection {
   id: string;
@@ -65,6 +66,9 @@ export default function ReportsPage() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
 
+  // Get tRPC utils for manual queries
+  const utils = trpc.useUtils();
+
   // Fetch monthly inspections for calendar
   const { data: monthlyData, isLoading: monthlyLoading } = trpc.report.monthlyInspections.useQuery({
     year,
@@ -90,30 +94,76 @@ export default function ReportsPage() {
     return { total, average, goodDays, poorDays };
   }, [monthlyData]);
 
-  // Export current month
-  const handleExport = () => {
-    // const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-    // const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
+  // Export to Excel
+  const handleExportExcel = async () => {
+    const toastId = toast.loading('Preparing Excel export...');
 
-    toast.loading('Preparing export...');
+    try {
+      // Fetch export data
+      const data = await utils.client.report.exportMonthlyReport.query({ year, month });
 
-    // TODO: Implement actual export with tRPC
-    // For now, just show success
-    setTimeout(() => {
-      toast.dismiss();
-      toast.success('Export completed!');
-    }, 1000);
+      // Export to Excel
+      const monthName = format(new Date(year, month - 1, 1), 'MMMM_yyyy');
+      exportToExcel(data.inspections, `Inspeksi_${monthName}.xlsx`);
+
+      toast.success('Excel exported successfully!', { id: toastId });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export Excel', { id: toastId });
+    }
+  };
+
+  // Export to PDF (5 pages)
+  const handleExportPDF = async () => {
+    const toastId = toast.loading('Preparing PDF export (5 pages)...');
+
+    try {
+      // Fetch export data
+      const data = await utils.client.report.exportMonthlyReport.query({ year, month });
+
+      // Export to PDF
+      const monthName = format(new Date(year, month - 1, 1), 'MMMM_yyyy');
+      exportMonthlyReportToPDF(data as MonthlyReportData, `Laporan_Kebersihan_${monthName}.pdf`);
+
+      toast.success('PDF exported successfully!', { id: toastId });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export PDF', { id: toastId });
+    }
   };
 
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Calendar className="w-8 h-8" />
-          Laporan
-        </h1>
-        <p className="text-muted-foreground mt-1">Kalender inspeksi dan analitik</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Calendar className="w-8 h-8" />
+            Laporan
+          </h1>
+          <p className="text-muted-foreground mt-1">Kalender inspeksi dan analitik</p>
+        </div>
+
+        {/* Export Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportExcel}
+            className="btn btn-outline flex items-center gap-2"
+            title="Export to Excel"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="hidden sm:inline">Excel</span>
+          </button>
+
+          <button
+            onClick={handleExportPDF}
+            className="btn btn-primary flex items-center gap-2"
+            title="Export to PDF (5 pages)"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -206,30 +256,6 @@ export default function ReportsPage() {
           )}
         </div>
       )}
-
-      {/* Export Section */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-1">
-              <TrendingUp className="w-5 h-5" />
-              Ekspor Data
-            </h3>
-            <p className="text-sm text-gray-600">
-              Unduh laporan bulan {format(currentDate, 'MMMM yyyy')} dalam format CSV
-            </p>
-          </div>
-
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors active:scale-95"
-            type="button"
-          >
-            <Download className="w-5 h-5" />
-            Ekspor CSV
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

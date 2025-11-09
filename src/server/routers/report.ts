@@ -169,4 +169,119 @@ export const reportRouter = router({
         submittedAt: inspection.submittedAt,
       }));
     }),
+
+  /**
+   * Get complete monthly report data for export (Excel/PDF)
+   * Returns all data needed for 5-page PDF report
+   */
+  exportMonthlyReport: protectedProcedure
+    .input(
+      z.object({
+        year: z.number().int().min(2020).max(2100),
+        month: z.number().int().min(1).max(12),
+        userId: z.string().uuid().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { year, month, userId } = input;
+
+      // Use current user if not specified or not admin
+      const targetUserId = userId || ctx.user.userId;
+
+      // Calculate date range
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      // Fetch all inspections for the month
+      const inspections = await ctx.repositories.inspection.findAll({
+        user_id: targetUserId,
+        date_from: startDateStr,
+        date_to: endDateStr,
+      }, 10000); // High limit for export
+
+      // Calculate statistics
+      const statusBreakdown = {
+        excellent: 0,
+        good: 0,
+        fair: 0,
+        poor: 0,
+      };
+
+      let totalScore = 0;
+      const dateMap = new Map<string, { count: number; totalScore: number }>();
+
+      for (const inspection of inspections) {
+        // Status breakdown
+        const status = inspection.overallStatus;
+        if (status === 'excellent') statusBreakdown.excellent++;
+        else if (status === 'good') statusBreakdown.good++;
+        else if (status === 'fair') statusBreakdown.fair++;
+        else if (status === 'poor') statusBreakdown.poor++;
+
+        // Calculate score
+        let score = 50;
+        if (status === 'excellent') score = 95;
+        else if (status === 'good') score = 75;
+        else if (status === 'fair') score = 60;
+        else if (status === 'poor') score = 40;
+
+        totalScore += score;
+
+        // Daily data
+        const date = inspection.inspectionDate;
+        if (!dateMap.has(date)) {
+          dateMap.set(date, { count: 0, totalScore: 0 });
+        }
+        const entry = dateMap.get(date)!;
+        entry.count++;
+        entry.totalScore += score;
+      }
+
+      const averageScore = inspections.length > 0 ? Math.round(totalScore / inspections.length) : 0;
+
+      // Daily data array
+      const dailyData = Array.from(dateMap.entries()).map(([date, data]) => ({
+        date,
+        count: data.count,
+        averageScore: Math.round(data.totalScore / data.count),
+      }));
+
+      // Sort by date
+      dailyData.sort((a, b) => a.date.localeCompare(b.date));
+
+      // Transform inspections for export
+      const exportInspections = inspections.map((inspection) => ({
+        inspection_id: inspection.id,
+        inspection_date: inspection.inspectionDate,
+        inspection_time: inspection.inspectionTime,
+        submitted_at: inspection.submittedAt ? String(inspection.submittedAt) : '',
+        overall_status: inspection.overallStatus,
+        notes: inspection.notes || '',
+        user_full_name: inspection.userName || 'Unknown User',
+        user_email: '', // TODO: Get from user join
+        user_phone: '', // TODO: Get from user join
+        user_occupation: '', // TODO: Get from user join
+        location_name: inspection.locationName || 'Unknown Location',
+        building_name: '', // TODO: Get from location join
+        organization_name: '', // TODO: Get from location join
+        floor: '', // TODO: Get from location join
+        area: '', // TODO: Get from location join
+        section: '', // TODO: Get from location join
+        photo_urls: inspection.photoUrls || [],
+        responses: inspection.responses,
+      }));
+
+      return {
+        month: month.toString(),
+        year,
+        totalInspections: inspections.length,
+        averageScore,
+        statusBreakdown,
+        dailyData,
+        inspections: exportInspections,
+      };
+    }),
 });
