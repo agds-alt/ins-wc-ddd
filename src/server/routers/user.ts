@@ -108,14 +108,14 @@ export const userRouter = router({
 
       // Determine role level and name
       let roleLevel = 40; // User
-      let roleName = 'User';
+      let roleName = 'user';
 
       if (isSuperAdmin) {
         roleLevel = 100;
-        roleName = 'Super Admin';
+        roleName = 'super_admin';
       } else if (isAdmin) {
         roleLevel = 80;
-        roleName = 'Admin';
+        roleName = 'admin';
       }
 
       // Find or create the role

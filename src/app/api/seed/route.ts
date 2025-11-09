@@ -25,17 +25,17 @@ export async function GET() {
 
     const rolesToCreate = [
       {
-        name: 'Super Admin',
+        name: 'super_admin',
         description: 'Full system access',
         level: 100,
       },
       {
-        name: 'Admin',
+        name: 'admin',
         description: 'Can manage organizations and locations',
         level: 80,
       },
       {
-        name: 'User',
+        name: 'user',
         description: 'Standard user can perform inspections',
         level: 40,
       },
