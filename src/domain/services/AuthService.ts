@@ -52,9 +52,15 @@ export class AuthService {
       throw new Error('Account is inactive. Please contact administrator.');
     }
 
-    // Verify password (assuming password_hash is stored in DB)
-    // Note: In real implementation, we'd need to get the hash from repository
-    // For now, this is a placeholder that would be implemented with actual password checking
+    // Verify password
+    if (!user.passwordHash) {
+      throw new Error('Invalid email or password');
+    }
+
+    const isPasswordValid = await this.passwordHasher.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      throw new Error('Invalid email or password');
+    }
 
     // Update last login
     await this.userRepository.updateLastLogin(user.id);
@@ -122,7 +128,7 @@ export class AuthService {
   /**
    * Change user password
    */
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  async changePassword(userId: string, oldPassword: string, _newPassword: string): Promise<void> {
     const user = await this.userRepository.findById(userId);
 
     if (!user) {
@@ -130,13 +136,19 @@ export class AuthService {
     }
 
     // Verify old password
-    // Note: Need to implement password verification with stored hash
+    if (!user.passwordHash) {
+      throw new Error('Password not set');
+    }
 
-    // Hash new password
-    const password_hash = await this.passwordHasher.hash(newPassword);
+    const isOldPasswordValid = await this.passwordHasher.compare(oldPassword, user.passwordHash);
+    if (!isOldPasswordValid) {
+      throw new Error('Invalid old password');
+    }
 
-    // Update user (this would need a method to update password specifically)
-    // await this.userRepository.updatePassword(userId, password_hash);
+    // TODO: Implement password update
+    // 1. Hash new password: const password_hash = await this.passwordHasher.hash(newPassword);
+    // 2. Update in repository: await this.userRepository.updatePassword(userId, password_hash);
+    throw new Error('Password change not yet implemented');
   }
 
   /**
@@ -167,7 +179,7 @@ export class AuthService {
   /**
    * Reset password with token
    */
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(token: string, _newPassword: string): Promise<void> {
     try {
       const payload = await this.jwtService.verify(token);
 
@@ -175,12 +187,14 @@ export class AuthService {
         throw new Error('Invalid reset token');
       }
 
-      // Hash new password
-      const password_hash = await this.passwordHasher.hash(newPassword);
-
-      // Update user password
-      // await this.userRepository.updatePassword(payload.userId, password_hash);
+      // TODO: Implement password reset
+      // 1. Hash new password: const password_hash = await this.passwordHasher.hash(newPassword);
+      // 2. Update in repository: await this.userRepository.updatePassword(payload.userId, password_hash);
+      throw new Error('Password reset not yet implemented');
     } catch (error) {
+      if (error instanceof Error && error.message.includes('not yet implemented')) {
+        throw error;
+      }
       throw new Error('Invalid or expired reset token');
     }
   }

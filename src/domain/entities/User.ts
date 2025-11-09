@@ -8,6 +8,7 @@ export type UserRole = 'user' | 'admin' | 'super_admin';
 export interface UserProps {
   id: string;
   email: string;
+  password_hash?: string; // Used for authentication - never exposed
   full_name: string;
   phone?: string | null;
   profile_photo_url?: string | null;
@@ -77,6 +78,10 @@ export class User {
 
   get roleLevel(): number | undefined {
     return this.props.role_level;
+  }
+
+  get passwordHash(): string | undefined {
+    return this.props.password_hash;
   }
 
   // Business logic methods

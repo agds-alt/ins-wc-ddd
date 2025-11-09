@@ -100,8 +100,8 @@ export class QRCodeService {
    * Returns unique QR code ready to be assigned
    */
   async generateForNewLocation(
-    buildingName?: string,
-    organizationName?: string
+    _buildingName?: string,
+    _organizationName?: string
   ): Promise<string> {
     // Generate unique code
     const qrCode = await this.generateUniqueQRCode();

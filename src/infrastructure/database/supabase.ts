@@ -7,12 +7,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 
 // Validate environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // For server-side operations
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+// Warn if missing env vars (but don't throw during build)
+if ((!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) && process.env.NODE_ENV !== 'test') {
+  console.warn('Warning: Missing Supabase environment variables. Supabase features will not work.');
 }
 
 /**
@@ -63,7 +64,7 @@ export const supabaseAdmin = supabaseServiceKey
  * Get Supabase client with user context (for RLS)
  * Use this in tRPC procedures with authenticated user
  */
-export function getSupabaseWithUser(userId: string): SupabaseClient<Database> {
+export function getSupabaseWithUser(_userId: string): SupabaseClient<Database> {
   // For FREE TIER: We use the admin client with user context
   // In production with Redis, you'd get the actual session token
   return supabaseAdmin;

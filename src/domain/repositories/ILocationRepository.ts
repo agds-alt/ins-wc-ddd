@@ -23,6 +23,7 @@ export interface CreateLocationDTO {
 
 export interface UpdateLocationDTO {
   name?: string;
+  qr_code?: string;
   code?: string;
   floor?: string;
   area?: string;
