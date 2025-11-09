@@ -20,48 +20,61 @@ export async function GET() {
 
     const results: string[] = [];
 
-    // 1. Create roles
-    results.push('🌱 Creating roles...');
+    // 1. Create or find roles
+    results.push('🌱 Creating/finding roles...');
 
-    const roles = [
+    const rolesToCreate = [
       {
-        id: 'role-super-admin',
         name: 'Super Admin',
         description: 'Full system access',
         level: 100,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       },
       {
-        id: 'role-admin',
         name: 'Admin',
         description: 'Can manage organizations and locations',
         level: 80,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       },
       {
-        id: 'role-user',
         name: 'User',
         description: 'Standard user can perform inspections',
         level: 40,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       },
     ];
 
-    for (const role of roles) {
-      const { error } = await supabaseAdmin.from('roles').upsert(role, {
-        onConflict: 'id',
-      });
+    const roleIds: Record<number, string> = {}; // level -> id mapping
 
-      if (error) {
-        results.push(`   ⚠️  Role ${role.name}: ${error.message}`);
+    for (const roleData of rolesToCreate) {
+      // Check if role exists by level
+      const { data: existingRole } = await supabaseAdmin
+        .from('roles')
+        .select('id, name, level')
+        .eq('level', roleData.level)
+        .single();
+
+      if (existingRole) {
+        results.push(`   ✅ Role ${roleData.name} already exists`);
+        roleIds[roleData.level] = existingRole.id;
       } else {
-        results.push(`   ✅ Role ${role.name} created/updated`);
+        // Create new role (let database generate UUID)
+        const { data: newRole, error } = await supabaseAdmin
+          .from('roles')
+          .insert({
+            name: roleData.name,
+            description: roleData.description,
+            level: roleData.level,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) {
+          results.push(`   ⚠️  Role ${roleData.name}: ${error.message}`);
+        } else if (newRole) {
+          results.push(`   ✅ Role ${roleData.name} created`);
+          roleIds[roleData.level] = newRole.id;
+        }
       }
     }
 
@@ -73,13 +86,13 @@ export async function GET() {
         email: 'admin@test.com',
         password: 'Admin123!',
         full_name: 'Test Admin',
-        role_id: 'role-super-admin',
+        role_level: 100, // Super Admin
       },
       {
         email: 'user@test.com',
         password: 'User123!',
         full_name: 'Test User',
-        role_id: 'role-user',
+        role_level: 40, // User
       },
     ];
 
@@ -144,24 +157,30 @@ export async function GET() {
         }
 
         // Assign role
-        const { error: roleError } = await supabaseAdmin
-          .from('user_roles')
-          .upsert(
-            {
-              user_id: userId,
-              role_id: user.role_id,
-              assigned_by: userId,
-              created_at: new Date().toISOString(),
-            },
-            {
-              onConflict: 'user_id,role_id',
-            }
-          );
+        const roleId = roleIds[user.role_level];
 
-        if (roleError) {
-          results.push(`   ⚠️  Error assigning role: ${roleError.message}`);
+        if (!roleId) {
+          results.push(`   ⚠️  Role for level ${user.role_level} not found`);
         } else {
-          results.push(`   ✅ Role assigned to ${user.email}`);
+          const { error: roleError } = await supabaseAdmin
+            .from('user_roles')
+            .upsert(
+              {
+                user_id: userId,
+                role_id: roleId,
+                assigned_by: userId,
+                created_at: new Date().toISOString(),
+              },
+              {
+                onConflict: 'user_id,role_id',
+              }
+            );
+
+          if (roleError) {
+            results.push(`   ⚠️  Error assigning role: ${roleError.message}`);
+          } else {
+            results.push(`   ✅ Role assigned to ${user.email}`);
+          }
         }
       } catch (error) {
         results.push(
