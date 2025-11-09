@@ -188,6 +188,66 @@ export async function GET() {
       }
     }
 
+    // 3. Create default inspection template
+    results.push('\n🔍 Creating default inspection template...');
+
+    // Check if default template exists
+    const { data: existingTemplate } = await supabaseAdmin
+      .from('inspection_templates')
+      .select('id, name')
+      .eq('is_default', true)
+      .single();
+
+    if (existingTemplate) {
+      results.push(`   ✅ Default template "${existingTemplate.name}" already exists`);
+    } else {
+      // Get super admin user for created_by
+      const { data: superAdmin } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('email', 'admin@test.com')
+        .single();
+
+      const templateData = {
+        name: 'Standard Toilet Inspection',
+        description: 'Default 5-star rating inspection template for toilet cleanliness',
+        fields: {
+          version: '2.0',
+          rating_system: 'star',
+          components: [
+            { id: 'smell', name: 'Smell', category: 'aroma', weight: 15 },
+            { id: 'floor', name: 'Floor Cleanliness', category: 'visual', weight: 12 },
+            { id: 'toilet_bowl', name: 'Toilet Bowl', category: 'visual', weight: 15 },
+            { id: 'sink', name: 'Sink Area', category: 'visual', weight: 10 },
+            { id: 'walls', name: 'Walls & Ceiling', category: 'visual', weight: 8 },
+            { id: 'trash_bin', name: 'Trash Bin', category: 'visual', weight: 8 },
+            { id: 'toilet_paper', name: 'Toilet Paper', category: 'availability', weight: 10 },
+            { id: 'soap', name: 'Soap Availability', category: 'availability', weight: 8 },
+            { id: 'hand_dryer', name: 'Hand Dryer/Towel', category: 'availability', weight: 7 },
+            { id: 'flush', name: 'Flush Function', category: 'functional', weight: 10 },
+            { id: 'faucet', name: 'Faucet Function', category: 'functional', weight: 7 },
+          ],
+        },
+        is_default: true,
+        is_active: true,
+        estimated_time: 300, // 5 minutes
+        created_by: superAdmin?.id || null,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: newTemplate, error: templateError } = await supabaseAdmin
+        .from('inspection_templates')
+        .insert(templateData)
+        .select()
+        .single();
+
+      if (templateError) {
+        results.push(`   ❌ Error creating template: ${templateError.message}`);
+      } else if (newTemplate) {
+        results.push(`   ✅ Default template created: ${newTemplate.name}`);
+      }
+    }
+
     results.push('\n✅ Seeding complete!');
     results.push('\n📋 Test Credentials:');
     results.push('━━━━━━━━━━━━━━━━━━━━━━━━━');

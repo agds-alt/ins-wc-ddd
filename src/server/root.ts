@@ -14,6 +14,7 @@ import { qrcodeRouter } from './routers/qrcode';
 import { reportRouter } from './routers/report';
 import { adminRouter } from './routers/admin';
 import { auditRouter } from './routers/audit';
+import { templateRouter } from './routers/template';
 
 /**
  * App Router
@@ -30,6 +31,7 @@ export const appRouter = router({
   report: reportRouter,
   admin: adminRouter,
   audit: auditRouter,
+  template: templateRouter,
 });
 
 // Export type definition of API

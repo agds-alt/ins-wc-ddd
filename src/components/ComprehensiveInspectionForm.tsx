@@ -42,6 +42,9 @@ const ComprehensiveInspectionFormComponent = ({
   const router = useRouter();
   const utils = trpc.useUtils();
 
+  // Fetch default inspection template
+  const { data: defaultTemplate, isLoading: loadingTemplate } = trpc.template.getDefault.useQuery();
+
   // Form state
   const [ratings, setRatings] = useState<Map<InspectionComponent, ComponentRating>>(new Map());
   const [photos, setPhotos] = useState<Map<InspectionComponent, PhotoWithMetadata[]>>(new Map());
@@ -228,10 +231,15 @@ const ComprehensiveInspectionFormComponent = ({
       else if (currentScore >= 50) overallStatus = 'fair';
       else overallStatus = 'poor';
 
+      // Check if template is loaded
+      if (!defaultTemplate) {
+        throw new Error('Inspection template not found. Please run /api/seed first.');
+      }
+
       // Submit via tRPC
       await utils.client.inspection.create.mutate({
         location_id: locationId,
-        template_id: '00000000-0000-0000-0000-000000000000', // Default template
+        template_id: defaultTemplate.id,
         inspection_date: new Date().toISOString().split('T')[0],
         inspection_time: new Date().toTimeString().split(' ')[0].substring(0, 5),
         overall_status: overallStatus,
@@ -260,6 +268,37 @@ const ComprehensiveInspectionFormComponent = ({
       setUploadProgress(null);
     }
   };
+
+  // Show loading while template is being fetched
+  if (loadingTemplate) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner mb-4" />
+          <p className="text-gray-600">Loading inspection form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if template not found
+  if (!defaultTemplate) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md p-6">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-3">Template Not Found</h2>
+          <p className="text-gray-600 mb-6">
+            The inspection template is not configured. Please contact your administrator or run the
+            seed script.
+          </p>
+          <button onClick={() => router.back()} className="btn-primary">
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
