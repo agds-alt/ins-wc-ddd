@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import { trpc } from '@/lib/trpc/client';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,8 +23,21 @@ export default function AdminPage() {
   const { data: pendingSummary } = trpc.admin.pendingVerificationsSummary.useQuery();
 
   // Redirect if not admin
-  if (user && !user.isAdmin) {
-    router.push('/dashboard');
+  useEffect(() => {
+    if (user && !user.isAdmin) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (!user.isAdmin) {
     return null;
   }
 
