@@ -147,9 +147,9 @@ export class UserRepository implements IUserRepository {
       .from('users')
       .select(`
         *,
-        user_roles!inner (
+        user_roles (
           role_id,
-          roles!inner (
+          roles (
             name,
             level
           )
@@ -161,13 +161,15 @@ export class UserRepository implements IUserRepository {
     if (error || !data) return null;
 
     // Map role data to user
-    const userRole = data.user_roles as any;
-    const role = userRole?.[0]?.roles;
+    const userRoles = data.user_roles as any;
+    const role = Array.isArray(userRoles) && userRoles.length > 0
+      ? userRoles[0]?.roles
+      : null;
 
     return User.create({
       ...(data as UserProps),
-      role: role?.name,
-      role_level: role?.level,
+      role: role?.name || 'user', // Default to 'user' if no role assigned
+      role_level: role?.level || 40, // Default level 40 for user
     });
   }
 

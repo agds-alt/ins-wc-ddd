@@ -25,17 +25,17 @@ export async function GET() {
 
     const rolesToCreate = [
       {
-        name: 'Super Admin',
+        name: 'super_admin',
         description: 'Full system access',
         level: 100,
       },
       {
-        name: 'Admin',
+        name: 'admin',
         description: 'Can manage organizations and locations',
         level: 80,
       },
       {
-        name: 'User',
+        name: 'user',
         description: 'Standard user can perform inspections',
         level: 40,
       },
@@ -52,7 +52,25 @@ export async function GET() {
         .single();
 
       if (existingRole) {
-        results.push(`   ✅ Role ${roleData.name} already exists`);
+        // Update role name if it's different (fixes old 'Super Admin' -> 'super_admin')
+        if (existingRole.name !== roleData.name) {
+          const { error: updateError } = await supabaseAdmin
+            .from('roles')
+            .update({
+              name: roleData.name,
+              description: roleData.description,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingRole.id);
+
+          if (updateError) {
+            results.push(`   ⚠️  Error updating role: ${updateError.message}`);
+          } else {
+            results.push(`   ✅ Role updated: ${existingRole.name} -> ${roleData.name}`);
+          }
+        } else {
+          results.push(`   ✅ Role ${roleData.name} already exists`);
+        }
         roleIds[roleData.level] = existingRole.id;
       } else {
         // Create new role (let database generate UUID)

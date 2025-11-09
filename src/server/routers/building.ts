@@ -15,7 +15,11 @@ export const buildingRouter = router({
     .input(
       z.object({
         name: z.string().min(2),
-        short_code: z.string().min(1),
+        short_code: z
+          .string()
+          .min(2)
+          .max(10)
+          .regex(/^[A-Z0-9]+$/, 'Short code must be uppercase letters and numbers only (e.g., BLDG01)'),
         organization_id: z.string().uuid(),
         address: z.string().optional(),
         type: z.string().optional(),
@@ -23,21 +27,35 @@ export const buildingRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if short code exists
-      const exists = await ctx.repositories.building.shortCodeExists(input.short_code);
-      if (exists) {
+      try {
+        // Check if short code exists
+        const exists = await ctx.repositories.building.shortCodeExists(input.short_code);
+        if (exists) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'Building code already exists',
+          });
+        }
+
+        const building = await ctx.repositories.building.create({
+          ...input,
+          created_by: ctx.user.userId,
+        });
+
+        return building.toObject();
+      } catch (error) {
+        // If it's already a TRPCError, rethrow it
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        // Otherwise, wrap the error with more details
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'Building code already exists',
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to create building: ${errorMessage}`,
         });
       }
-
-      const building = await ctx.repositories.building.create({
-        ...input,
-        created_by: ctx.user.userId,
-      });
-
-      return building.toObject();
     }),
 
   /**
