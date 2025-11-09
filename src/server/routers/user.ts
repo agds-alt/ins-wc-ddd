@@ -6,6 +6,7 @@
 import { router, protectedProcedure, adminProcedure } from '../trpc';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { supabaseAdmin } from '@/infrastructure/database/supabase';
 
 export const userRouter = router({
   /**
@@ -82,6 +83,87 @@ export const userRouter = router({
     await ctx.repositories.user.deactivate(input);
     return { message: 'User deactivated successfully' };
   }),
+
+  /**
+   * Update user role (admin/superadmin only)
+   */
+  updateRole: adminProcedure
+    .input(
+      z.object({
+        userId: z.string().uuid(),
+        isAdmin: z.boolean(),
+        isSuperAdmin: z.boolean(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId, isAdmin, isSuperAdmin } = input;
+
+      // Only super admins can assign super admin or admin roles
+      if ((isAdmin || isSuperAdmin) && ctx.user.role !== 'super_admin') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only super admins can assign admin or super admin roles',
+        });
+      }
+
+      // Determine role level and name
+      let roleLevel = 40; // User
+      let roleName = 'User';
+
+      if (isSuperAdmin) {
+        roleLevel = 100;
+        roleName = 'Super Admin';
+      } else if (isAdmin) {
+        roleLevel = 80;
+        roleName = 'Admin';
+      }
+
+      // Find or create the role
+      let { data: role } = await supabaseAdmin
+        .from('roles')
+        .select('id')
+        .eq('level', roleLevel)
+        .single();
+
+      if (!role) {
+        // Create the role if it doesn't exist
+        const { data: newRole, error: createError } = await supabaseAdmin
+          .from('roles')
+          .insert({
+            name: roleName,
+            level: roleLevel,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to create role',
+          });
+        }
+        role = newRole;
+      }
+
+      // Update user_roles (remove old roles first, then add new)
+      await supabaseAdmin.from('user_roles').delete().eq('user_id', userId);
+
+      const { error: assignError } = await supabaseAdmin.from('user_roles').insert({
+        user_id: userId,
+        role_id: role.id,
+        created_at: new Date().toISOString(),
+      });
+
+      if (assignError) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to assign role to user',
+        });
+      }
+
+      return { message: 'User role updated successfully' };
+    }),
 
   /**
    * Get user count
