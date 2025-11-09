@@ -141,7 +141,9 @@ export default function UsersManagementPage() {
           onClose={() => setEditingUser(null)}
           onSuccess={() => {
             setEditingUser(null);
+            // Invalidate both list and individual user queries to refresh UI
             utils.user.list.invalidate();
+            utils.user.getById.invalidate();
           }}
         />
       )}
