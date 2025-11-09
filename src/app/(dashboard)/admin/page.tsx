@@ -33,22 +33,18 @@ export default function AdminPage() {
         <StatCard
           title="Total Users"
           value={systemStats?.users || 0}
-          icon="users"
         />
         <StatCard
           title="Locations"
           value={systemStats?.locations || 0}
-          icon="map"
         />
         <StatCard
           title="Buildings"
           value={systemStats?.buildings || 0}
-          icon="building"
         />
         <StatCard
           title="Inspections"
           value={systemStats?.inspections || 0}
-          icon="clipboard"
         />
       </div>
 
@@ -127,11 +123,9 @@ export default function AdminPage() {
 function StatCard({
   title,
   value,
-  icon,
 }: {
   title: string;
   value: number;
-  icon: string;
 }) {
   return (
     <div className="container-elevated">

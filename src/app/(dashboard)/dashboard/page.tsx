@@ -27,25 +27,18 @@ export default function DashboardPage() {
         <StatCard
           title="Total Inspections"
           value={stats?.total || 0}
-          icon="clipboard"
         />
         <StatCard
           title="Today"
           value={stats?.today || 0}
-          icon="calendar"
-          color="blue"
         />
         <StatCard
           title="This Week"
           value={stats?.this_week || 0}
-          icon="chart"
-          color="green"
         />
         <StatCard
           title="Needs Attention"
           value={stats?.needs_attention || 0}
-          icon="alert"
-          color="red"
         />
       </div>
 
@@ -129,13 +122,9 @@ export default function DashboardPage() {
 function StatCard({
   title,
   value,
-  icon,
-  color = 'default',
 }: {
   title: string;
   value: number;
-  icon: string;
-  color?: 'default' | 'blue' | 'green' | 'red';
 }) {
   return (
     <div className="container-elevated">

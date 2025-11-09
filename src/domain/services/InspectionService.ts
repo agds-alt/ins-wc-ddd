@@ -4,7 +4,6 @@
  */
 
 import { Inspection } from '../entities/Inspection';
-import { Location } from '../entities/Location';
 import { IInspectionRepository, CreateInspectionDTO } from '../repositories/IInspectionRepository';
 import { ILocationRepository } from '../repositories/ILocationRepository';
 import { IUserRepository } from '../repositories/IUserRepository';

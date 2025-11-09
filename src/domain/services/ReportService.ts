@@ -3,7 +3,6 @@
  * Business logic for generating reports and analytics
  */
 
-import { Inspection } from '../entities/Inspection';
 import { Location } from '../entities/Location';
 import { IInspectionRepository, InspectionFilters } from '../repositories/IInspectionRepository';
 import { ILocationRepository } from '../repositories/ILocationRepository';

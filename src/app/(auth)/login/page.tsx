@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success('Login successful!');
       router.push('/dashboard');
     },

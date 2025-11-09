@@ -16,7 +16,7 @@ export default function ReportsPage() {
   });
 
   const { data: exportData } = trpc.report.export.useQuery(dateRange);
-  const { data: trending } = trpc.report.trending.useQuery({
+  const { data: _trending } = trpc.report.trending.useQuery({
     ...dateRange,
     days: 30,
   });

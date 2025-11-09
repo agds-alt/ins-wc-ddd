@@ -20,7 +20,7 @@ export const DebugPanel = () => {
   }, [isOpen]);
 
   // Only show in dev mode
-  if (!import.meta.env.DEV) return null;
+  if (process.env.NODE_ENV === 'production') return null;
 
   const handleExport = () => {
     const json = logger.exportLogs();

@@ -82,29 +82,29 @@ export default function DashboardLayout({
         </div>
 
         <nav className="p-4 space-y-2">
-          <NavLink href="/dashboard" icon="home">
+          <NavLink href="/dashboard">
             Dashboard
           </NavLink>
-          <NavLink href="/scan" icon="qrcode">
+          <NavLink href="/scan">
             Scan QR
           </NavLink>
-          <NavLink href="/inspection" icon="clipboard">
+          <NavLink href="/inspection">
             Inspections
           </NavLink>
-          <NavLink href="/locations" icon="map">
+          <NavLink href="/locations">
             Locations
           </NavLink>
-          <NavLink href="/reports" icon="chart">
+          <NavLink href="/reports">
             Reports
           </NavLink>
-          <NavLink href="/analytics" icon="analytics">
+          <NavLink href="/analytics">
             Analytics
           </NavLink>
-          <NavLink href="/profile" icon="user">
+          <NavLink href="/profile">
             Profile
           </NavLink>
           {user.isAdmin && (
-            <NavLink href="/admin" icon="settings">
+            <NavLink href="/admin">
               Admin
             </NavLink>
           )}
@@ -133,11 +133,9 @@ export default function DashboardLayout({
 
 function NavLink({
   href,
-  icon,
   children,
 }: {
   href: string;
-  icon: string;
   children: React.ReactNode;
 }) {
   return (
@@ -145,7 +143,6 @@ function NavLink({
       href={href}
       className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-secondary transition-colors"
     >
-      <span className="text-muted-foreground">{/* Icon placeholder */}</span>
       <span>{children}</span>
     </a>
   );

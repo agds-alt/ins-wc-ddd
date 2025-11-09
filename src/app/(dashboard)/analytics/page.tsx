@@ -21,9 +21,9 @@ export default function AnalyticsPage() {
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Inspections" value={stats?.total || 0} />
-        <StatCard title="Today" value={stats?.today || 0} color="blue" />
-        <StatCard title="This Week" value={stats?.this_week || 0} color="green" />
-        <StatCard title="This Month" value={stats?.this_month || 0} color="purple" />
+        <StatCard title="Today" value={stats?.today || 0} />
+        <StatCard title="This Week" value={stats?.this_week || 0} />
+        <StatCard title="This Month" value={stats?.this_month || 0} />
       </div>
 
       {/* Performance Breakdown */}
@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
                     Pending Verification
                   </div>
                   <div className="text-2xl font-bold">
-                    {stats.pending_count}
+                    {stats.pending_verification}
                   </div>
                 </div>
                 <div className="text-yellow-600">
@@ -137,11 +137,9 @@ export default function AnalyticsPage() {
 function StatCard({
   title,
   value,
-  color = 'default',
 }: {
   title: string;
   value: number;
-  color?: 'default' | 'blue' | 'green' | 'purple';
 }) {
   return (
     <div className="container-elevated">

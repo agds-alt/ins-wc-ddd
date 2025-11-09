@@ -3,9 +3,6 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
-  // Performance optimizations
-  swcMinify: true,
-
   // Image optimization for Cloudinary
   images: {
     remotePatterns: [
@@ -20,7 +17,6 @@ const nextConfig: NextConfig = {
   // Experimental features for better performance
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],
-    reactCompiler: true, // React 19 compiler
   },
 
   // TypeScript strict mode

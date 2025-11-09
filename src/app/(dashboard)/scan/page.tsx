@@ -13,10 +13,10 @@ import toast from 'react-hot-toast';
 export default function ScanPage() {
   const router = useRouter();
   const [qrCode, setQrCode] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
+  const [_isScanning, _setIsScanning] = useState(false);
 
   const scanMutation = trpc.qrcode.scan.useQuery(
-    { input: qrCode },
+    qrCode,
     { enabled: false }
   );
 

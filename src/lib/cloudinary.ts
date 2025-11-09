@@ -1,17 +1,17 @@
 // src/lib/cloudinary.ts
 import imageCompression from 'browser-image-compression';
 
-// Environment variables for Cloudinary
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-const CLOUDINARY_FOLDER = import.meta.env.VITE_CLOUDINARY_FOLDER || 'toilet-inspections';
+// Environment variables for Cloudinary (Next.js)
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_FOLDER = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER || 'toilet-inspections';
 
 // Validate environment variables
 const validateCloudinaryConfig = (): void => {
   const missingVars: string[] = [];
 
-  if (!CLOUDINARY_CLOUD_NAME) missingVars.push('VITE_CLOUDINARY_CLOUD_NAME');
-  if (!CLOUDINARY_UPLOAD_PRESET) missingVars.push('VITE_CLOUDINARY_UPLOAD_PRESET');
+  if (!CLOUDINARY_CLOUD_NAME) missingVars.push('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME');
+  if (!CLOUDINARY_UPLOAD_PRESET) missingVars.push('NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET');
 
   if (missingVars.length > 0) {
     throw new Error(
@@ -52,10 +52,13 @@ export const compressImage = async (file: File): Promise<File> => {
  * Upload single file to Cloudinary
  */
 export const uploadToCloudinary = async (file: File): Promise<string> => {
+  // Validate config before upload
+  validateCloudinaryConfig();
+
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-  formData.append('folder', CLOUDINARY_FOLDER);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET!);
+  formData.append('folder', CLOUDINARY_FOLDER!);
 
   try {
     const response = await fetch(
@@ -95,7 +98,7 @@ export const batchUploadToCloudinary = async (
     // Use Promise.allSettled instead of Promise.all
     // This allows remaining uploads to continue even if some fail
     const batchResults = await Promise.allSettled(
-      batch.map((file, index) =>
+      batch.map((file, _index) =>
         uploadToCloudinary(file).catch(error => {
           failedFiles.push({
             fileName: file.name,

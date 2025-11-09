@@ -53,7 +53,12 @@ export async function verifyJWT(token: string): Promise<JWTPayload | null> {
       algorithms: ['HS256'],
     });
 
-    return payload as JWTPayload;
+    // Validate required fields
+    if (!payload.userId || !payload.email) {
+      return null;
+    }
+
+    return payload as unknown as JWTPayload;
   } catch (error) {
     // Token invalid or expired
     console.error('JWT verification failed:', error);

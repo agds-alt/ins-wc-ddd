@@ -6,8 +6,7 @@
  * doesn't exist in current schema. Can be implemented later if needed.
  */
 
-import { supabaseAdmin } from '../supabase';
-import { AuditLog, AuditLogProps, AuditEntityType } from '@/domain/entities/AuditLog';
+import { AuditLog, AuditEntityType } from '@/domain/entities/AuditLog';
 import {
   IAuditLogRepository,
   CreateAuditLogDTO,
@@ -20,15 +19,15 @@ export class AuditLogRepository implements IAuditLogRepository {
   // Note: This implementation assumes an audit_logs table exists
   // If not, this can be implemented later or use alternative logging
 
-  async findById(id: string): Promise<AuditLog | null> {
+  async findById(_id: string): Promise<AuditLog | null> {
     // Placeholder - implement when audit_logs table exists
     return null;
   }
 
   async findAll(
-    filters?: AuditLogFilters,
-    limit: number = DEFAULT_LIMIT,
-    offset: number = 0
+    _filters?: AuditLogFilters,
+    _limit: number = DEFAULT_LIMIT,
+    _offset: number = 0
   ): Promise<AuditLog[]> {
     // Placeholder - implement when audit_logs table exists
     return [];
@@ -61,12 +60,12 @@ export class AuditLogRepository implements IAuditLogRepository {
     });
   }
 
-  async count(filters?: AuditLogFilters): Promise<number> {
+  async count(_filters?: AuditLogFilters): Promise<number> {
     // Placeholder
     return 0;
   }
 
-  async deleteOlderThan(days: number): Promise<number> {
+  async deleteOlderThan(_days: number): Promise<number> {
     // Placeholder - implement when audit_logs table exists
     return 0;
   }

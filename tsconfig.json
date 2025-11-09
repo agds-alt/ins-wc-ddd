@@ -54,6 +54,7 @@
     "node_modules",
     ".next",
     "dist",
-    "out"
+    "out",
+    "OLD_VITE_BACKUP"
   ]
 }

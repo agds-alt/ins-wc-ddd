@@ -17,7 +17,7 @@ class Logger {
   private userId?: string;
   private logs: LogEntry[] = [];
   private maxLogs = 100; // Keep last 100 logs in memory
-  private isDev = import.meta.env.DEV;
+  private isDev = process.env.NODE_ENV !== 'production';
 
   constructor() {
     this.sessionId = this.getOrCreateSessionId();
@@ -169,15 +169,15 @@ class Logger {
   }
 
   // Send error to server (implement based on your backend)
-  private async sendErrorToServer(entry: LogEntry) {
-    if (!import.meta.env.PROD) return; // Only in production
-    
+  private async sendErrorToServer(_entry: LogEntry) {
+    if (process.env.NODE_ENV !== 'production') return; // Only in production
+
     try {
       // TODO: Replace with your error tracking endpoint
       // await fetch('/api/logs/error', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(entry),
+      //   body: JSON.stringify(_entry),
       // });
     } catch (e) {
       console.error('Failed to send error to server:', e);
