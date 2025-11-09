@@ -1,5 +1,5 @@
 // src/types/inspection.types.ts
-export type InspectionComponent = 
+export type InspectionComponent =
   | 'aroma'
   | 'floor_cleanliness'
   | 'wall_condition'
@@ -12,14 +12,14 @@ export type InspectionComponent =
   | 'air_freshener'
   | 'trash_bin_condition';
 
-// NEW: 3-choice rating system
-export type RatingChoice = 'good' | 'normal' | 'bad' | 'other';
+// NEW: Star rating system 1-5
+export type StarRating = 1 | 2 | 3 | 4 | 5;
 
 export interface ComponentRating {
   component: InspectionComponent;
-  choice: RatingChoice;
-  notes?: string; // Required when choice === 'other'
-  photo?: string;
+  rating: StarRating; // 1 = Very Bad, 2 = Bad, 3 = Fair, 4 = Good, 5 = Excellent
+  notes?: string; // Optional notes for additional context
+  photo?: string; // Optional photo URL after upload
 }
 
 export type ComponentCategory = 'aroma' | 'visual' | 'availability' | 'functional';
@@ -34,20 +34,7 @@ export interface InspectionComponentConfig {
   iconGenZ: string; // Emoji for GenZ mode
   required: boolean;
   allowPhoto: boolean;
-  choices: {
-    professional: {
-      good: string;
-      normal: string;
-      bad: string;
-      other: string;
-    };
-    genZ: {
-      good: string;
-      normal: string;
-      bad: string;
-      other: string;
-    };
-  };
+  description?: string; // Optional description for guidance
 }
 
 // ============================================
@@ -66,20 +53,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '👃',
     required: true,
     allowPhoto: false,
-    choices: {
-      professional: {
-        good: 'Fresh/Pleasant',
-        normal: 'Neutral',
-        bad: 'Unpleasant Odor',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '🌸 Wangi',
-        normal: '😐 Normal',
-        bad: '🤢 Bau',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Rate the overall smell/odor of the restroom',
   },
 
   // VISUAL CLEANLINESS CATEGORY
@@ -93,20 +67,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '✨',
     required: true,
     allowPhoto: true,
-    choices: {
-      professional: {
-        good: 'Clean',
-        normal: 'Acceptable',
-        bad: 'Dirty',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✨ Bersih',
-        normal: '😐 Cukup',
-        bad: '💩 Kotor',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if the floor is clean and dry',
   },
   {
     id: 'wall_condition',
@@ -118,20 +79,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🎨',
     required: true,
     allowPhoto: true,
-    choices: {
-      professional: {
-        good: 'Clean',
-        normal: 'Acceptable',
-        bad: 'Dirty/Damaged',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✨ Bersih',
-        normal: '😐 Cukup',
-        bad: '💩 Kotor',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check walls and tiles for cleanliness and damage',
   },
   {
     id: 'mirror_condition',
@@ -143,20 +91,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🪞',
     required: true,
     allowPhoto: false,
-    choices: {
-      professional: {
-        good: 'Clean',
-        normal: 'Acceptable',
-        bad: 'Dirty/Spotted',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✨ Bersih',
-        normal: '😐 Cukup',
-        bad: '💩 Kotor',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if mirrors are clean and free of spots',
   },
   {
     id: 'toilet_condition',
@@ -164,24 +99,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     label: 'Toilet Bowl Condition',
     labelGenZ: 'Kondisi Kloset',
     weight: 0.15,
-    icon: 'Droplet', // Using Droplet as placeholder for toilet
+    icon: 'Droplet',
     iconGenZ: '🚽',
     required: true,
     allowPhoto: true,
-    choices: {
-      professional: {
-        good: 'Clean',
-        normal: 'Acceptable',
-        bad: 'Dirty',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✨ Bersih',
-        normal: '😐 Cukup',
-        bad: '💩 Kotor',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check toilet bowl cleanliness',
   },
   {
     id: 'trash_bin_condition',
@@ -193,20 +115,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🗑️',
     required: true,
     allowPhoto: false,
-    choices: {
-      professional: {
-        good: 'Clean/Not Full',
-        normal: 'Half Full',
-        bad: 'Overflowing',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✨ Bersih',
-        normal: '😐 Setengah',
-        bad: '😫 Penuh',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if trash bins are empty and clean',
   },
 
   // FUNCTIONAL CATEGORY
@@ -220,20 +129,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '💧',
     required: true,
     allowPhoto: true,
-    choices: {
-      professional: {
-        good: 'Functioning Properly',
-        normal: 'Minor Issues',
-        bad: 'Not Functional',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✅ Normal',
-        normal: '⚠️ Agak Bermasalah',
-        bad: '❌ Rusak',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if sink and faucet are working properly',
   },
   {
     id: 'urinal_condition',
@@ -245,20 +141,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🚿',
     required: false, // Not all toilets have urinals
     allowPhoto: true,
-    choices: {
-      professional: {
-        good: 'Functioning Properly',
-        normal: 'Minor Issues',
-        bad: 'Not Functional',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✅ Normal',
-        normal: '⚠️ Agak Bermasalah',
-        bad: '❌ Rusak',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check urinal functionality (if available)',
   },
 
   // AVAILABILITY CATEGORY
@@ -272,20 +155,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🧴',
     required: true,
     allowPhoto: false,
-    choices: {
-      professional: {
-        good: 'Available',
-        normal: 'Low Stock',
-        bad: 'Empty',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✅ Ada',
-        normal: '⚠️ Hampir Habis',
-        bad: '❌ Habis',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if soap is available and sufficient',
   },
   {
     id: 'tissue_availability',
@@ -297,20 +167,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🧻',
     required: true,
     allowPhoto: false,
-    choices: {
-      professional: {
-        good: 'Available',
-        normal: 'Low Stock',
-        bad: 'Empty',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✅ Ada',
-        normal: '⚠️ Hampir Habis',
-        bad: '❌ Habis',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if tissue is available and sufficient',
   },
   {
     id: 'air_freshener',
@@ -322,20 +179,7 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
     iconGenZ: '🌬️',
     required: true,
     allowPhoto: false,
-    choices: {
-      professional: {
-        good: 'Available',
-        normal: 'Low Stock',
-        bad: 'Empty',
-        other: 'Other (specify)',
-      },
-      genZ: {
-        good: '✅ Ada',
-        normal: '⚠️ Hampir Habis',
-        bad: '❌ Habis',
-        other: '💬 Lainnya',
-      },
-    },
+    description: 'Check if air freshener is available',
   },
 ];
 
@@ -343,6 +187,11 @@ export const INSPECTION_COMPONENTS: InspectionComponentConfig[] = [
 // HELPER FUNCTIONS
 // ============================================
 
+/**
+ * Calculate weighted score from star ratings
+ * Formula: (sum of rating * weight) / total weight * 20 to get 0-100 scale
+ * Rating 1 = 20%, Rating 2 = 40%, Rating 3 = 60%, Rating 4 = 80%, Rating 5 = 100%
+ */
 export const calculateWeightedScore = (ratings: ComponentRating[]): number => {
   let totalWeight = 0;
   let weightedSum = 0;
@@ -353,21 +202,19 @@ export const calculateWeightedScore = (ratings: ComponentRating[]): number => {
 
     totalWeight += component.weight;
 
-    // Scoring: good = 100, normal = 60, bad = 20, other = 40
-    const scoreMap: Record<RatingChoice, number> = {
-      good: 100,
-      normal: 60,
-      bad: 20,
-      other: 40,
-    };
+    // Convert star rating (1-5) to percentage (20-100)
+    const scorePercentage = rating.rating * 20;
 
-    weightedSum += scoreMap[rating.choice] * component.weight;
+    weightedSum += scorePercentage * component.weight;
   });
 
   if (totalWeight === 0) return 0;
   return Math.round(weightedSum / totalWeight);
 };
 
+/**
+ * Get score status with color and emoji
+ */
 export const getScoreStatus = (
   score: number
 ): { label: string; color: string; emoji: string } => {
@@ -382,6 +229,21 @@ export const getScoreStatus = (
   } else {
     return { label: 'Critical', color: 'red', emoji: '😨' };
   }
+};
+
+/**
+ * Get star rating label in Indonesian
+ */
+export const getStarRatingLabel = (rating: StarRating, genZMode = false): string => {
+  const labels: Record<StarRating, { professional: string; genZ: string }> = {
+    1: { professional: 'Very Bad', genZ: 'Sangat Buruk' },
+    2: { professional: 'Bad', genZ: 'Buruk' },
+    3: { professional: 'Fair', genZ: 'Cukup' },
+    4: { professional: 'Good', genZ: 'Baik' },
+    5: { professional: 'Excellent', genZ: 'Sangat Baik' },
+  };
+
+  return genZMode ? labels[rating].genZ : labels[rating].professional;
 };
 
 export interface PhotoWithMetadata {
