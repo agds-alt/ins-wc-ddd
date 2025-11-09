@@ -331,12 +331,17 @@ function CreateBuildingModal({
               onChange={(e) =>
                 setFormData({ ...formData, short_code: e.target.value.toUpperCase() })
               }
-              placeholder="e.g., MOB"
+              placeholder="e.g., BLDG01"
               className="input-field"
               required
               disabled={createBuilding.isPending}
               maxLength={10}
+              pattern="[A-Z0-9]{2,10}"
+              title="Use 2-10 uppercase letters and numbers only"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Use uppercase letters and numbers only (e.g., BLDG01, MAIN, HQ)
+            </p>
           </div>
 
           <div>

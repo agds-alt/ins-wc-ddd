@@ -15,7 +15,11 @@ export const buildingRouter = router({
     .input(
       z.object({
         name: z.string().min(2),
-        short_code: z.string().min(1),
+        short_code: z
+          .string()
+          .min(2)
+          .max(10)
+          .regex(/^[A-Z0-9]+$/, 'Short code must be uppercase letters and numbers only (e.g., BLDG01)'),
         organization_id: z.string().uuid(),
         address: z.string().optional(),
         type: z.string().optional(),

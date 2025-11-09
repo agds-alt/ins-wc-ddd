@@ -99,7 +99,7 @@ export const userRouter = router({
       const { userId, isAdmin, isSuperAdmin } = input;
 
       // Only super admins can assign super admin or admin roles
-      if ((isAdmin || isSuperAdmin) && ctx.user.role !== 'super_admin') {
+      if ((isAdmin || isSuperAdmin) && !ctx.userEntity.isSuperAdmin()) {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Only super admins can assign admin or super admin roles',
