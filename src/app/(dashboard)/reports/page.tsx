@@ -13,6 +13,50 @@ import { Calendar, Download, TrendingUp, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
+interface DateInspection {
+  id: string;
+  locationId: string;
+  locationName: string;
+  inspectionDate: string;
+  inspectionTime: string;
+  overallStatus: string;
+  notes?: string | null;
+  photoCount: number;
+  submittedAt?: string | Date | null;
+}
+
+// Helper to get badge class from status
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case 'excellent':
+      return 'badge-success';
+    case 'good':
+      return 'badge-info';
+    case 'fair':
+      return 'badge-warning';
+    case 'poor':
+      return 'badge-danger';
+    default:
+      return 'badge-info';
+  }
+}
+
+// Helper to translate status to Indonesian
+function translateStatus(status: string): string {
+  switch (status) {
+    case 'excellent':
+      return 'Sangat Baik';
+    case 'good':
+      return 'Baik';
+    case 'fair':
+      return 'Cukup';
+    case 'poor':
+      return 'Buruk';
+    default:
+      return status;
+  }
+}
+
 export default function ReportsPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -48,8 +92,8 @@ export default function ReportsPage() {
 
   // Export current month
   const handleExport = () => {
-    const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-    const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
+    // const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+    // const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
 
     toast.loading('Preparing export...');
 
@@ -137,7 +181,7 @@ export default function ReportsPage() {
             </div>
           ) : dateInspections && dateInspections.length > 0 ? (
             <div className="space-y-3">
-              {dateInspections.map((inspection) => (
+              {dateInspections.map((inspection: DateInspection) => (
                 <div
                   key={inspection.id}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
@@ -150,16 +194,8 @@ export default function ReportsPage() {
                   </div>
 
                   <div>
-                    <span
-                      className={`badge ${
-                        inspection.overallStatus === 'Sangat Baik'
-                          ? 'badge-success'
-                          : inspection.overallStatus === 'Cukup'
-                          ? 'badge-warning'
-                          : 'badge-danger'
-                      }`}
-                    >
-                      {inspection.overallStatus}
+                    <span className={`badge ${getStatusBadgeClass(inspection.overallStatus)}`}>
+                      {translateStatus(inspection.overallStatus)}
                     </span>
                   </div>
                 </div>

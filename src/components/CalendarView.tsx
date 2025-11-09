@@ -16,7 +16,6 @@ import {
   isToday,
   addMonths,
   subMonths,
-  isSameDay,
 } from 'date-fns';
 
 export interface DateInspection {
@@ -48,15 +47,13 @@ function CalendarViewContent({
   onDateClick,
 }: CalendarViewProps) {
   // Memoized calculations
-  const { monthStart, monthEnd, daysInMonth, emptyDays } = useMemo(() => {
+  const { daysInMonth, emptyDays } = useMemo(() => {
     const start = startOfMonth(currentDate);
     const end = endOfMonth(currentDate);
     const days = eachDayOfInterval({ start, end });
     const empty = Array(start.getDay()).fill(null);
 
     return {
-      monthStart: start,
-      monthEnd: end,
       daysInMonth: days,
       emptyDays: empty,
     };

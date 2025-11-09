@@ -89,11 +89,11 @@ export const reportRouter = router({
       const endDateStr = endDate.toISOString().split('T')[0];
 
       // Fetch inspections for the month
-      const inspections = await ctx.repositories.inspection.findByFilters({
+      const inspections = await ctx.repositories.inspection.findAll({
         user_id: targetUserId,
         date_from: startDateStr,
         date_to: endDateStr,
-      });
+      }, 1000);
 
       // Group by date and calculate stats
       const dateMap = new Map<string, { count: number; totalScore: number }>();
@@ -110,13 +110,13 @@ export const reportRouter = router({
         // Calculate score from overall status
         let score = 50; // default
         const status = inspection.overallStatus;
-        if (status === 'Sangat Baik' || status === 'Good' || status === 'Excellent') {
+        if (status === 'excellent') {
           score = 95;
-        } else if (status === 'Baik' || status === 'Fair') {
+        } else if (status === 'good') {
           score = 75;
-        } else if (status === 'Cukup') {
+        } else if (status === 'fair') {
           score = 60;
-        } else if (status === 'Buruk' || status === 'Poor') {
+        } else if (status === 'poor') {
           score = 40;
         }
 
@@ -150,11 +150,11 @@ export const reportRouter = router({
       // Use current user if not specified
       const targetUserId = userId || ctx.user.userId;
 
-      const inspections = await ctx.repositories.inspection.findByFilters({
+      const inspections = await ctx.repositories.inspection.findAll({
         user_id: targetUserId,
         date_from: date,
         date_to: date,
-      });
+      }, 100);
 
       // Transform to UI-friendly format
       return inspections.map((inspection) => ({
