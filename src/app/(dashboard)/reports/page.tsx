@@ -102,9 +102,9 @@ export default function ReportsPage() {
       // Fetch export data
       const data = await utils.client.report.exportMonthlyReport.query({ year, month });
 
-      // Export to Excel
+      // Export to Excel (dynamically loads XLSX library)
       const monthName = format(new Date(year, month - 1, 1), 'MMMM_yyyy');
-      exportToExcel(data.inspections, `Inspeksi_${monthName}.xlsx`);
+      await exportToExcel(data.inspections, `Inspeksi_${monthName}.xlsx`);
 
       toast.success('Excel exported successfully!', { id: toastId });
     } catch (error) {
@@ -121,9 +121,9 @@ export default function ReportsPage() {
       // Fetch export data
       const data = await utils.client.report.exportMonthlyReport.query({ year, month });
 
-      // Export to PDF
+      // Export to PDF (dynamically loads jsPDF library)
       const monthName = format(new Date(year, month - 1, 1), 'MMMM_yyyy');
-      exportMonthlyReportToPDF(data as MonthlyReportData, `Laporan_Kebersihan_${monthName}.pdf`);
+      await exportMonthlyReportToPDF(data as MonthlyReportData, `Laporan_Kebersihan_${monthName}.pdf`);
 
       toast.success('PDF exported successfully!', { id: toastId });
     } catch (error) {

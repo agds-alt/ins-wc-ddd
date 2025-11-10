@@ -1,5 +1,6 @@
 // src/lib/cloudinary.ts
-import imageCompression from 'browser-image-compression';
+// PERFORMANCE: browser-image-compression (~50KB) is loaded on-demand
+import { loadImageCompression } from './lazy';
 
 // Environment variables for Cloudinary (Next.js)
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -26,6 +27,7 @@ validateCloudinaryConfig();
 
 /**
  * Compress image before upload
+ * Dynamically loads browser-image-compression (~50KB) only when needed
  */
 export const compressImage = async (file: File): Promise<File> => {
   const options = {
@@ -34,8 +36,10 @@ export const compressImage = async (file: File): Promise<File> => {
     useWebWorker: true,
     fileType: 'image/webp' // Convert to WebP
   };
-  
+
   try {
+    // Load image compression library on-demand
+    const imageCompression = await loadImageCompression();
     const compressedFile = await imageCompression(file, options);
     console.log(`✅ Compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
     return compressedFile;

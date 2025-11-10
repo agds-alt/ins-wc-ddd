@@ -1,12 +1,14 @@
 /**
  * Export Utilities for Excel and PDF
  * Modern implementation with performance optimizations
+ *
+ * PERFORMANCE: Heavy libraries (jsPDF, XLSX) are loaded on-demand
+ * to reduce initial bundle size by ~500KB
  */
 
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { loadPDFLibraries, loadXLSX } from '@/lib/lazy';
+import type { jsPDF } from 'jspdf';
 
 export interface ExportInspectionData {
   // Inspection Info
@@ -59,11 +61,15 @@ export interface MonthlyReportData {
 
 /**
  * Export inspections to Excel format
+ * Dynamically loads XLSX library (~300KB) only when needed
  */
-export function exportToExcel(data: ExportInspectionData[], filename?: string): void {
+export async function exportToExcel(data: ExportInspectionData[], filename?: string): Promise<void> {
   if (data.length === 0) {
     throw new Error('No data to export');
   }
+
+  // Load XLSX library on-demand
+  const XLSX = await loadXLSX();
 
   // Create workbook
   const wb = XLSX.utils.book_new();
@@ -131,8 +137,13 @@ export function exportToExcel(data: ExportInspectionData[], filename?: string): 
  * Page 3: Daily Breakdown
  * Page 4: Status Distribution
  * Page 5: Detailed Inspections List
+ *
+ * Dynamically loads jsPDF library (~200KB) only when needed
  */
-export function exportMonthlyReportToPDF(data: MonthlyReportData, filename?: string): void {
+export async function exportMonthlyReportToPDF(data: MonthlyReportData, filename?: string): Promise<void> {
+  // Load PDF libraries on-demand
+  const { jsPDF, autoTable } = await loadPDFLibraries();
+
   const doc = new jsPDF();
   const monthName = format(new Date(data.year, parseInt(data.month) - 1, 1), 'MMMM yyyy');
 
@@ -145,15 +156,15 @@ export function exportMonthlyReportToPDF(data: MonthlyReportData, filename?: str
 
   // PAGE 3: Daily Breakdown
   doc.addPage();
-  addDailyBreakdownPage(doc, data, monthName);
+  addDailyBreakdownPage(doc, data, monthName, autoTable);
 
   // PAGE 4: Status Distribution
   doc.addPage();
-  addStatusDistributionPage(doc, data, monthName);
+  addStatusDistributionPage(doc, data, monthName, autoTable);
 
   // PAGE 5: Detailed Inspections
   doc.addPage();
-  addDetailedInspectionsPage(doc, data, monthName);
+  addDetailedInspectionsPage(doc, data, monthName, autoTable);
 
   // Save PDF
   const fileName = filename || `Laporan_Kebersihan_${monthName.replace(' ', '_')}.pdf`;
@@ -272,7 +283,7 @@ function addStatisticsPage(doc: jsPDF, data: MonthlyReportData, monthName: strin
 /**
  * Page 3: Daily Breakdown
  */
-function addDailyBreakdownPage(doc: jsPDF, data: MonthlyReportData, monthName: string): void {
+function addDailyBreakdownPage(doc: jsPDF, data: MonthlyReportData, monthName: string, autoTable: any): void {
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text('RINCIAN HARIAN', 105, 20, { align: 'center' });
@@ -310,7 +321,7 @@ function addDailyBreakdownPage(doc: jsPDF, data: MonthlyReportData, monthName: s
 /**
  * Page 4: Status Distribution
  */
-function addStatusDistributionPage(doc: jsPDF, data: MonthlyReportData, monthName: string): void {
+function addStatusDistributionPage(doc: jsPDF, data: MonthlyReportData, monthName: string, autoTable: any): void {
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text('DISTRIBUSI STATUS', 105, 20, { align: 'center' });
@@ -405,7 +416,7 @@ function addStatusDistributionPage(doc: jsPDF, data: MonthlyReportData, monthNam
 /**
  * Page 5: Detailed Inspections List
  */
-function addDetailedInspectionsPage(doc: jsPDF, data: MonthlyReportData, monthName: string): void {
+function addDetailedInspectionsPage(doc: jsPDF, data: MonthlyReportData, monthName: string, autoTable: any): void {
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text('DAFTAR INSPEKSI DETAIL', 105, 20, { align: 'center' });
