@@ -1,5 +1,5 @@
 /**
- * Next.js Middleware
+ * Next.js Proxy (formerly Middleware)
  * Route protection and authentication check
  */
 
@@ -14,7 +14,7 @@ const publicRoutes = ['/login', '/register', '/'];
 // Admin-only routes
 const adminRoutes = ['/admin'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Get token from cookie

@@ -3,7 +3,7 @@
  * Main layout for the entire app
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { TRPCProvider } from '@/lib/trpc/Provider';
 import { Toaster } from 'react-hot-toast';
@@ -13,7 +13,12 @@ export const metadata: Metadata = {
   description: 'Professional toilet inspection and management system with QR code scanning',
   keywords: 'toilet inspection, QR code, facility management, cleaning inspection',
   authors: [{ name: 'WC Check Team' }],
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: '#000000',
 };
 
